@@ -9,7 +9,7 @@ import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import AMMTrading from "@/components/market-detail/AMMTrading";
 import { mockMarkets } from "@/data/mockMarkets";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 
 // Mock price history data
 const generatePriceHistory = (yesPrice: number) => {
@@ -183,11 +183,17 @@ const MarketDetail = () => {
           </div>
 
           {/* Legal Disclaimer */}
-          <div className="mt-8 text-center">
-            <p className="text-xs text-muted-foreground italic">
-              Event contracts pay $1.00 if the outcome is correct, $0.00 if incorrect. 
-              All trading is subject to CFTC regulations and Shariz Terms of Use. 
-              Trade responsibly.
+          <div className="mt-8 bg-muted/30 border border-border rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Important Trading Disclosure
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed italic">
+              <strong className="text-foreground not-italic">Disclaimer:</strong> Shariz offers fixed-payout event contracts (binary options) 
+              that pay $1.00 if the predicted event occurs and $0.00 if not. All markets are regulated by the U.S. Commodity Futures 
+              Trading Commission (CFTC) as event contracts under federal commodity law, not gambling. Trading involves substantial risk 
+              of loss. Only trade with funds you can afford to lose. Past performance does not guarantee future results. 
+              See <a href="/terms" className="text-accent hover:underline">Terms of Use</a> for complete details and risk disclosures.
             </p>
           </div>
         </div>

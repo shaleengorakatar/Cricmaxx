@@ -24,7 +24,9 @@ const Hero = () => {
           </h1>
           <p className="text-3xl md:text-5xl font-semibold mb-8">
             Predict. Profit.{" "}
-            <span className="text-accent">Participate.</span>
+            <span className="text-accent inline-flex items-center gap-1">
+              Participate.
+            </span>
           </p>
           
           <p className="text-lg md:text-xl mb-12 text-primary-foreground/90 max-w-3xl mx-auto leading-relaxed">

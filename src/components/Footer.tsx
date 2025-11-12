@@ -2,21 +2,35 @@ const Footer = () => {
   return (
     <footer className="bg-secondary border-t border-border">
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center space-y-4">
-          <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            All trades on Shariz are federally regulated fixed-payout contracts under CFTC rules. 
-            Shariz provides a secure, compliant platform for prediction market participation.
-          </p>
+        <div className="space-y-6">
+          {/* Compliance Notice */}
+          <div className="bg-muted/50 border border-border rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              <strong className="text-foreground">Regulatory Compliance:</strong> Shariz is a federally-regulated prediction market platform. 
+              All event contracts are regulated by the U.S. Commodity Futures Trading Commission (CFTC) under federal commodity law. 
+              These are fixed-payout contracts, not gambling. Users must be 18+ and complete KYC verification.
+            </p>
+          </div>
+
+          {/* Legal Disclaimer */}
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              All trades on Shariz are federally regulated fixed-payout contracts under CFTC rules. 
+              Event contracts pay $1.00 if correct, $0.00 if incorrect. Trading involves substantial risk. 
+              Only trade with funds you can afford to lose.
+            </p>
+          </div>
           
+          {/* Links */}
           <div className="flex flex-wrap justify-center gap-6 text-sm">
             <a 
-              href="#" 
+              href="/terms" 
               className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Terms of Use
             </a>
             <a 
-              href="#" 
+              href="/privacy" 
               className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Privacy Policy
@@ -27,11 +41,18 @@ const Footer = () => {
             >
               Risk Disclosure
             </a>
+            <a 
+              href="#" 
+              className="text-foreground hover:text-accent transition-colors font-medium"
+            >
+              Contact Support
+            </a>
           </div>
           
-          <div className="pt-4 border-t border-border">
+          {/* Copyright */}
+          <div className="pt-4 border-t border-border text-center">
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Shariz. All rights reserved.
+              © {new Date().getFullYear()} Shariz. All rights reserved. Licensed and regulated by the CFTC.
             </p>
           </div>
         </div>

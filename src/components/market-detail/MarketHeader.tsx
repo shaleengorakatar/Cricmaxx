@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
 import { Clock, User, Building2, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import InfoTooltip from "@/components/InfoTooltip";
 
 interface MarketHeaderProps {
   market: Market;
@@ -52,10 +53,13 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
       <div className="bg-muted/50 border border-border rounded-lg p-3">
         <div className="flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium">CFTC-Regulated Event Contract:</span> This is a fixed-payout binary contract. 
-            Pays $1.00 if the outcome is correct, $0.00 if incorrect. All trades are federally compliant under CFTC regulations.
-          </p>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium">CFTC-Regulated Event Contract:</span> This is a fixed-payout binary contract{" "}
+              <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount ($1.00) if you're correct and nothing ($0.00) if you're wrong. They are regulated as commodity swaps by the CFTC, not gambling." />
+              {" "}Pays $1.00 if the outcome is correct, $0.00 if incorrect. All trades are federally compliant under CFTC regulations.
+            </p>
+          </div>
         </div>
       </div>
 
