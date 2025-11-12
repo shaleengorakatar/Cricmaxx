@@ -70,12 +70,12 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
 
   return (
     <>
-      <Card className="p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Wallet</h2>
+      <Card className="p-4 md:p-6">
+        <h2 className="text-base md:text-lg font-semibold text-foreground mb-4">Wallet</h2>
         <div className="flex gap-3">
           <Button 
             onClick={() => setIsDepositOpen(true)}
-            className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+            className="flex-1 h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
           >
             <ArrowDownToLine className="h-4 w-4 mr-2" />
             Deposit
@@ -83,7 +83,7 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
           <Button 
             onClick={() => setIsWithdrawOpen(true)}
             variant="outline"
-            className="flex-1"
+            className="flex-1 h-12 active:scale-95 transition-transform"
           >
             <ArrowUpFromLine className="h-4 w-4 mr-2" />
             Withdraw
@@ -112,7 +112,7 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
                 step="100"
               />
             </div>
-            <Button onClick={handleDeposit} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button onClick={handleDeposit} className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90">
               Confirm Deposit
             </Button>
           </div>
@@ -144,7 +144,7 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
                 Available: {balance.toLocaleString()} credits
               </p>
             </div>
-            <Button onClick={handleWithdraw} className="w-full" variant="outline">
+            <Button onClick={handleWithdraw} className="w-full h-12" variant="outline">
               Confirm Withdrawal
             </Button>
           </div>

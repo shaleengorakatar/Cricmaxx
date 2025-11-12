@@ -34,26 +34,26 @@ const TransactionHistory = ({ transactions }: TransactionHistoryProps) => {
   };
 
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Transaction History</h2>
+    <Card className="p-4 md:p-6">
+      <h2 className="text-base md:text-lg font-semibold text-foreground mb-4">Transaction History</h2>
       
       {transactions.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
           No transactions yet. Your transaction history will appear here.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors">
+            <div key={transaction.id} className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors active:scale-[0.98]">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {getTypeBadge(transaction.type)}
                   <span className="text-xs text-muted-foreground">{transaction.date}</span>
                 </div>
                 <p className="text-sm text-foreground truncate">{transaction.description}</p>
               </div>
-              <div className="ml-4">
-                <p className={`text-sm font-semibold ${isCredit(transaction.type) ? 'text-green-600' : 'text-red-600'}`}>
+              <div className="ml-4 shrink-0">
+                <p className={`text-sm md:text-base font-semibold ${isCredit(transaction.type) ? 'text-green-600' : 'text-red-600'}`}>
                   {isCredit(transaction.type) ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString()}
                 </p>
               </div>

@@ -138,9 +138,9 @@ const Dashboard = () => {
       
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Manage your portfolio and trading activity</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Dashboard</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Manage your portfolio and trading activity</p>
           </div>
 
           {!profile.kyc_verified && (
@@ -159,8 +159,8 @@ const Dashboard = () => {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-            <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               <PortfolioSummary 
                 balance={profile.balance}
                 profitLoss={profitLoss}
@@ -169,7 +169,7 @@ const Dashboard = () => {
               <PLChart data={mockChartData} />
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               <WalletActions 
                 balance={profile.balance}
                 onDeposit={handleDeposit}
@@ -177,7 +177,7 @@ const Dashboard = () => {
               />
               <div className="flex flex-col gap-3">
                 <Button 
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                  className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
                   onClick={() => navigate('/markets')}
                 >
                   <TrendingUp className="h-4 w-4 mr-2" />
@@ -185,7 +185,7 @@ const Dashboard = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full h-12"
                   onClick={() => navigate('/settings')}
                 >
                   <Settings className="h-4 w-4 mr-2" />
@@ -195,7 +195,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             <ActivePositions positions={mockPositions} />
             <TransactionHistory transactions={transactions} />
           </div>

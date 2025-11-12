@@ -7,9 +7,9 @@ interface PLChartProps {
 
 const PLChart = ({ data }: PLChartProps) => {
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Portfolio Performance</h2>
-      <ResponsiveContainer width="100%" height={200}>
+    <Card className="p-4 md:p-6">
+      <h2 className="text-base md:text-lg font-semibold text-foreground mb-4">Portfolio Performance</h2>
+      <ResponsiveContainer width="100%" height={180} className="md:h-[200px]">
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis 
