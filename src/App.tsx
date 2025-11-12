@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import CreatorDashboard from "./pages/CreatorDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/markets" element={<Markets />} />
           <Route path="/market/:id" element={<MarketDetail />} />
           <Route path="/creator" element={<CreatorDashboard />} />
+          <Route path="/admin" element={<AdminDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
