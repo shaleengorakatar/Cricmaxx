@@ -5,6 +5,10 @@ import { useNavigate } from "react-router-dom";
 const Hero = () => {
   const navigate = useNavigate();
 
+  const handleStartTrading = () => {
+    navigate('/markets');
+  };
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground overflow-hidden">
       {/* Background decoration */}
@@ -35,7 +39,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate('/dashboard')}
+              onClick={handleStartTrading}
             >
               <TrendingUp className="mr-2 h-5 w-5" />
               Start Trading

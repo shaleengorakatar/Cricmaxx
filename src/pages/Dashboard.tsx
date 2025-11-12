@@ -7,8 +7,10 @@ import WalletActions from "@/components/dashboard/WalletActions";
 import ActivePositions from "@/components/dashboard/ActivePositions";
 import TransactionHistory from "@/components/dashboard/TransactionHistory";
 import { Button } from "@/components/ui/button";
+import { TrendingUp, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, TrendingUp, Settings } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 // Mock data for demonstration
 const mockChartData = [
@@ -61,6 +63,7 @@ interface Transaction {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [balance, setBalance] = useState(10950);
   const [profitLoss] = useState(950);
   const [isVerified] = useState(false);
@@ -156,7 +159,10 @@ const Dashboard = () => {
                 onWithdraw={handleWithdraw}
               />
               <div className="flex flex-col gap-3">
-                <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button 
+                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                  onClick={() => navigate('/markets')}
+                >
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Browse Markets
                 </Button>
