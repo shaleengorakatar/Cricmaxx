@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import PlatformStats from "@/components/admin/PlatformStats";
@@ -16,6 +16,8 @@ import {
   RecentActivity,
   PlatformStats as PlatformStatsType,
 } from "@/types/admin";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 // Mock data
 const mockPendingMarkets: PendingMarket[] = [
@@ -151,11 +153,24 @@ const mockStats: PlatformStatsType = {
 };
 
 const AdminDashboard = () => {
-  const [isAdmin] = useState(true); // In real app, check user role
   const [pendingMarkets, setPendingMarkets] = useState(mockPendingMarkets);
   const [marketsToResolve, setMarketsToResolve] = useState(mockMarketsToResolve);
   const [users, setUsers] = useState(mockUsers);
   const [alerts, setAlerts] = useState(mockAlerts);
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/auth?mode=login');
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return null;
+  }
 
   if (!isAdmin) {
     return (

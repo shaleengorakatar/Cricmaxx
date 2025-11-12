@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCreationForm from "@/components/creator/MarketCreationForm";
@@ -7,6 +7,8 @@ import CreatorGuidance from "@/components/creator/CreatorGuidance";
 import { Card } from "@/components/ui/card";
 import { CreatorMarket } from "@/types/creator";
 import { DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 // Mock data for creator markets
 const mockCreatorMarkets: CreatorMarket[] = [
@@ -42,7 +44,8 @@ const mockCreatorMarkets: CreatorMarket[] = [
 
 const CreatorDashboard = () => {
   const [markets, setMarkets] = useState<CreatorMarket[]>(mockCreatorMarkets);
-  const [isCreator] = useState(true); // In real app, check user role
+  const { isAuthenticated, isCreator, loading } = useAuth();
+  const navigate = useNavigate();
 
   const totalEarnings = markets.reduce((sum, market) => sum + market.feesEarned, 0);
   const totalVolume = markets.reduce((sum, market) => sum + market.volume, 0);
@@ -52,6 +55,18 @@ const CreatorDashboard = () => {
     // Refresh markets list
     // In real app, this would fetch from database
   };
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/auth?mode=login');
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show loading while checking auth
+  if (loading) {
+    return null;
+  }
 
   if (!isCreator) {
     return (

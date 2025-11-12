@@ -50,7 +50,7 @@ const Hero = () => {
               size="lg" 
               variant="outline" 
               className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary text-lg px-8 py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/creator')}
             >
               <Users className="mr-2 h-5 w-5" />
               Create a Market

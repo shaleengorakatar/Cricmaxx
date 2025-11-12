@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import PortfolioSummary from "@/components/dashboard/PortfolioSummary";
@@ -11,6 +11,7 @@ import { TrendingUp, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 // Mock data for demonstration
 const mockChartData = [
@@ -64,9 +65,9 @@ interface Transaction {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, profile, loading } = useAuth();
   const [balance, setBalance] = useState(10950);
   const [profitLoss] = useState(950);
-  const [isVerified] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: "1",
@@ -90,6 +91,18 @@ const Dashboard = () => {
       amount: 1015,
     },
   ]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      navigate('/auth?mode=login');
+    }
+  }, [loading, isAuthenticated, navigate]);
+
+  // Show loading while checking auth
+  if (loading || !profile) {
+    return null;
+  }
 
   const handleDeposit = (amount: number) => {
     setBalance((prev) => prev + amount);
@@ -130,12 +143,16 @@ const Dashboard = () => {
             <p className="text-muted-foreground">Manage your portfolio and trading activity</p>
           </div>
 
-          {!isVerified && (
+          {!profile.kyc_verified && (
             <Alert className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
               <AlertTriangle className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800 dark:text-yellow-200">
                 Account not verified. Please complete KYC to enable full trading capabilities.
-                <Button variant="link" className="ml-2 p-0 h-auto text-yellow-900 dark:text-yellow-100 underline">
+                <Button 
+                  variant="link" 
+                  className="ml-2 p-0 h-auto text-yellow-900 dark:text-yellow-100 underline"
+                  onClick={() => navigate('/kyc-verification')}
+                >
                   Verify Now
                 </Button>
               </AlertDescription>
@@ -145,16 +162,16 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2 space-y-6">
               <PortfolioSummary 
-                balance={balance}
+                balance={profile.balance}
                 profitLoss={profitLoss}
-                isVerified={isVerified}
+                isVerified={profile.kyc_verified}
               />
               <PLChart data={mockChartData} />
             </div>
             
             <div className="space-y-6">
               <WalletActions 
-                balance={balance}
+                balance={profile.balance}
                 onDeposit={handleDeposit}
                 onWithdraw={handleWithdraw}
               />
@@ -166,7 +183,11 @@ const Dashboard = () => {
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Browse Markets
                 </Button>
-                <Button variant="outline" className="w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate('/settings')}
+                >
                   <Settings className="h-4 w-4 mr-2" />
                   Account Settings
                 </Button>
