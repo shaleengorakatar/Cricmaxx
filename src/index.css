@@ -2,12 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* 
+SHARIZ DESIGN SYSTEM
+Brand Colors: Deep Navy Blue (trust & professionalism) + Vibrant Orange (action & energy)
+Typography: Inter (modern, clean, professional sans-serif)
+Philosophy: Modern, credible, clean fintech aesthetic
+All colors MUST be HSL format for consistency
 */
 
 @layer base {
   :root {
+    /* === Background & Surface === */
     --background: 0 0% 100%;
     --foreground: 220 80% 15%;
 
@@ -17,35 +22,63 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 220 80% 15%;
 
-    /* Deep navy blue - primary brand color */
+    /* === Primary: Deep Navy Blue === */
+    /* Used for: headers, nav bar, primary buttons, trust elements */
     --primary: 220 80% 15%;
     --primary-foreground: 0 0% 98%;
+    --primary-hover: 220 80% 20%;
+    --primary-glow: 220 70% 25%;
 
-    /* Light background variant */
+    /* === Secondary: Light Backgrounds === */
     --secondary: 220 60% 96%;
     --secondary-foreground: 220 80% 15%;
 
+    /* === Muted: Subtle UI Elements === */
     --muted: 220 40% 94%;
     --muted-foreground: 220 20% 45%;
 
-    /* Bright orange - accent color */
+    /* === Accent: Vibrant Orange === */
+    /* Used for: highlights, CTAs, important icons, action items */
     --accent: 25 100% 60%;
     --accent-foreground: 0 0% 100%;
+    --accent-hover: 25 100% 55%;
+    --accent-light: 25 100% 95%;
 
+    /* === Status Colors === */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
+    /* === Borders & Inputs === */
     --border: 220 30% 88%;
     --input: 220 30% 88%;
     --ring: 220 80% 15%;
 
+    /* === Design Tokens === */
     --radius: 0.5rem;
+    --radius-sm: 0.25rem;
+    --radius-lg: 0.75rem;
 
-    /* Hero gradient */
+    /* === Gradients === */
     --gradient-hero: linear-gradient(135deg, hsl(220, 80%, 15%), hsl(220, 70%, 25%));
+    --gradient-accent: linear-gradient(135deg, hsl(25, 100%, 60%), hsl(25, 100%, 55%));
+    --gradient-subtle: linear-gradient(180deg, hsl(0, 0%, 100%), hsl(220, 60%, 98%));
     
-    /* Smooth transitions */
+    /* === Shadows === */
+    --shadow-sm: 0 1px 2px 0 rgba(26, 46, 92, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(26, 46, 92, 0.1), 0 2px 4px -1px rgba(26, 46, 92, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(26, 46, 92, 0.1), 0 4px 6px -2px rgba(26, 46, 92, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(26, 46, 92, 0.1), 0 10px 10px -5px rgba(26, 46, 92, 0.04);
+    --shadow-accent: 0 10px 30px -10px rgba(245, 166, 35, 0.3);
+    
+    /* === Transitions === */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
@@ -60,6 +93,8 @@ All colors MUST be HSL.
 
     --primary: 0 0% 98%;
     --primary-foreground: 220 80% 15%;
+    --primary-hover: 0 0% 95%;
+    --primary-glow: 220 70% 25%;
 
     --secondary: 220 50% 18%;
     --secondary-foreground: 0 0% 98%;
@@ -69,13 +104,27 @@ All colors MUST be HSL.
 
     --accent: 25 100% 60%;
     --accent-foreground: 0 0% 100%;
+    --accent-hover: 25 100% 65%;
+    --accent-light: 25 100% 15%;
 
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
     --border: 220 40% 20%;
     --input: 220 40% 20%;
     --ring: 0 0% 83.9%;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    --shadow-accent: 0 10px 30px -10px rgba(245, 166, 35, 0.4);
   }
 }
 
@@ -86,5 +135,116 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
+    font-variation-settings: 'opsz' 32;
+  }
+
+  /* Typography Scale */
+  h1 {
+    @apply text-4xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-3xl font-semibold tracking-tight;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold;
+  }
+
+  h4 {
+    @apply text-xl font-semibold;
+  }
+
+  h5 {
+    @apply text-lg font-medium;
+  }
+
+  h6 {
+    @apply text-base font-medium;
+  }
+}
+
+@layer components {
+  /* === Card Hover Effects === */
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  }
+
+  .card-interactive {
+    @apply transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* === Button Enhancements === */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-transform;
+  }
+
+  .btn-accent {
+    @apply bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform;
+  }
+
+  /* === Accent Underline Animation === */
+  .accent-underline {
+    @apply relative inline-block after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-accent after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left;
+  }
+
+  /* === Glow Effects === */
+  .glow-accent {
+    box-shadow: 0 0 20px rgba(245, 166, 35, 0.3);
+  }
+
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(26, 46, 92, 0.2);
+  }
+
+  /* === Focus States === */
+  .focus-accent:focus {
+    @apply outline-none ring-2 ring-accent ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* === Gradient Utilities === */
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .gradient-subtle {
+    background: var(--gradient-subtle);
+  }
+
+  /* === Shadow Utilities === */
+  .shadow-custom-sm {
+    box-shadow: var(--shadow-sm);
+  }
+
+  .shadow-custom-md {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-custom-lg {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-custom-xl {
+    box-shadow: var(--shadow-xl);
+  }
+
+  .shadow-accent {
+    box-shadow: var(--shadow-accent);
+  }
+
+  /* === Smooth Transitions === */
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  .transition-fast {
+    transition: var(--transition-fast);
   }
 }
