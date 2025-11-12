@@ -4,22 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface WalletActionsProps {
   balance: number;
-  onDeposit: (amount: number) => void;
-  onWithdraw: (amount: number) => void;
+  onBalanceUpdate: () => void;
 }
 
-const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) => {
+const WalletActions = ({ balance, onBalanceUpdate }: WalletActionsProps) => {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [amount, setAmount] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
     const depositAmount = parseFloat(amount);
     if (isNaN(depositAmount) || depositAmount <= 0) {
       toast({
@@ -30,16 +31,51 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
       return;
     }
 
-    onDeposit(depositAmount);
-    toast({
-      title: "Deposit successful",
-      description: `${depositAmount.toLocaleString()} credits added to your account`,
-    });
-    setAmount("");
-    setIsDepositOpen(false);
+    if (depositAmount > 1000000) {
+      toast({
+        title: "Amount too large",
+        description: "Maximum deposit is 1,000,000 credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('wallet-operations', {
+        body: {
+          operation: 'deposit',
+          amount: depositAmount
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Deposit successful",
+          description: `${depositAmount.toLocaleString()} credits added to your account`,
+        });
+        setAmount("");
+        setIsDepositOpen(false);
+        onBalanceUpdate();
+      } else {
+        throw new Error(data?.error || 'Deposit failed');
+      }
+    } catch (error) {
+      console.error('Deposit error:', error);
+      toast({
+        title: "Deposit failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleWithdraw = () => {
+  const handleWithdraw = async () => {
     const withdrawAmount = parseFloat(amount);
     if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
       toast({
@@ -59,13 +95,48 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
       return;
     }
 
-    onWithdraw(withdrawAmount);
-    toast({
-      title: "Withdrawal successful",
-      description: `${withdrawAmount.toLocaleString()} credits withdrawn from your account`,
-    });
-    setAmount("");
-    setIsWithdrawOpen(false);
+    if (withdrawAmount > 1000000) {
+      toast({
+        title: "Amount too large",
+        description: "Maximum withdrawal is 1,000,000 credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('wallet-operations', {
+        body: {
+          operation: 'withdrawal',
+          amount: withdrawAmount
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Withdrawal successful",
+          description: `${withdrawAmount.toLocaleString()} credits withdrawn from your account`,
+        });
+        setAmount("");
+        setIsWithdrawOpen(false);
+        onBalanceUpdate();
+      } else {
+        throw new Error(data?.error || 'Withdrawal failed');
+      }
+    } catch (error) {
+      console.error('Withdrawal error:', error);
+      toast({
+        title: "Withdrawal failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -112,8 +183,19 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
                 step="100"
               />
             </div>
-            <Button onClick={handleDeposit} className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90">
-              Confirm Deposit
+            <Button 
+              onClick={handleDeposit} 
+              disabled={isProcessing}
+              className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Deposit'
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -144,8 +226,20 @@ const WalletActions = ({ balance, onDeposit, onWithdraw }: WalletActionsProps) =
                 Available: {balance.toLocaleString()} credits
               </p>
             </div>
-            <Button onClick={handleWithdraw} className="w-full h-12" variant="outline">
-              Confirm Withdrawal
+            <Button 
+              onClick={handleWithdraw} 
+              disabled={isProcessing}
+              className="w-full h-12" 
+              variant="outline"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Confirm Withdrawal'
+              )}
             </Button>
           </div>
         </DialogContent>

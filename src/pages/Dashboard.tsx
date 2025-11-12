@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import React from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import PortfolioSummary from "@/components/dashboard/PortfolioSummary";
@@ -65,32 +67,53 @@ interface Transaction {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, profile, loading } = useAuth();
-  const [balance, setBalance] = useState(10950);
+  const { isAuthenticated, profile, loading, user } = useAuth();
+  const [balance, setBalance] = useState(profile?.balance || 0);
   const [profitLoss] = useState(950);
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      date: "2025-01-10",
-      type: "deposit",
-      description: "Initial deposit",
-      amount: 10000,
-    },
-    {
-      id: "2",
-      date: "2025-01-11",
-      type: "trade",
-      description: "Bitcoin market - Buy Yes",
-      amount: -65,
-    },
-    {
-      id: "3",
-      date: "2025-01-12",
-      type: "win",
-      description: "Market resolved: Tech stock prediction",
-      amount: 1015,
-    },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // Fetch real-time balance from database
+  const fetchBalance = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('balance')
+      .eq('id', user.id)
+      .single();
+
+    if (data && !error) {
+      setBalance(Number(data.balance) || 0);
+    }
+  };
+
+  // Fetch transactions from database
+  const fetchTransactions = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (data && !error) {
+      const formattedTransactions: Transaction[] = data.map(t => ({
+        id: t.id,
+        date: new Date(t.created_at).toLocaleDateString(),
+        description: t.type.charAt(0).toUpperCase() + t.type.slice(1),
+        amount: Number(t.amount),
+        type: t.type as any
+      }));
+      setTransactions(formattedTransactions);
+    }
+  };
+
+  const handleBalanceUpdate = () => {
+    fetchBalance();
+    fetchTransactions();
+  };
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -99,38 +122,18 @@ const Dashboard = () => {
     }
   }, [loading, isAuthenticated, navigate]);
 
+  // Initial data fetch
+  React.useEffect(() => {
+    if (user?.id) {
+      fetchBalance();
+      fetchTransactions();
+    }
+  }, [user?.id]);
+
   // Show loading while checking auth
   if (loading || !profile) {
     return null;
   }
-
-  const handleDeposit = (amount: number) => {
-    setBalance((prev) => prev + amount);
-    setTransactions((prev) => [
-      {
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-        type: "deposit",
-        description: "Deposit to account",
-        amount: amount,
-      },
-      ...prev,
-    ]);
-  };
-
-  const handleWithdraw = (amount: number) => {
-    setBalance((prev) => prev - amount);
-    setTransactions((prev) => [
-      {
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-        type: "withdrawal",
-        description: "Withdrawal from account",
-        amount: amount,
-      },
-      ...prev,
-    ]);
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -162,7 +165,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
             <div className="lg:col-span-2 space-y-4 md:space-y-6">
               <PortfolioSummary 
-                balance={profile.balance}
+                balance={balance}
                 profitLoss={profitLoss}
                 isVerified={profile.kyc_verified}
               />
@@ -171,9 +174,8 @@ const Dashboard = () => {
             
             <div className="space-y-4 md:space-y-6">
               <WalletActions 
-                balance={profile.balance}
-                onDeposit={handleDeposit}
-                onWithdraw={handleWithdraw}
+                balance={balance}
+                onBalanceUpdate={handleBalanceUpdate}
               />
               <div className="flex flex-col gap-3">
                 <Button 

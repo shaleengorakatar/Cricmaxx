@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TermsOfUseProps {
   requireAcceptance?: boolean;
@@ -16,7 +17,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
     if (!accepted) {
       toast({
         title: "Please accept the terms",
@@ -25,16 +26,49 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
       });
       return;
     }
-
-    // In real app, save acceptance to user profile
-    localStorage.setItem("termsAccepted", "true");
-    toast({
-      title: "Terms accepted",
-      description: "You can now use all features of Shariz",
-    });
     
-    if (requireAcceptance) {
-      navigate("/dashboard");
+    try {
+      // Save acceptance to database with proper authentication
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to accept the terms",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ terms_accepted_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error saving terms acceptance:', error);
+        throw error;
+      }
+
+      // Also save to localStorage for quick client-side checks
+      localStorage.setItem("termsAccepted", "true");
+      
+      toast({
+        title: "Terms accepted",
+        description: "You can now use all features of Shariz",
+      });
+
+      if (requireAcceptance) {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error('Terms acceptance error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save terms acceptance. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 

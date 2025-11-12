@@ -62,6 +62,7 @@ export type Database = {
           kyc_verified: boolean | null
           mfa_enabled: boolean | null
           name: string
+          terms_accepted_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           kyc_verified?: boolean | null
           mfa_enabled?: boolean | null
           name: string
+          terms_accepted_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -82,7 +84,47 @@ export type Database = {
           kyc_verified?: boolean | null
           mfa_enabled?: boolean | null
           name?: string
+          terms_accepted_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          id: string
+          metadata: Json | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
