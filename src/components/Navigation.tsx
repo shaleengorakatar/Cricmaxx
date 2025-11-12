@@ -12,6 +12,13 @@ const Navigation = () => {
           </div>
           
           <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              className="text-foreground hover:text-primary"
+              onClick={() => window.location.href = '/creator'}
+            >
+              Creator
+            </Button>
             <Button variant="ghost" className="text-foreground hover:text-primary">
               Login
             </Button>
