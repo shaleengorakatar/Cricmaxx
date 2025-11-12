@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { marketTemplates } from "@/data/marketTemplates";
 import { MarketTemplate } from "@/types/creator";
-import { CalendarIcon, AlertCircle, Sparkles } from "lucide-react";
+import { CalendarIcon, AlertCircle, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
   const [selectedTemplate, setSelectedTemplate] = useState<MarketTemplate | "">("");
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [resolutionSource, setResolutionSource] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
   const { toast } = useToast();
 
   const currentTemplate = marketTemplates.find(t => t.id === selectedTemplate);
@@ -91,13 +92,26 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
   const isFormValid = validateForm();
 
   return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Sparkles className="h-5 w-5 text-accent" />
-        <h2 className="text-xl font-bold text-foreground">Create New Market</h2>
-      </div>
+    <Card className="p-4 md:p-6">
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full mb-4 md:mb-6 group"
+      >
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-accent" />
+          <h2 className="text-lg md:text-xl font-bold text-foreground">Create New Market</h2>
+        </div>
+        <div className="md:hidden">
+          {isExpanded ? (
+            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          )}
+        </div>
+      </button>
 
-      <div className="space-y-6">
+      {isExpanded && (
+        <div className="space-y-4 md:space-y-6">
         {/* Template Selection */}
         <div>
           <Label htmlFor="template">Market Template</Label>
@@ -128,32 +142,34 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
                     {field.label} {field.required && <span className="text-red-500">*</span>}
                   </Label>
                   
-                  {field.type === "text" && (
+                   {field.type === "text" && (
                     <Input
                       id={field.name}
                       type="text"
                       placeholder={field.placeholder}
                       value={formData[field.name] || ""}
                       onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                      className="h-12"
                     />
                   )}
                   
-                  {field.type === "number" && (
+                   {field.type === "number" && (
                     <Input
                       id={field.name}
                       type="number"
                       placeholder={field.placeholder}
                       value={formData[field.name] || ""}
                       onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                      className="h-12"
                     />
                   )}
                   
-                  {field.type === "select" && (
+                   {field.type === "select" && (
                     <Select 
                       value={formData[field.name] || ""} 
                       onValueChange={(value) => handleFieldChange(field.name, value)}
                     >
-                      <SelectTrigger className="bg-card">
+                      <SelectTrigger className="bg-card h-12">
                         <SelectValue placeholder={field.placeholder} />
                       </SelectTrigger>
                       <SelectContent className="bg-card z-50">
@@ -166,13 +182,13 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
                     </Select>
                   )}
                   
-                  {field.type === "date" && (
+                   {field.type === "date" && (
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal",
+                            "w-full h-12 justify-start text-left font-normal",
                             !formData[field.name] && "text-muted-foreground"
                           )}
                         >
@@ -241,13 +257,14 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
             <Button 
               onClick={handleSubmit}
               disabled={!isFormValid}
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
             >
               Submit for Approval
             </Button>
           </>
         )}
-      </div>
+        </div>
+      )}
     </Card>
   );
 };

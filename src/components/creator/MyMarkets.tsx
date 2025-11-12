@@ -55,12 +55,12 @@ const MyMarkets = ({ markets }: MyMarketsProps) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {markets.map(market => (
-        <Card key={market.id} className="p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between gap-4 mb-3">
+        <Card key={market.id} className="p-4 md:p-5 hover:shadow-md transition-shadow active:scale-[0.99]">
+          <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
+              <h3 className="text-sm md:text-base font-semibold text-foreground mb-2 line-clamp-2">
                 {market.question}
               </h3>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -70,7 +70,7 @@ const MyMarkets = ({ markets }: MyMarketsProps) => {
             {getStatusBadge(market.status)}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 mb-4">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Volume</p>
               <p className="text-sm font-semibold text-foreground">
@@ -104,13 +104,14 @@ const MyMarkets = ({ markets }: MyMarketsProps) => {
               size="sm" 
               variant="outline"
               onClick={() => navigate(`/market/${market.id}`)}
-              className="flex-1"
+              className="flex-1 h-10 md:h-9 active:scale-95 transition-transform"
             >
               <Eye className="h-4 w-4 mr-1" />
-              View Details
+              <span className="hidden sm:inline">View Details</span>
+              <span className="sm:hidden">View</span>
             </Button>
             {market.status === "pending" && (
-              <Button size="sm" variant="ghost" className="text-destructive">
+              <Button size="sm" variant="ghost" className="h-10 md:h-9 text-destructive active:scale-95 transition-transform">
                 Cancel
               </Button>
             )}

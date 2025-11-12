@@ -3,8 +3,8 @@ import { AlertCircle, DollarSign, Shield, CheckCircle } from "lucide-react";
 
 const CreatorGuidance = () => {
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Creator Guidelines</h3>
+    <Card className="p-4 md:p-6">
+      <h3 className="text-base md:text-lg font-semibold text-foreground mb-4">Creator Guidelines</h3>
       
       <div className="space-y-4">
         <div className="flex items-start gap-3">

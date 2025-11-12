@@ -96,61 +96,61 @@ const CreatorDashboard = () => {
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">Creator Dashboard</h1>
-            <p className="text-muted-foreground">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Creator Dashboard</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               Create and manage your prediction markets
             </p>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+            <Card className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total Earnings</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-xl md:text-2xl font-bold text-green-600">
                     ${totalEarnings.toFixed(2)}
                   </p>
                 </div>
-                <DollarSign className="h-8 w-8 text-green-600" />
+                <DollarSign className="h-7 w-7 md:h-8 md:w-8 text-green-600" />
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Total Volume</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-xl md:text-2xl font-bold text-foreground">
                     {totalVolume.toLocaleString()}
                   </p>
                 </div>
-                <BarChart3 className="h-8 w-8 text-accent" />
+                <BarChart3 className="h-7 w-7 md:h-8 md:w-8 text-accent" />
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-4 md:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Active Markets</p>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-xl md:text-2xl font-bold text-foreground">
                     {activeMarkets}
                   </p>
                 </div>
-                <TrendingUp className="h-8 w-8 text-accent" />
+                <TrendingUp className="h-7 w-7 md:h-8 md:w-8 text-accent" />
               </div>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Main Content - 2 columns */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4 md:space-y-6">
               {/* Market Creation Form */}
               <MarketCreationForm onMarketCreated={handleMarketCreated} />
 
               {/* My Markets */}
               <div>
-                <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                <h2 className="text-lg md:text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                   <TrendingUp className="h-5 w-5 text-accent" />
                   My Markets
                 </h2>
@@ -159,7 +159,7 @@ const CreatorDashboard = () => {
             </div>
 
             {/* Sidebar - 1 column */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               <CreatorGuidance />
             </div>
           </div>
