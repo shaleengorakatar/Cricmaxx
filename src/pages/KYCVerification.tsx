@@ -105,72 +105,76 @@ const KYCVerification = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center px-4 md:px-6">
           <div className="mx-auto mb-4 w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center">
             <ShieldCheck className="w-8 h-8 text-accent" />
           </div>
-          <CardTitle className="text-2xl">Identity Verification</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-xl md:text-2xl">Identity Verification</CardTitle>
+          <CardDescription className="text-sm md:text-base">
             Shariz is a regulated platform and requires KYC (Know Your Customer) verification for all users as mandated by federal law.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+        <CardContent className="px-4 md:px-6">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="fullName">Full Legal Name</Label>
+              <Label htmlFor="fullName" className="text-sm md:text-base">Full Legal Name</Label>
               <Input
                 id="fullName"
                 type="text"
                 placeholder="As shown on government ID"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className="h-12 text-base"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Label htmlFor="dateOfBirth" className="text-sm md:text-base">Date of Birth</Label>
               <Input
                 id="dateOfBirth"
                 type="date"
                 value={formData.dateOfBirth}
                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 max={new Date(Date.now() - 567648000000).toISOString().split('T')[0]} // 18 years ago
+                className="h-12 text-base"
                 required
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 You must be 18 years or older to use Shariz
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Residential Address</Label>
+              <Label htmlFor="address" className="text-sm md:text-base">Residential Address</Label>
               <Input
                 id="address"
                 type="text"
                 placeholder="Street address, City, State, ZIP"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                className="h-12 text-base"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="idDocument">Government-Issued ID (Optional for demo)</Label>
+              <Label htmlFor="idDocument" className="text-sm md:text-base">Government-Issued ID (Optional for demo)</Label>
               <Input
                 id="idDocument"
                 type="file"
                 accept="image/*,.pdf"
                 onChange={handleFileChange}
+                className="h-12 cursor-pointer"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 Upload a clear photo of your driver's license, passport, or national ID
               </p>
             </div>
 
             <div className="bg-muted/50 border border-border rounded-lg p-4">
-              <h3 className="font-semibold mb-2 text-sm">Why we need this information:</h3>
-              <ul className="text-xs text-muted-foreground space-y-1">
+              <h3 className="font-semibold mb-2 text-sm md:text-base">Why we need this information:</h3>
+              <ul className="text-xs md:text-sm text-muted-foreground space-y-1">
                 <li>• Federal regulations require identity verification for all traders</li>
                 <li>• This helps prevent fraud and ensures platform security</li>
                 <li>• Your information is encrypted and stored securely</li>
@@ -180,12 +184,12 @@ const KYCVerification = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              className="w-full h-12 text-base bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Submitting...
                 </>
               ) : (

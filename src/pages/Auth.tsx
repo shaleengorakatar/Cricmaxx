@@ -189,15 +189,15 @@ const Auth = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Two-Factor Authentication</CardTitle>
-            <CardDescription>
+          <CardHeader className="px-4 md:px-6">
+            <CardTitle className="text-xl md:text-2xl">Two-Factor Authentication</CardTitle>
+            <CardDescription className="text-sm md:text-base">
               Enter the 6-digit code from your authenticator app or email
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-4 md:px-6">
             <div className="space-y-2">
-              <Label htmlFor="mfa-code">Verification Code</Label>
+              <Label htmlFor="mfa-code" className="text-sm md:text-base">Verification Code</Label>
               <Input
                 id="mfa-code"
                 type="text"
@@ -205,12 +205,13 @@ const Auth = () => {
                 placeholder="123456"
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                className="h-12 text-center text-2xl tracking-widest"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button 
                 onClick={handleMfaVerify}
-                className="flex-1"
+                className="flex-1 h-12 active:scale-95 transition-transform"
                 disabled={mfaCode.length !== 6}
               >
                 Verify
@@ -218,7 +219,7 @@ const Auth = () => {
               <Button 
                 variant="outline"
                 onClick={() => setMfaStep(false)}
-                className="flex-1"
+                className="flex-1 h-12 active:scale-95 transition-transform"
               >
                 Skip for now
               </Button>
@@ -232,49 +233,51 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center px-4 md:px-6">
           <CardTitle className="text-3xl font-bold text-primary">Shariz</CardTitle>
           <CardDescription>Predict. Profit. Participate.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 md:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 h-12">
+              <TabsTrigger value="login" className="text-sm md:text-base">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="text-sm md:text-base">Sign Up</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={handleSignIn} className="space-y-4">
+              <form onSubmit={handleSignIn} className="space-y-4 mt-6">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email" className="text-sm md:text-base">Email</Label>
                   <Input
                     id="login-email"
                     type="email"
                     placeholder="you@example.com"
                     value={signInData.email}
                     onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                    className="h-12 text-base"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <Label htmlFor="login-password" className="text-sm md:text-base">Password</Label>
                   <Input
                     id="login-password"
                     type="password"
                     placeholder="••••••••"
                     value={signInData.password}
                     onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                    className="h-12 text-base"
                     required
                   />
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full"
+                  className="w-full h-12 text-base active:scale-95 transition-transform"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Signing in...
                     </>
                   ) : (
@@ -285,52 +288,55 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
+              <form onSubmit={handleSignUp} className="space-y-4 mt-6">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Label htmlFor="signup-name" className="text-sm md:text-base">Full Name</Label>
                   <Input
                     id="signup-name"
                     type="text"
                     placeholder="John Doe"
                     value={signUpData.name}
                     onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
+                    className="h-12 text-base"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="signup-email" className="text-sm md:text-base">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
                     placeholder="you@example.com"
                     value={signUpData.email}
                     onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                    className="h-12 text-base"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
+                  <Label htmlFor="signup-password" className="text-sm md:text-base">Password</Label>
                   <Input
                     id="signup-password"
                     type="password"
                     placeholder="••••••••"
                     value={signUpData.password}
                     onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                    className="h-12 text-base"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Must be at least 8 characters
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="account-type">Account Type</Label>
+                  <Label htmlFor="account-type" className="text-sm md:text-base">Account Type</Label>
                   <Select
                     value={signUpData.accountType}
                     onValueChange={(value: 'trader' | 'creator') => 
                       setSignUpData({ ...signUpData, accountType: value })
                     }
                   >
-                    <SelectTrigger id="account-type">
+                    <SelectTrigger id="account-type" className="h-12 text-base">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -339,17 +345,17 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
                   Must be 18+ and will require identity verification (KYC) as required by federal law.
                 </p>
                 <Button 
                   type="submit" 
-                  className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+                  className="w-full h-12 text-base bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                       Creating account...
                     </>
                   ) : (
