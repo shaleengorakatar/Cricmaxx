@@ -35,19 +35,19 @@ const Markets = () => {
       
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-8">
+          {/* Header - Mobile optimized */}
+          <div className="mb-6 sm:mb-8">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-8 w-8 text-accent" />
-              <h1 className="text-3xl font-bold text-foreground">Browse Markets</h1>
+              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Browse Markets</h1>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               Discover and trade on prediction markets across various categories
             </p>
           </div>
 
           {/* Filters */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <MarketFilters
               selectedCategory={selectedCategory}
               selectedType={selectedType}
@@ -59,22 +59,22 @@ const Markets = () => {
           </div>
 
           {/* Results Count */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <p className="text-sm text-muted-foreground">
               Showing {filteredMarkets.length} {filteredMarkets.length === 1 ? 'market' : 'markets'}
             </p>
           </div>
 
-          {/* Market Grid */}
+          {/* Market Grid - Single column on mobile, multiple on larger screens */}
           {filteredMarkets.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredMarkets.map((market) => (
                 <MarketCard key={market.id} market={market} />
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <p className="text-lg text-muted-foreground">No markets found matching your filters</p>
+            <div className="text-center py-12 sm:py-16">
+              <p className="text-base sm:text-lg text-muted-foreground">No markets found matching your filters</p>
               <p className="text-sm text-muted-foreground mt-2">Try adjusting your search or filters</p>
             </div>
           )}

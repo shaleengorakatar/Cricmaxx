@@ -21,17 +21,17 @@ const MarketCard = ({ market }: MarketCardProps) => {
 
   return (
     <Card 
-      className="p-5 cursor-pointer hover:shadow-lg transition-all duration-300 hover:border-accent/50 group"
+      className="p-4 sm:p-5 cursor-pointer hover:shadow-lg transition-all duration-300 hover:border-accent/50 group active:scale-[0.98]"
       onClick={handleClick}
     >
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-2 flex-1">
+          <h3 className="text-base sm:text-base font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 flex-1 leading-snug">
             {market.question}
           </h3>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-xs whitespace-nowrap">
               {market.category}
             </Badge>
           </div>
@@ -40,54 +40,54 @@ const MarketCard = ({ market }: MarketCardProps) => {
         {/* Market Type Indicator */}
         <div className="flex items-center gap-2">
           {market.type === "orderbook" ? (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <BookOpen className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <BookOpen className="h-3.5 w-3.5" />
               <span>Order Book</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Zap className="h-3 w-3" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Zap className="h-3.5 w-3.5" />
               <span>Automated Market</span>
             </div>
           )}
         </div>
 
-        {/* Prices */}
+        {/* Prices - Enhanced touch targets on mobile */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 sm:p-3 min-h-[64px] flex flex-col justify-center">
             <p className="text-xs text-muted-foreground mb-1">Yes</p>
-            <p className="text-lg font-bold text-green-600 dark:text-green-500">
+            <p className="text-xl sm:text-lg font-bold text-green-600 dark:text-green-500">
               ${market.yesPrice.toFixed(2)}
             </p>
           </div>
-          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3">
+          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 sm:p-3 min-h-[64px] flex flex-col justify-center">
             <p className="text-xs text-muted-foreground mb-1">No</p>
-            <p className="text-lg font-bold text-red-600 dark:text-red-500">
+            <p className="text-xl sm:text-lg font-bold text-red-600 dark:text-red-500">
               ${market.noPrice.toFixed(2)}
             </p>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-1 text-muted-foreground">
+        {/* Stats - Stack on very small screens */}
+        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 text-sm">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
             <BarChart3 className="h-4 w-4" />
-            <span className="text-xs">
+            <span className="text-xs sm:text-xs">
               {market.volume.toLocaleString()} vol
             </span>
           </div>
-          <div className={`flex items-center gap-1 ${isExpiringSoon ? 'text-red-600 dark:text-red-500' : 'text-muted-foreground'}`}>
+          <div className={`flex items-center gap-1.5 ${isExpiringSoon ? 'text-red-600 dark:text-red-500' : 'text-muted-foreground'}`}>
             <Clock className="h-4 w-4" />
-            <span className="text-xs">
+            <span className="text-xs sm:text-xs">
               {isExpiringSoon && "⚠️ "}
               Expires {timeToExpiry}
             </span>
           </div>
         </div>
 
-        {/* Trade Button */}
-        <div className="pt-2 border-t border-border">
-          <div className="flex items-center justify-center gap-2 text-accent group-hover:text-accent/80 transition-colors">
+        {/* Trade Button - Enhanced for mobile */}
+        <div className="pt-3 border-t border-border">
+          <div className="flex items-center justify-center gap-2 text-accent group-hover:text-accent/80 transition-colors py-1">
             <TrendingUp className="h-4 w-4" />
             <span className="text-sm font-medium">View Market</span>
           </div>
