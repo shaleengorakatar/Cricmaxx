@@ -226,27 +226,29 @@ const AdminDashboard = () => {
       
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <div className="flex items-center gap-2 mb-2">
-              <Shield className="h-8 w-8 text-accent" />
-              <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+              <Shield className="h-6 w-6 md:h-8 md:w-8 text-accent" />
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Admin Dashboard</h1>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm md:text-base text-muted-foreground">
               Manage markets, users, and monitor platform activity
             </p>
           </div>
 
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <PlatformStats stats={mockStats} />
           </div>
 
-          <Tabs defaultValue="approvals" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-              <TabsTrigger value="approvals">Market Approvals</TabsTrigger>
-              <TabsTrigger value="resolution">Market Resolution</TabsTrigger>
-              <TabsTrigger value="users">User Management</TabsTrigger>
-              <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="approvals" className="space-y-4 md:space-y-6">
+            <div className="overflow-x-auto -mx-4 px-4">
+              <TabsList className="grid w-full grid-cols-2 min-w-[400px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-4">
+                <TabsTrigger value="approvals" className="text-xs md:text-sm">Market Approvals</TabsTrigger>
+                <TabsTrigger value="resolution" className="text-xs md:text-sm">Resolution</TabsTrigger>
+                <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+                <TabsTrigger value="monitoring" className="text-xs md:text-sm">Monitoring</TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="approvals">
               <MarketApprovalPanel 

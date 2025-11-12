@@ -61,8 +61,8 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-3">
+    <div className="space-y-3 md:space-y-4">
+      <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-3 md:p-4">
         <div className="flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
           <p className="text-xs text-yellow-800 dark:text-yellow-200">
@@ -73,7 +73,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
       </div>
 
       {markets.map(market => (
-        <Card key={market.id} className="p-5">
+        <Card key={market.id} className="p-4 md:p-5">
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-foreground text-base mb-3">
@@ -96,7 +96,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
               </div>
             </div>
 
-            <div className="flex gap-3 items-end">
+            <div className="flex flex-col md:flex-row gap-3 md:items-end">
               <div className="flex-1">
                 <label className="text-sm font-medium text-foreground mb-2 block">
                   Select Outcome
@@ -107,7 +107,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
                     setResolutions(prev => ({ ...prev, [market.id]: value }))
                   }
                 >
-                  <SelectTrigger className="bg-card">
+                  <SelectTrigger className="bg-card h-12">
                     <SelectValue placeholder="Choose outcome" />
                   </SelectTrigger>
                   <SelectContent className="bg-card z-50">
@@ -120,7 +120,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Button className="w-full md:w-auto h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform">
                     <Flag className="h-4 w-4 mr-2" />
                     Settle Market
                   </Button>

@@ -58,9 +58,9 @@ const MarketApprovalPanel = ({ markets, onApprove, onReject }: MarketApprovalPan
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {markets.map(market => (
-        <Card key={market.id} className="p-5">
+        <Card key={market.id} className="p-4 md:p-5">
           <div className="space-y-4">
             <div>
               <div className="flex items-start justify-between gap-4 mb-3">
@@ -99,7 +99,7 @@ const MarketApprovalPanel = ({ markets, onApprove, onReject }: MarketApprovalPan
             <div className="flex gap-2 pt-3 border-t border-border">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white">
+                  <Button className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white active:scale-95 transition-transform">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Approve
                   </Button>
@@ -122,7 +122,7 @@ const MarketApprovalPanel = ({ markets, onApprove, onReject }: MarketApprovalPan
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="flex-1">
+                  <Button variant="destructive" className="flex-1 h-12 active:scale-95 transition-transform">
                     <XCircle className="h-4 w-4 mr-2" />
                     Reject
                   </Button>

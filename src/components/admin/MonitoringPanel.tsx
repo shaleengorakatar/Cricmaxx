@@ -35,11 +35,11 @@ const MonitoringPanel = ({ alerts, recentActivity, onMarkAlertReviewed }: Monito
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
       {/* Fraud Alerts */}
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-yellow-600" />
+        <h3 className="text-base md:text-lg font-semibold text-foreground mb-3 md:mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />
           Fraud Alerts
         </h3>
         
@@ -53,8 +53,8 @@ const MonitoringPanel = ({ alerts, recentActivity, onMarkAlertReviewed }: Monito
         ) : (
           <div className="space-y-3">
             {alerts.map(alert => (
-              <Card key={alert.id} className="p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
+              <Card key={alert.id} className="p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       {getSeverityBadge(alert.severity)}
@@ -70,6 +70,7 @@ const MonitoringPanel = ({ alerts, recentActivity, onMarkAlertReviewed }: Monito
                       size="sm" 
                       variant="outline"
                       onClick={() => handleMarkReviewed(alert)}
+                      className="h-10 w-full sm:w-auto active:scale-95 transition-transform"
                     >
                       Mark Reviewed
                     </Button>
@@ -90,13 +91,13 @@ const MonitoringPanel = ({ alerts, recentActivity, onMarkAlertReviewed }: Monito
 
       {/* Recent Activity */}
       <div>
-        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Activity className="h-5 w-5 text-accent" />
+        <h3 className="text-base md:text-lg font-semibold text-foreground mb-3 md:mb-4 flex items-center gap-2">
+          <Activity className="h-4 w-4 md:h-5 md:w-5 text-accent" />
           Recent Activity
         </h3>
         
-        <Card className="p-4">
-          <div className="space-y-3 max-h-[500px] overflow-y-auto">
+        <Card className="p-3 md:p-4">
+          <div className="space-y-3 max-h-[400px] md:max-h-[500px] overflow-y-auto">
             {recentActivity.map(activity => (
               <div key={activity.id} className="pb-3 border-b border-border last:border-0 last:pb-0">
                 <div className="flex items-start justify-between gap-2 mb-1">

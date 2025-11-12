@@ -58,8 +58,145 @@ const UserManagementPanel = ({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
+    <div className="space-y-3 md:space-y-4">
+      {/* Mobile: Card layout */}
+      <div className="md:hidden space-y-3">
+        {users.map(user => (
+          <Card key={user.id} className="p-4">
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground text-sm">{user.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Joined {format(new Date(user.signupDate), "MMM yyyy")}
+                  </p>
+                </div>
+                <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                  {user.role}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Balance</p>
+                  <p className="font-medium">{user.balance.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Volume</p>
+                  <p className="font-medium">{user.totalVolume.toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {user.kycVerified && (
+                  <Badge className="bg-green-600 text-xs">
+                    <ShieldCheck className="h-3 w-3 mr-1" />
+                    KYC
+                  </Badge>
+                )}
+                {user.isBanned && (
+                  <Badge variant="destructive" className="text-xs">
+                    <Ban className="h-3 w-3 mr-1" />
+                    Banned
+                  </Badge>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-border">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-10 flex-1">
+                      <Shield className="h-4 w-4 mr-1" />
+                      <span className="text-xs">KYC</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Toggle KYC Verification</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {user.kycVerified 
+                          ? `Remove KYC verification for ${user.name}?`
+                          : `Mark ${user.name} as KYC verified?`
+                        }
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleToggleKYC(user)}>
+                        Confirm
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {user.role === "trader" && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="h-10 flex-1">
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        <span className="text-xs">Creator</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Promote to Creator</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Grant creator permissions to {user.name}? They will be able to create markets.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handlePromoteToCreator(user)}>
+                          Promote
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant={user.isBanned ? "default" : "destructive"}
+                      className="h-10 flex-1"
+                    >
+                      <Ban className="h-4 w-4 mr-1" />
+                      <span className="text-xs">{user.isBanned ? "Unban" : "Ban"}</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {user.isBanned ? "Unban User" : "Ban User"}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {user.isBanned 
+                          ? `Restore access for ${user.name}?`
+                          : `Ban ${user.name} from the platform? They will not be able to login.`
+                        }
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => handleToggleBan(user)}
+                        className={user.isBanned ? "" : "bg-destructive text-destructive-foreground"}
+                      >
+                        {user.isBanned ? "Unban" : "Ban"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Desktop: Table layout */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border">
