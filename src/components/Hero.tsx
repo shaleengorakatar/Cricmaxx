@@ -1,7 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground overflow-hidden">
       {/* Background decoration */}
@@ -32,6 +35,7 @@ const Hero = () => {
             <Button 
               size="lg" 
               className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate('/dashboard')}
             >
               <TrendingUp className="mr-2 h-5 w-5" />
               Start Trading
@@ -40,6 +44,7 @@ const Hero = () => {
               size="lg" 
               variant="outline" 
               className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary text-lg px-8 py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all"
+              onClick={() => navigate('/dashboard')}
             >
               <Users className="mr-2 h-5 w-5" />
               Create a Market
