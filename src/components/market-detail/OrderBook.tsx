@@ -20,17 +20,17 @@ const OrderBook = ({ orders }: OrderBookProps) => {
   const bestNoAsk = noOrders[0];
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Order Book</h3>
+    <div className="p-0 md:p-6">
+      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4 px-4 md:px-0 hidden md:block">Order Book</h3>
       
-      <div className="space-y-4">
-        {/* Best Prices Summary */}
+      <div className="space-y-4 px-4 md:px-0 pb-4 md:pb-0">
+        {/* Best Prices Summary - Always visible */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
             <p className="text-xs text-muted-foreground mb-1">Best Yes Bid</p>
             {bestYesBid ? (
               <>
-                <p className="text-lg font-bold text-green-600 dark:text-green-500">
+                <p className="text-xl sm:text-lg font-bold text-green-600 dark:text-green-500">
                   ${bestYesBid.price.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground">{bestYesBid.quantity} shares</p>
@@ -39,11 +39,11 @@ const OrderBook = ({ orders }: OrderBookProps) => {
               <p className="text-sm text-muted-foreground">No bids</p>
             )}
           </div>
-          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3">
+          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
             <p className="text-xs text-muted-foreground mb-1">Best No Ask</p>
             {bestNoAsk ? (
               <>
-                <p className="text-lg font-bold text-red-600 dark:text-red-500">
+                <p className="text-xl sm:text-lg font-bold text-red-600 dark:text-red-500">
                   ${bestNoAsk.price.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground">{bestNoAsk.quantity} shares</p>
@@ -54,8 +54,8 @@ const OrderBook = ({ orders }: OrderBookProps) => {
           </div>
         </div>
 
-        {/* Order Book Tables */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Detailed Order Book Tables - Desktop only or expanded on mobile */}
+        <div className="hidden md:grid md:grid-cols-2 gap-4">
           {/* Yes Orders */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -98,8 +98,13 @@ const OrderBook = ({ orders }: OrderBookProps) => {
             </div>
           </div>
         </div>
+
+        {/* Mobile hint */}
+        <p className="text-xs text-center text-muted-foreground md:hidden">
+          Full order book available on larger screens
+        </p>
       </div>
-    </Card>
+    </div>
   );
 };
 

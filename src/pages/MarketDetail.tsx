@@ -9,7 +9,8 @@ import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import AMMTrading from "@/components/market-detail/AMMTrading";
 import { mockMarkets } from "@/data/mockMarkets";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, AlertCircle } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 // Mock price history data
 const generatePriceHistory = (yesPrice: number) => {
@@ -59,6 +60,11 @@ const MarketDetail = () => {
   const [market, setMarket] = useState(mockMarkets.find(m => m.id === id));
   const [priceHistory, setPriceHistory] = useState(market ? generatePriceHistory(market.yesPrice) : []);
   const [orderBook, setOrderBook] = useState(generateOrderBook());
+  
+  // Mobile collapsible sections
+  const [chartExpanded, setChartExpanded] = useState(true);
+  const [orderBookExpanded, setOrderBookExpanded] = useState(false);
+  const [statsExpanded, setStatsExpanded] = useState(false);
 
   useEffect(() => {
     const foundMarket = mockMarkets.find(m => m.id === id);
@@ -122,25 +128,63 @@ const MarketDetail = () => {
           <Button 
             variant="ghost" 
             onClick={() => navigate('/markets')}
-            className="mb-6"
+            className="mb-4 sm:mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Markets
           </Button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Market Info */}
-            <div className="lg:col-span-2 space-y-6">
+          {/* Mobile: Single column layout, Desktop: Grid layout */}
+          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
+            {/* Market Info & Chart Section */}
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <MarketHeader market={market} />
-              <PriceChart data={priceHistory} />
               
+              {/* Collapsible Price Chart on Mobile */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setChartExpanded(!chartExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
+                    {chartExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
+                    <PriceChart data={priceHistory} />
+                  </div>
+                </Card>
+              </div>
+              
+              {/* Order Book - Collapsible on mobile for orderbook markets */}
               {market.type === "orderbook" && (
-                <OrderBook orders={orderBook} />
+                <div className="md:block">
+                  <Card className="overflow-hidden">
+                    <button
+                      onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                      className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                      {orderBookExpanded ? (
+                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                      <OrderBook orders={orderBook} />
+                    </div>
+                  </Card>
+                </div>
               )}
             </div>
 
-            {/* Right Column - Trading Interface */}
-            <div className="space-y-6">
+            {/* Trading Section - Always visible on mobile, sticky on desktop */}
+            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
               {market.type === "orderbook" ? (
                 <OrderBookTrading 
                   marketId={market.id}
@@ -157,38 +201,51 @@ const MarketDetail = () => {
                 />
               )}
 
-              {/* Market Stats */}
-              <div className="bg-card border border-border rounded-lg p-6 space-y-3">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Market Statistics</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Total Volume:</span>
-                    <span className="font-semibold text-foreground">
-                      {market.volume.toLocaleString()} shares
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Market Type:</span>
-                    <span className="font-semibold text-foreground">
-                      {market.type === "orderbook" ? "Order Book" : "Automated Market"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Platform Fee:</span>
-                    <span className="font-semibold text-foreground">2%</span>
+              {/* Market Stats - Collapsible on mobile */}
+              <Card className="overflow-hidden">
+                <button
+                  onClick={() => setStatsExpanded(!statsExpanded)}
+                  className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                >
+                  <h3 className="text-sm font-semibold text-foreground">Market Statistics</h3>
+                  {statsExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </button>
+                <div className={`${statsExpanded ? 'block' : 'hidden'} md:block p-4 sm:p-6 space-y-3`}>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 hidden md:block">Market Statistics</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Volume:</span>
+                      <span className="font-semibold text-foreground">
+                        {market.volume.toLocaleString()} shares
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Market Type:</span>
+                      <span className="font-semibold text-foreground">
+                        {market.type === "orderbook" ? "Order Book" : "Automated Market"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Platform Fee:</span>
+                      <span className="font-semibold text-foreground">2%</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
           </div>
 
-          {/* Legal Disclaimer */}
-          <div className="mt-8 bg-muted/30 border border-border rounded-lg p-6">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          {/* Legal Disclaimer - Responsive */}
+          <div className="mt-6 sm:mt-8 bg-muted/30 border border-border rounded-lg p-4 sm:p-6">
+            <h3 className="text-sm font-semibold text-foreground mb-2 sm:mb-3 flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               Important Trading Disclosure
             </h3>
-            <p className="text-xs text-muted-foreground leading-relaxed italic">
+            <p className="text-xs sm:text-xs text-muted-foreground leading-relaxed italic">
               <strong className="text-foreground not-italic">Disclaimer:</strong> Shariz offers fixed-payout event contracts (binary options) 
               that pay $1.00 if the predicted event occurs and $0.00 if not. All markets are regulated by the U.S. Commodity Futures 
               Trading Commission (CFTC) as event contracts under federal commodity law, not gambling. Trading involves substantial risk 

@@ -14,29 +14,31 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="flex items-start justify-between gap-3 sm:gap-4 flex-wrap">
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-2 sm:mb-3 leading-tight">
             {market.question}
           </h1>
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            <Badge variant="outline" className="text-sm">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            <Badge variant="outline" className="text-xs sm:text-sm">
               {market.category}
             </Badge>
             <div className="flex items-center gap-1 text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>Expires {format(expiryDate, "MMM dd, yyyy 'at' HH:mm")}</span>
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="text-xs sm:text-sm">
+                Expires {format(expiryDate, "MMM dd, yyyy")}
+              </span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               {market.type === "orderbook" ? (
                 <>
-                  <Building2 className="h-4 w-4" />
-                  <span>Exchange Market</span>
+                  <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Exchange</span>
                 </>
               ) : (
                 <>
-                  <User className="h-4 w-4" />
-                  <span>Creator Market</span>
+                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="text-xs sm:text-sm">Creator</span>
                 </>
               )}
             </div>
@@ -44,29 +46,29 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
         </div>
         <Badge 
           variant={isExpired ? "destructive" : "default"}
-          className="text-sm px-4 py-1"
+          className="text-xs sm:text-sm px-3 sm:px-4 py-1 whitespace-nowrap"
         >
           {isExpired ? "Closed" : "Open"}
         </Badge>
       </div>
 
-      <div className="bg-muted/50 border border-border rounded-lg p-3">
+      <div className="bg-muted/50 border border-border rounded-lg p-3 sm:p-3">
         <div className="flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+          <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs sm:text-xs text-muted-foreground leading-relaxed">
               <span className="font-medium">CFTC-Regulated Event Contract:</span> This is a fixed-payout binary contract{" "}
               <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount ($1.00) if you're correct and nothing ($0.00) if you're wrong. They are regulated as commodity swaps by the CFTC, not gambling." />
-              {" "}Pays $1.00 if the outcome is correct, $0.00 if incorrect. All trades are federally compliant under CFTC regulations.
+              {" "}Pays $1.00 if correct, $0.00 if incorrect. Federally compliant under CFTC regulations.
             </p>
           </div>
         </div>
       </div>
 
       {market.description && (
-        <div className="border-t border-border pt-4">
+        <div className="border-t border-border pt-3 sm:pt-4">
           <h3 className="text-sm font-semibold text-foreground mb-2">Market Description</h3>
-          <p className="text-sm text-muted-foreground">{market.description}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{market.description}</p>
         </div>
       )}
     </div>

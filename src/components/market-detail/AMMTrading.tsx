@@ -70,38 +70,38 @@ const AMMTrading = ({ marketId, yesPrice, noPrice, userBalance, onTrade }: AMMTr
   };
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold text-foreground mb-4">Trade</h3>
+    <Card className="p-4 sm:p-6">
+      <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4 hidden md:block">Trade</h3>
       
       <div className="space-y-4">
-        {/* Current Prices Display */}
-        <div className="grid grid-cols-2 gap-3 mb-2">
-          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
+        {/* Current Prices Display - Enhanced for mobile */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
             <p className="text-xs text-muted-foreground mb-1">Yes Price</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-500">
+            <p className="text-2xl sm:text-xl font-bold text-green-600 dark:text-green-500">
               ${yesPrice.toFixed(2)}
             </p>
           </div>
-          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3">
+          <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-4 min-h-[80px] flex flex-col justify-center">
             <p className="text-xs text-muted-foreground mb-1">No Price</p>
-            <p className="text-xl font-bold text-red-600 dark:text-red-500">
+            <p className="text-2xl sm:text-xl font-bold text-red-600 dark:text-red-500">
               ${noPrice.toFixed(2)}
             </p>
           </div>
         </div>
 
-        {/* Side Selection */}
-        <div className="flex gap-2">
+        {/* Side Selection - Touch-friendly */}
+        <div className="grid grid-cols-2 gap-3">
           <Button
             variant={side === "yes" ? "default" : "outline"}
-            className={`flex-1 ${side === "yes" ? "bg-green-600 hover:bg-green-700" : ""}`}
+            className={`h-12 text-base font-semibold ${side === "yes" ? "bg-green-600 hover:bg-green-700" : ""} active:scale-[0.98] transition-transform`}
             onClick={() => setSide("yes")}
           >
             Buy Yes
           </Button>
           <Button
             variant={side === "no" ? "default" : "outline"}
-            className={`flex-1 ${side === "no" ? "bg-red-600 hover:bg-red-700" : ""}`}
+            className={`h-12 text-base font-semibold ${side === "no" ? "bg-red-600 hover:bg-red-700" : ""} active:scale-[0.98] transition-transform`}
             onClick={() => setSide("no")}
           >
             Buy No
@@ -109,7 +109,7 @@ const AMMTrading = ({ marketId, yesPrice, noPrice, userBalance, onTrade }: AMMTr
         </div>
 
         <div>
-          <Label htmlFor="shares">Number of Shares</Label>
+          <Label htmlFor="shares" className="text-sm sm:text-base">Number of Shares</Label>
           <Input
             id="shares"
             type="number"
@@ -117,6 +117,7 @@ const AMMTrading = ({ marketId, yesPrice, noPrice, userBalance, onTrade }: AMMTr
             value={shares}
             onChange={(e) => setShares(e.target.value)}
             min="1"
+            className="h-12 text-base"
           />
         </div>
 
@@ -148,7 +149,7 @@ const AMMTrading = ({ marketId, yesPrice, noPrice, userBalance, onTrade }: AMMTr
 
         <Button 
           onClick={handleTrade}
-          className={`w-full ${side === "yes" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white`}
+          className={`w-full h-12 text-base font-semibold ${side === "yes" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} text-white active:scale-[0.98] transition-transform`}
         >
           Buy {side.toUpperCase()} Shares
         </Button>
