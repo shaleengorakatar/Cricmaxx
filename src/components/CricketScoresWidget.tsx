@@ -8,12 +8,14 @@ import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface Match {
-  unique_id: string;
-  team1: string;
-  team2: string;
+  id: string;
+  name: string;
+  matchType: string;
+  status: string;
+  venue: string;
   date: string;
-  matchStarted: boolean;
   dateTimeGMT: string;
+  teams: string[];
 }
 
 interface LiveScore {
@@ -37,11 +39,11 @@ const CricketScoresWidget = () => {
   const fetchMatches = async () => {
     try {
       const response = await fetch(
-        "https://cricapi.com/api/matches?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3"
+        "https://api.cricapi.com/v1/currentMatches?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0"
       );
       const data = await response.json();
-      if (data.matches) {
-        setMatches(data.matches.slice(0, 10));
+      if (data.data) {
+        setMatches(data.data.slice(0, 10));
       }
     } catch (error) {
       console.error("Error fetching matches:", error);
@@ -50,15 +52,25 @@ const CricketScoresWidget = () => {
     }
   };
 
-  const fetchLiveScore = async (uniqueId: string) => {
+  const fetchLiveScore = async (matchId: string) => {
     setScoreLoading(true);
-    setSelectedMatch(uniqueId);
+    setSelectedMatch(matchId);
     try {
       const response = await fetch(
-        `https://cricapi.com/api/cricketScore?unique_id=${uniqueId}&apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3`
+        `https://api.cricapi.com/v1/match_info?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&id=${matchId}`
       );
       const data = await response.json();
-      setLiveScore(data);
+      if (data.data) {
+        const matchData = data.data;
+        setLiveScore({
+          team1: matchData.teams?.[0] || '',
+          team2: matchData.teams?.[1] || '',
+          score: matchData.score?.[0]?.r && matchData.score?.[0]?.w 
+            ? `${matchData.score[0].r}/${matchData.score[0].w} (${matchData.score[0].o} overs)` 
+            : matchData.status || 'Match info not available',
+          stat: matchData.venue || ''
+        });
+      }
     } catch (error) {
       console.error("Error fetching live score:", error);
     } finally {
@@ -92,27 +104,27 @@ const CricketScoresWidget = () => {
             <ScrollArea className="h-[400px] pr-4">
               <div className="space-y-3">
                 {matches.map((match) => (
-                  <Card key={match.unique_id} className="bg-muted/50 border-border hover:bg-muted transition-colors">
+                  <Card key={match.id} className="bg-muted/50 border-border hover:bg-muted transition-colors">
                     <CardContent className="p-4">
                       <div className="flex justify-between items-start gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-foreground">
-                              {match.team1} vs {match.team2}
+                              {match.name}
                             </h3>
-                            {match.matchStarted && (
+                            {match.status === "Live" && (
                               <Badge variant="default" className="bg-accent text-accent-foreground">
                                 Live
                               </Badge>
                             )}
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {formatMatchTime(match.dateTimeGMT)}
+                            {match.matchType} • {formatMatchTime(match.dateTimeGMT)}
                           </p>
                         </div>
                         <Button
                           size="sm"
-                          onClick={() => fetchLiveScore(match.unique_id)}
+                          onClick={() => fetchLiveScore(match.id)}
                           className="bg-accent text-accent-foreground hover:bg-accent/90"
                         >
                           See Live Score

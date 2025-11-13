@@ -8,47 +8,50 @@ import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
-interface Match {
-  unique_id: string;
-  team1: string;
-  team2: string;
-  date: string;
-  matchStarted: boolean;
-  dateTimeGMT: string;
+interface Series {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  odi: number;
+  t20: number;
+  test: number;
+  squads: number;
+  matches: number;
 }
 
 const UpcomingMatches = () => {
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [series, setSeries] = useState<Series[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchUpcomingMatches();
+    fetchUpcomingSeries();
   }, []);
 
-  const fetchUpcomingMatches = async () => {
+  const fetchUpcomingSeries = async () => {
     try {
       const response = await fetch(
-        "https://cricapi.com/api/matches?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3"
+        "https://api.cricapi.com/v1/series?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0"
       );
       const data = await response.json();
       
-      if (data.matches) {
-        // Filter for upcoming matches (date > today and not started)
+      if (data.data) {
+        // Filter for upcoming series (startDate >= today)
         const now = new Date();
-        const upcomingMatches = data.matches.filter((match: Match) => {
+        const upcomingSeries = data.data.filter((s: Series) => {
           try {
-            const matchDate = new Date(match.dateTimeGMT);
-            return isAfter(matchDate, now) && !match.matchStarted;
+            const seriesDate = new Date(s.startDate);
+            return isAfter(seriesDate, now) || format(seriesDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
           } catch {
             return false;
           }
         });
         
-        setMatches(upcomingMatches);
+        setSeries(upcomingSeries);
       }
     } catch (error) {
-      console.error("Error fetching matches:", error);
+      console.error("Error fetching series:", error);
     } finally {
       setLoading(false);
     }
@@ -80,10 +83,10 @@ const UpcomingMatches = () => {
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">
-              Upcoming Cricket Matches
+              Upcoming Cricket Series
             </h1>
             <p className="text-muted-foreground">
-              Track upcoming matches and find prediction markets
+              Track upcoming series and find prediction markets
             </p>
           </div>
 
@@ -91,14 +94,14 @@ const UpcomingMatches = () => {
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
-          ) : matches.length === 0 ? (
+          ) : series.length === 0 ? (
             <Card className="bg-muted/50 border-border">
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <p className="text-xl text-muted-foreground mb-4">
-                  No upcoming matches found
+                  No upcoming series found
                 </p>
                 <Button
-                  onClick={fetchUpcomingMatches}
+                  onClick={fetchUpcomingSeries}
                   className="bg-accent text-accent-foreground hover:bg-accent/90"
                 >
                   Refresh
@@ -107,39 +110,46 @@ const UpcomingMatches = () => {
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {matches.map((match) => (
+              {series.map((item) => (
                 <Card 
-                  key={match.unique_id} 
+                  key={item.id} 
                   className="bg-card border-border hover:shadow-lg transition-shadow"
                 >
                   <CardContent className="p-6">
                     <div className="space-y-4">
-                      {/* Teams */}
+                      {/* Series Name */}
                       <div>
                         <h3 className="text-xl font-bold text-foreground mb-2">
-                          {match.team1} vs {match.team2}
+                          {item.name}
                         </h3>
                       </div>
 
-                      {/* Date & Time */}
+                      {/* Date Range */}
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatMatchDate(match.dateTimeGMT)}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>{formatMatchTime(match.dateTimeGMT)}</span>
+                          <span>{formatMatchDate(item.startDate)} - {formatMatchDate(item.endDate)}</span>
                         </div>
                       </div>
 
-                      {/* Status Badge */}
-                      <Badge 
-                        variant="secondary" 
-                        className="bg-primary/10 text-primary hover:bg-primary/20"
-                      >
-                        Upcoming
-                      </Badge>
+                      {/* Match Types */}
+                      <div className="flex gap-2 flex-wrap">
+                        {item.odi > 0 && (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            {item.odi} ODI
+                          </Badge>
+                        )}
+                        {item.t20 > 0 && (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            {item.t20} T20
+                          </Badge>
+                        )}
+                        {item.test > 0 && (
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
+                            {item.test} Test
+                          </Badge>
+                        )}
+                      </div>
 
                       {/* CTA Button */}
                       <Button
