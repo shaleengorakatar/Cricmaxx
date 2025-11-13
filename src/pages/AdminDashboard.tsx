@@ -275,11 +275,7 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="monitoring">
-              <MonitoringPanel 
-                alerts={alerts}
-                recentActivity={mockActivity}
-                onMarkAlertReviewed={handleMarkAlertReviewed}
-              />
+              <MonitoringPanel />
             </TabsContent>
           </Tabs>
         </div>

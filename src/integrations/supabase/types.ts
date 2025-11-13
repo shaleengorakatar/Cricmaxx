@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      fraud_alerts: {
+        Row: {
+          actual_value: number | null
+          alert_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          resolution_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          severity: string
+          status: string
+          threshold_value: number | null
+          time_window_hours: number | null
+          user_id: string
+        }
+        Insert: {
+          actual_value?: number | null
+          alert_type: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity: string
+          status?: string
+          threshold_value?: number | null
+          time_window_hours?: number | null
+          user_id: string
+        }
+        Update: {
+          actual_value?: number | null
+          alert_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          resolution_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          severity?: string
+          status?: string
+          threshold_value?: number | null
+          time_window_hours?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fraud_thresholds: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          severity: string
+          threshold_value: number
+          time_window_hours: number
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description: string
+          enabled?: boolean
+          id?: string
+          severity: string
+          threshold_value: number
+          time_window_hours: number
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          severity?: string
+          threshold_value?: number
+          time_window_hours?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kyc_submissions: {
         Row: {
           address: string
@@ -154,6 +241,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      detect_fraud_patterns: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
