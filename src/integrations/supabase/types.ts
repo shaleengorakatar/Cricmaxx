@@ -176,6 +176,36 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          id: string
+          operation_type: string
+          updated_at: string
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          operation_type: string
+          updated_at?: string
+          user_id: string
+          window_start?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          id?: string
+          operation_type?: string
+          updated_at?: string
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -241,6 +271,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          _max_attempts?: number
+          _operation_type: string
+          _user_id: string
+          _window_minutes?: number
+        }
+        Returns: Json
+      }
       detect_fraud_patterns: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -248,6 +287,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_wallet_operation: {
+        Args: {
+          _amount: number
+          _metadata?: Json
+          _operation: string
+          _user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

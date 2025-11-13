@@ -64,77 +64,57 @@ Deno.serve(async (req) => {
     // Round to 2 decimal places to prevent floating point issues
     const sanitizedAmount = Math.round(amount * 100) / 100;
 
-    // Get current user profile with balance
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('balance')
-      .eq('id', user.id)
-      .single();
+    // Check rate limit first (10 operations per hour)
+    const { data: rateLimitCheck, error: rateLimitError } = await supabaseAdmin
+      .rpc('check_rate_limit', {
+        _user_id: user.id,
+        _operation_type: operation,
+        _max_attempts: 10,
+        _window_minutes: 60
+      });
 
-    if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError);
-      throw new Error('Failed to fetch user profile');
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+      throw new Error('Failed to check rate limit');
     }
 
-    const currentBalance = Number(profile.balance) || 0;
-
-    // Validate withdrawal doesn't exceed balance
-    if (operation === 'withdrawal' && sanitizedAmount > currentBalance) {
-      throw new Error(`Insufficient funds. Available balance: ${currentBalance} credits`);
+    if (!rateLimitCheck.allowed) {
+      console.log(`Rate limit exceeded for user ${user.id}`);
+      const resetTime = new Date(rateLimitCheck.reset_at).toLocaleTimeString();
+      throw new Error(`Rate limit exceeded. You can make ${rateLimitCheck.attempts_remaining} more ${operation}s. Limit resets at ${resetTime}.`);
     }
 
-    // Calculate new balance
-    const newBalance = operation === 'deposit' 
-      ? currentBalance + sanitizedAmount 
-      : currentBalance - sanitizedAmount;
+    console.log(`Rate limit check passed. Attempts remaining: ${rateLimitCheck.attempts_remaining}`);
 
-    console.log(`Balance change: ${currentBalance} -> ${newBalance} (${operation} ${sanitizedAmount})`);
-
-    // Start transaction: Update balance and create transaction record
-    const { error: balanceError } = await supabaseAdmin
-      .from('profiles')
-      .update({ balance: newBalance })
-      .eq('id', user.id);
-
-    if (balanceError) {
-      console.error('Balance update error:', balanceError);
-      throw new Error('Failed to update balance');
-    }
-
-    // Create transaction record for audit trail
-    const { data: transaction, error: transactionError } = await supabaseAdmin
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        type: operation,
-        amount: operation === 'deposit' ? sanitizedAmount : -sanitizedAmount,
-        balance_before: currentBalance,
-        balance_after: newBalance,
-        status: 'completed',
-        metadata: {
+    // Process wallet operation atomically using database function
+    const { data: result, error: operationError } = await supabaseAdmin
+      .rpc('process_wallet_operation', {
+        _user_id: user.id,
+        _operation: operation,
+        _amount: sanitizedAmount,
+        _metadata: {
+          timestamp: new Date().toISOString(),
           ip: req.headers.get('x-forwarded-for') || 'unknown',
           user_agent: req.headers.get('user-agent') || 'unknown',
-          timestamp: new Date().toISOString()
         }
-      })
-      .select()
-      .single();
+      });
 
-    if (transactionError) {
-      console.error('Transaction record error:', transactionError);
-      // Don't fail the operation, but log the error
-      console.error('Failed to create transaction record, but balance was updated');
+    if (operationError) {
+      console.error('Wallet operation error:', operationError);
+      throw new Error(operationError.message || 'Failed to process wallet operation');
     }
 
-    console.log(`${operation} completed successfully. Transaction ID: ${transaction?.id}`);
+    console.log(`${operation} completed successfully. Transaction ID: ${result.transaction_id}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         operation,
         amount: sanitizedAmount,
-        newBalance,
-        transactionId: transaction?.id,
+        newBalance: result.balance_after,
+        previousBalance: result.balance_before,
+        transactionId: result.transaction_id,
+        attemptsRemaining: rateLimitCheck.attempts_remaining,
         message: `${operation === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${sanitizedAmount} credits successful`
       }),
       {
