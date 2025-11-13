@@ -44,6 +44,13 @@ const Navigation = () => {
             >
               Markets
             </NavLink>
+            <NavLink 
+              to="/upcoming-matches"
+              className="text-foreground hover:text-primary transition-colors"
+              activeClassName="text-primary font-semibold"
+            >
+              Upcoming Matches
+            </NavLink>
             {isAuthenticated && (
               <NavLink 
                 to="/dashboard"
@@ -98,6 +105,14 @@ const Navigation = () => {
                     activeClassName="text-primary font-semibold"
                   >
                     Markets
+                  </NavLink>
+                  <NavLink 
+                    to="/upcoming-matches"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
+                    activeClassName="text-primary font-semibold"
+                  >
+                    Upcoming Matches
                   </NavLink>
                   {isAuthenticated && (
                     <NavLink 

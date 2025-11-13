@@ -14,6 +14,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Auth from "./pages/Auth";
 import KYCVerification from "./pages/KYCVerification";
 import AccountSettings from "./pages/AccountSettings";
+import UpcomingMatches from "./pages/UpcomingMatches";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/kyc-verification" element={<KYCVerification />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/markets" element={<Markets />} />
+          <Route path="/upcoming-matches" element={<UpcomingMatches />} />
           <Route path="/market/:id" element={<MarketDetail />} />
           <Route path="/creator" element={<CreatorDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
