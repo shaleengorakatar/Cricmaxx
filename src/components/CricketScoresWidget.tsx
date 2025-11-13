@@ -165,11 +165,11 @@ const CricketScoresWidget = () => {
                             {match.matchType} • {formatMatchTime(match.dateTimeGMT)}
                           </p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                           <Button
                             size="sm"
                             onClick={() => fetchLiveScore(match.id)}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90"
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto"
                           >
                             See Live Score
                           </Button>
@@ -177,6 +177,7 @@ const CricketScoresWidget = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => fetchMatchInfo(match.id)}
+                            className="w-full sm:w-auto"
                           >
                             Match Info
                           </Button>
