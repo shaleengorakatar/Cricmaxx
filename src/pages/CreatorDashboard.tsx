@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCreationForm from "@/components/creator/MarketCreationForm";
+import OracleMarketForm from "@/components/creator/OracleMarketForm";
 import MyMarkets from "@/components/creator/MyMarkets";
 import CreatorGuidance from "@/components/creator/CreatorGuidance";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreatorMarket } from "@/types/creator";
-import { DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { DollarSign, TrendingUp, BarChart3, Sparkles, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 
@@ -145,8 +147,27 @@ const CreatorDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Main Content - 2 columns */}
             <div className="lg:col-span-2 space-y-4 md:space-y-6">
-              {/* Market Creation Form */}
-              <MarketCreationForm onMarketCreated={handleMarketCreated} />
+              {/* Market Creation Forms with Tabs */}
+              <Tabs defaultValue="template" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger value="template" className="flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Template Markets
+                  </TabsTrigger>
+                  <TabsTrigger value="oracle" className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Auto-Resolve Markets
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="template">
+                  <MarketCreationForm onMarketCreated={handleMarketCreated} />
+                </TabsContent>
+                
+                <TabsContent value="oracle">
+                  <OracleMarketForm onMarketCreated={handleMarketCreated} />
+                </TabsContent>
+              </Tabs>
 
               {/* My Markets */}
               <div>
