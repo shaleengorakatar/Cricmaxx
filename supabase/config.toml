@@ -8,16 +8,16 @@ enable_signup = true
 enable_anonymous_sign_ins = false
 
 [functions.fraud-monitor]
-verify_jwt = false
+verify_jwt = true
 
 [functions.wallet-operations]
-verify_jwt = false
+verify_jwt = true
 
 [functions.market-auto-resolver]
-verify_jwt = false
+verify_jwt = true
 
 [functions.friends-api]
-verify_jwt = false
+verify_jwt = true
 
 [functions.price-alerts-checker]
-verify_jwt = false
+verify_jwt = true

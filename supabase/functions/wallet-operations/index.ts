@@ -53,12 +53,33 @@ Deno.serve(async (req) => {
       throw new Error('Invalid operation. Must be "deposit" or "withdrawal"');
     }
 
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
-      throw new Error('Invalid amount. Must be a positive number');
+    if (!amount || typeof amount !== 'number') {
+      throw new Error('Invalid amount. Must be a number');
+    }
+
+    // Prevent edge cases with special number values
+    if (!Number.isFinite(amount) || Object.is(amount, -0)) {
+      throw new Error('Invalid amount value');
+    }
+
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than zero');
+    }
+
+    // Minimum amount validation
+    if (amount < 0.01) {
+      throw new Error('Minimum amount is 0.01 credits');
     }
 
     if (amount > 1000000) {
       throw new Error('Amount exceeds maximum limit of 1,000,000 credits');
+    }
+
+    // Validate decimal precision (max 2 decimal places)
+    const amountString = amount.toString();
+    const decimalMatch = amountString.match(/\.(\d+)/);
+    if (decimalMatch && decimalMatch[1].length > 2) {
+      throw new Error('Amount must have maximum 2 decimal places');
     }
 
     // Round to 2 decimal places to prevent floating point issues
