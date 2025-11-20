@@ -8,6 +8,7 @@ import PLChart from "@/components/dashboard/PLChart";
 import WalletActions from "@/components/dashboard/WalletActions";
 import ActivePositions from "@/components/dashboard/ActivePositions";
 import TransactionHistory from "@/components/dashboard/TransactionHistory";
+import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -198,6 +199,7 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-4 md:space-y-6">
+            <TradingHistoryPanel />
             <ActivePositions positions={mockPositions} />
             <TransactionHistory transactions={transactions} />
           </div>
