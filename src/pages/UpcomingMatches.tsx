@@ -7,6 +7,7 @@ import { format, isAfter } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Series {
   id: string;
@@ -31,12 +32,17 @@ const UpcomingMatches = () => {
 
   const fetchUpcomingSeries = async () => {
     try {
-      const response = await fetch(
-        "https://api.cricapi.com/v1/series?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0"
-      );
-      const data = await response.json();
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'series', 
+          params: { offset: 0 } 
+        }
+      });
       
-      if (data.data) {
+      if (error) throw error;
+      
+      if (data?.data) {
         // Filter for upcoming series (startDate >= today)
         const now = new Date();
         const upcomingSeries = data.data.filter((s: Series) => {
