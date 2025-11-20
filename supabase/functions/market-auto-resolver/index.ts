@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
+const CRICAPI_KEY = Deno.env.get('CRICAPI_KEY') ?? '';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

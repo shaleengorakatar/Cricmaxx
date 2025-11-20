@@ -13,6 +13,7 @@ import { MarketTemplate } from "@/types/creator";
 import { CalendarIcon, AlertCircle, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MarketCreationFormProps {
   onMarketCreated: () => void;
@@ -65,7 +66,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validateForm()) {
       toast({
         title: "Incomplete form",
@@ -75,17 +76,64 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
       return;
     }
 
-    // Simulate market creation
-    toast({
-      title: "Market submitted for review",
-      description: "Your market will be reviewed by Shariz admins and go live once approved.",
-    });
+    try {
+      const template = currentTemplate;
+      if (!template) return;
 
-    // Reset form
-    setSelectedTemplate("");
-    setFormData({});
-    setResolutionSource("");
-    onMarketCreated();
+      // Generate the full question from template and form data
+      const question = generatePreview();
+      
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a market.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Set expiry time (default to 30 days from now)
+      const expiryTime = new Date();
+      expiryTime.setDate(expiryTime.getDate() + 30);
+
+      // Insert market into database
+      const { error: marketError } = await supabase
+        .from('markets')
+        .insert({
+          question,
+          description: resolutionSource,
+          category: template.category,
+          type: 'amm', // Creator markets use AMM model
+          status: 'pending', // Requires admin approval
+          expiry_time: expiryTime.toISOString(),
+          created_by: user.id,
+        });
+
+      if (marketError) {
+        console.error('Market creation error:', marketError);
+        throw marketError;
+      }
+
+      toast({
+        title: "Market submitted for review",
+        description: "Your market will be reviewed by Shariz admins and go live once approved.",
+      });
+
+      // Reset form
+      setSelectedTemplate("");
+      setFormData({});
+      setResolutionSource("");
+      onMarketCreated();
+    } catch (error) {
+      console.error('Error creating market:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create market. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const preview = generatePreview();

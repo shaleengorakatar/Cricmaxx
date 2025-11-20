@@ -144,6 +144,35 @@ serve(async (req) => {
     if (path === '/add-by-username' && method === 'POST') {
       const { username } = await req.json();
 
+      // Comprehensive input validation
+      if (!username || typeof username !== 'string') {
+        return new Response(JSON.stringify({ error: 'Username is required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      // Length validation
+      if (username.length < 3 || username.length > 30) {
+        return new Response(JSON.stringify({ 
+          error: 'Username must be between 3 and 30 characters' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      // Format validation - only alphanumeric, underscore, hyphen
+      const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+      if (!usernameRegex.test(username)) {
+        return new Response(JSON.stringify({ 
+          error: 'Username can only contain letters, numbers, underscores, and hyphens' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
       // Find user by username (case-insensitive)
       const { data: targetUser, error: userError } = await supabaseClient
         .from('profiles')
