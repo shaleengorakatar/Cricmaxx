@@ -5,8 +5,7 @@ import Footer from "@/components/Footer";
 import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
-import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
-import AMMTrading from "@/components/market-detail/AMMTrading";
+import SimpleTradingInterface from "@/components/market-detail/SimpleTradingInterface";
 import { mockMarkets } from "@/data/mockMarkets";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -88,35 +87,35 @@ const MarketDetail = () => {
     );
   }
 
-  const handleOrderPlaced = () => {
-    // Refresh order book
-    setOrderBook(generateOrderBook());
-  };
+  const handleTrade = (side: "yes" | "no", shares: number) => {
+    if (market.type === "orderbook") {
+      // Refresh order book for orderbook markets
+      setOrderBook(generateOrderBook());
+    } else {
+      // Update prices based on LMSR logic for AMM markets
+      const priceImpact = shares * 0.001;
+      setMarket(prev => {
+        if (!prev) return prev;
+        const newYesPrice = side === "yes" 
+          ? Math.min(0.99, prev.yesPrice + priceImpact)
+          : Math.max(0.01, prev.yesPrice - priceImpact);
+        return {
+          ...prev,
+          yesPrice: newYesPrice,
+          noPrice: 1 - newYesPrice,
+        };
+      });
 
-  const handleAMMTrade = (side: "yes" | "no", shares: number) => {
-    // Update prices based on LMSR logic
-    const priceImpact = shares * 0.001;
-    setMarket(prev => {
-      if (!prev) return prev;
-      const newYesPrice = side === "yes" 
-        ? Math.min(0.99, prev.yesPrice + priceImpact)
-        : Math.max(0.01, prev.yesPrice - priceImpact);
-      return {
-        ...prev,
-        yesPrice: newYesPrice,
-        noPrice: 1 - newYesPrice,
-      };
-    });
-
-    // Add to price history
-    setPriceHistory(prev => [
-      ...prev.slice(-23),
-      {
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        yesPrice: market.yesPrice,
-        noPrice: market.noPrice,
-      }
-    ]);
+      // Add to price history
+      setPriceHistory(prev => [
+        ...prev.slice(-23),
+        {
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          yesPrice: market.yesPrice,
+          noPrice: market.noPrice,
+        }
+      ]);
+    }
   };
 
   return (
@@ -185,21 +184,14 @@ const MarketDetail = () => {
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {market.type === "orderbook" ? (
-                <OrderBookTrading 
-                  marketId={market.id}
-                  userBalance={userBalance}
-                  onOrderPlaced={handleOrderPlaced}
-                />
-              ) : (
-                <AMMTrading 
-                  marketId={market.id}
-                  yesPrice={market.yesPrice}
-                  noPrice={market.noPrice}
-                  userBalance={userBalance}
-                  onTrade={handleAMMTrade}
-                />
-              )}
+              <SimpleTradingInterface
+                marketId={market.id}
+                yesPrice={market.yesPrice}
+                noPrice={market.noPrice}
+                userBalance={userBalance}
+                marketType={market.type}
+                onTrade={handleTrade}
+              />
 
               {/* Market Stats - Collapsible on mobile */}
               <Card className="overflow-hidden">
