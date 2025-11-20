@@ -140,6 +140,143 @@ export type Database = {
         }
         Relationships: []
       }
+      market_oracle_rules: {
+        Row: {
+          comparison_operator: string
+          created_at: string
+          data_source_url: string
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          event_template: string
+          id: string
+          market_id: string
+          match_date: string
+          match_id: string
+          match_name: string
+          outcome_if_false: string
+          outcome_if_true: string
+          resolution_error: string | null
+          resolution_status: string
+          resolution_value: number | null
+          resolved_at: string | null
+          stat_field: string
+          threshold_value: number
+          updated_at: string
+        }
+        Insert: {
+          comparison_operator: string
+          created_at?: string
+          data_source_url: string
+          entity_id: string
+          entity_name: string
+          entity_type: string
+          event_template: string
+          id?: string
+          market_id: string
+          match_date: string
+          match_id: string
+          match_name: string
+          outcome_if_false: string
+          outcome_if_true: string
+          resolution_error?: string | null
+          resolution_status?: string
+          resolution_value?: number | null
+          resolved_at?: string | null
+          stat_field: string
+          threshold_value: number
+          updated_at?: string
+        }
+        Update: {
+          comparison_operator?: string
+          created_at?: string
+          data_source_url?: string
+          entity_id?: string
+          entity_name?: string
+          entity_type?: string
+          event_template?: string
+          id?: string
+          market_id?: string
+          match_date?: string
+          match_id?: string
+          match_name?: string
+          outcome_if_false?: string
+          outcome_if_true?: string
+          resolution_error?: string | null
+          resolution_status?: string
+          resolution_value?: number | null
+          resolved_at?: string | null
+          stat_field?: string
+          threshold_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_oracle_rules_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      markets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          expiry_time: string
+          id: string
+          image_url: string | null
+          no_price: number
+          outcome: string | null
+          question: string
+          resolution_time: string | null
+          status: string
+          type: string
+          updated_at: string
+          volume: number
+          yes_price: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          expiry_time: string
+          id?: string
+          image_url?: string | null
+          no_price?: number
+          outcome?: string | null
+          question: string
+          resolution_time?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          volume?: number
+          yes_price?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          expiry_time?: string
+          id?: string
+          image_url?: string | null
+          no_price?: number
+          outcome?: string | null
+          question?: string
+          resolution_time?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          volume?: number
+          yes_price?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           balance: number | null
