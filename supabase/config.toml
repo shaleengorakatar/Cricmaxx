@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.market-auto-resolver]
 verify_jwt = false
+
+[functions.friends-api]
+verify_jwt = false

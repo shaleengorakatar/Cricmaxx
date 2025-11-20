@@ -101,6 +101,93 @@ export type Database = {
         }
         Relationships: []
       }
+      friend_invite_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+          used_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_invite_tokens_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_invite_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          created_at: string
+          friend_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          friend_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          friend_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_submissions: {
         Row: {
           address: string
@@ -277,39 +364,114 @@ export type Database = {
         }
         Relationships: []
       }
+      positions: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          entry_price: number
+          id: string
+          market_id: string
+          opened_at: string
+          pnl: number | null
+          side: string
+          size: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          entry_price: number
+          id?: string
+          market_id: string
+          opened_at?: string
+          pnl?: number | null
+          side: string
+          size: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          entry_price?: number
+          id?: string
+          market_id?: string
+          opened_at?: string
+          pnl?: number | null
+          side?: string
+          size?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           balance: number | null
           created_at: string | null
+          display_name: string | null
           email: string
           id: string
           kyc_verified: boolean | null
+          last_active_at: string | null
           mfa_enabled: boolean | null
           name: string
+          share_trades_with_friends: boolean | null
           terms_accepted_at: string | null
           updated_at: string | null
+          username: string | null
         }
         Insert: {
+          avatar_url?: string | null
           balance?: number | null
           created_at?: string | null
+          display_name?: string | null
           email: string
           id: string
           kyc_verified?: boolean | null
+          last_active_at?: string | null
           mfa_enabled?: boolean | null
           name: string
+          share_trades_with_friends?: boolean | null
           terms_accepted_at?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Update: {
+          avatar_url?: string | null
           balance?: number | null
           created_at?: string | null
+          display_name?: string | null
           email?: string
           id?: string
           kyc_verified?: boolean | null
+          last_active_at?: string | null
           mfa_enabled?: boolean | null
           name?: string
+          share_trades_with_friends?: boolean | null
           terms_accepted_at?: string | null
           updated_at?: string | null
+          username?: string | null
         }
         Relationships: []
       }

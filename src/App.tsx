@@ -9,6 +9,8 @@ import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Friends from "./pages/Friends";
+import FriendInvite from "./pages/FriendInvite";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Auth from "./pages/Auth";
@@ -33,6 +35,8 @@ const App = () => (
           <Route path="/markets" element={<Markets />} />
           <Route path="/upcoming-matches" element={<UpcomingMatches />} />
           <Route path="/market/:id" element={<MarketDetail />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/invite/:token" element={<FriendInvite />} />
           <Route path="/creator" element={<CreatorDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/settings" element={<AccountSettings />} />
