@@ -14,6 +14,8 @@ import FriendInvite from "./pages/FriendInvite";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import PasswordReset from "./pages/PasswordReset";
 import KYCVerification from "./pages/KYCVerification";
 import AccountSettings from "./pages/AccountSettings";
 import UpcomingMatches from "./pages/UpcomingMatches";
@@ -30,6 +32,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/password-reset" element={<PasswordReset />} />
           <Route path="/kyc-verification" element={<KYCVerification />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/markets" element={<Markets />} />
