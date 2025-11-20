@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Match {
   id: string;
@@ -61,11 +62,16 @@ const CricketScoresWidget = () => {
 
   const fetchMatches = async () => {
     try {
-      const response = await fetch(
-        "https://api.cricapi.com/v1/currentMatches?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0"
-      );
-      const data = await response.json();
-      if (data.data) {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'currentMatches', 
+          params: { offset: 0 } 
+        }
+      });
+      
+      if (error) throw error;
+      if (data?.data) {
         setMatches(data.data.slice(0, 10));
       }
     } catch (error) {
@@ -80,11 +86,15 @@ const CricketScoresWidget = () => {
     setSelectedMatch(matchId);
     setDialogType('score');
     try {
-      const response = await fetch(
-        `https://api.cricapi.com/v1/match_info?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&id=${matchId}`
-      );
-      const data = await response.json();
-      if (data.data) {
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'match_info', 
+          params: { id: matchId } 
+        }
+      });
+      
+      if (error) throw error;
+      if (data?.data) {
         const matchData = data.data;
         setLiveScore({
           team1: matchData.teams?.[0] || '',
@@ -107,11 +117,15 @@ const CricketScoresWidget = () => {
     setSelectedMatch(matchId);
     setDialogType('info');
     try {
-      const response = await fetch(
-        `https://api.cricapi.com/v1/match_info?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&id=${matchId}`
-      );
-      const data = await response.json();
-      if (data.data) {
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'match_info', 
+          params: { id: matchId } 
+        }
+      });
+      
+      if (error) throw error;
+      if (data?.data) {
         setMatchInfo(data.data);
       }
     } catch (error) {

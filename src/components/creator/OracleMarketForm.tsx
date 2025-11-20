@@ -139,7 +139,7 @@ const OracleMarketForm = ({ onMarketCreated }: OracleMarketFormProps) => {
           threshold_value: formData.threshold_value!,
           outcome_if_true: formData.outcome_if_true!,
           outcome_if_false: formData.outcome_if_false!,
-          data_source_url: `https://api.cricapi.com/v1/match_info?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&id=${formData.match_id}`
+          data_source_url: `cricket-proxy:match_info:${formData.match_id}`
         });
 
       if (oracleError) throw oracleError;

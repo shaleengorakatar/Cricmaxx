@@ -21,3 +21,6 @@ verify_jwt = true
 
 [functions.price-alerts-checker]
 verify_jwt = true
+
+[functions.cricket-proxy]
+verify_jwt = true

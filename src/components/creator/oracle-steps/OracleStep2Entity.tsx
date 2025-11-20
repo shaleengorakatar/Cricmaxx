@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2, Calendar } from "lucide-react";
 import { OracleMarketRule, CricketMatch } from "@/types/oracle";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OracleStep2EntityProps {
   formData: Partial<OracleMarketRule>;
@@ -28,12 +29,19 @@ const OracleStep2Entity = ({ formData, setFormData }: OracleStep2EntityProps) =>
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `https://api.cricapi.com/v1/series?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0${searchTerm ? `&search=${searchTerm}` : ''}`
-      );
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'series', 
+          params: { 
+            offset: 0,
+            ...(searchTerm && { search: searchTerm })
+          } 
+        }
+      });
       
-      if (data.status === "success" && data.data) {
+      if (error) throw error;
+      
+      if (data?.status === "success" && data?.data) {
         setMatches(data.data);
       } else {
         toast.error("No matches found");

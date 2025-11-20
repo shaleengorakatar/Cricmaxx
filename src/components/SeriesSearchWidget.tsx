@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Series {
   id: string;
@@ -32,12 +33,18 @@ const SeriesSearchWidget = () => {
     setLoading(true);
     setSearched(true);
     try {
-      const response = await fetch(
-        `https://api.cricapi.com/v1/series?apikey=e60c45e6-5ad0-48d9-8a9e-4acadba7edc3&offset=0&search=${encodeURIComponent(searchTerm)}`
-      );
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
+        body: { 
+          endpoint: 'series', 
+          params: { 
+            offset: 0, 
+            search: searchTerm 
+          } 
+        }
+      });
       
-      if (data.data) {
+      if (error) throw error;
+      if (data?.data) {
         setSeries(data.data);
       } else {
         setSeries([]);
