@@ -19,6 +19,11 @@ const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const MAX_REQUESTS_PER_HOUR = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 10000; // 10 seconds
+
 function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
   const userLimit = rateLimits.get(userId);
@@ -42,6 +47,32 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number; 
     remaining: MAX_REQUESTS_PER_HOUR - userLimit.count, 
     resetAt: userLimit.resetAt 
   };
+}
+
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Shariz-Platform/1.0',
+        'Accept': 'application/json',
+      },
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (retries > 0) {
+      console.log(`Fetch failed, retrying... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`, error);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (MAX_RETRIES - retries + 1)));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -137,9 +168,11 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching from CricAPI: ${endpoint} with params:`, params);
 
-    // Make request to CricAPI
-    const response = await fetch(url);
+    // Make request to CricAPI with retry logic
+    const response = await fetchWithRetry(url);
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`CricAPI error response (${response.status}):`, errorText);
       throw new Error(`CricAPI returned ${response.status}: ${response.statusText}`);
     }
 
