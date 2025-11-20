@@ -6,9 +6,12 @@ import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import SimpleTradingInterface from "@/components/market-detail/SimpleTradingInterface";
+import MarketCalculator from "@/components/market-detail/MarketCalculator";
+import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import { mockMarkets } from "@/data/mockMarkets";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 // Mock price history data
@@ -184,14 +187,36 @@ const MarketDetail = () => {
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              <SimpleTradingInterface
-                marketId={market.id}
-                yesPrice={market.yesPrice}
-                noPrice={market.noPrice}
-                userBalance={userBalance}
-                marketType={market.type}
-                onTrade={handleTrade}
-              />
+              <Tabs defaultValue="trade" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="trade">Trade</TabsTrigger>
+                  <TabsTrigger value="calculator">Calculator</TabsTrigger>
+                  <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                </TabsList>
+                <TabsContent value="trade" className="mt-4">
+                  <SimpleTradingInterface
+                    marketId={market.id}
+                    yesPrice={market.yesPrice}
+                    noPrice={market.noPrice}
+                    userBalance={userBalance}
+                    marketType={market.type}
+                    onTrade={handleTrade}
+                  />
+                </TabsContent>
+                <TabsContent value="calculator" className="mt-4">
+                  <MarketCalculator
+                    yesPrice={market.yesPrice}
+                    noPrice={market.noPrice}
+                  />
+                </TabsContent>
+                <TabsContent value="alerts" className="mt-4">
+                  <PriceAlerts
+                    marketId={market.id}
+                    currentYesPrice={market.yesPrice}
+                    currentNoPrice={market.noPrice}
+                  />
+                </TabsContent>
+              </Tabs>
 
               {/* Market Stats - Collapsible on mobile */}
               <Card className="overflow-hidden">

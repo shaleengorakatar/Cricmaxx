@@ -424,6 +424,53 @@ export type Database = {
           },
         ]
       }
+      price_alerts: {
+        Row: {
+          condition: string
+          created_at: string
+          id: string
+          market_id: string
+          side: string
+          target_price: number
+          triggered: boolean
+          triggered_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          condition: string
+          created_at?: string
+          id?: string
+          market_id: string
+          side: string
+          target_price: number
+          triggered?: boolean
+          triggered_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          condition?: string
+          created_at?: string
+          id?: string
+          market_id?: string
+          side?: string
+          target_price?: number
+          triggered?: boolean
+          triggered_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
