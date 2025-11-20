@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import PlatformStats from "@/components/admin/PlatformStats";
 import MarketApprovalPanel from "@/components/admin/MarketApprovalPanel";
 import MarketResolutionPanel from "@/components/admin/MarketResolutionPanel";
+import OracleResolutionPanel from "@/components/admin/OracleResolutionPanel";
 import UserManagementPanel from "@/components/admin/UserManagementPanel";
 import MonitoringPanel from "@/components/admin/MonitoringPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -259,10 +260,13 @@ const AdminDashboard = () => {
             </TabsContent>
 
             <TabsContent value="resolution">
-              <MarketResolutionPanel 
-                markets={marketsToResolve}
-                onResolve={handleResolve}
-              />
+              <div className="space-y-6">
+                <MarketResolutionPanel 
+                  markets={marketsToResolve}
+                  onResolve={handleResolve}
+                />
+                <OracleResolutionPanel />
+              </div>
             </TabsContent>
 
             <TabsContent value="users">
