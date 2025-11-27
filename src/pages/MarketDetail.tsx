@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock price history data
 const generatePriceHistory = (yesPrice: number) => {
@@ -58,10 +61,12 @@ const generateOrderBook = () => {
 const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [userBalance] = useState(10950);
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [market, setMarket] = useState(mockMarkets.find(m => m.id === id));
   const [priceHistory, setPriceHistory] = useState(market ? generatePriceHistory(market.yesPrice) : []);
   const [orderBook, setOrderBook] = useState(generateOrderBook());
+  const [isTrading, setIsTrading] = useState(false);
   
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
@@ -90,34 +95,118 @@ const MarketDetail = () => {
     );
   }
 
-  const handleTrade = (side: "yes" | "no", shares: number) => {
-    if (market.type === "orderbook") {
-      // Refresh order book for orderbook markets
-      setOrderBook(generateOrderBook());
-    } else {
-      // Update prices based on LMSR logic for AMM markets
-      const priceImpact = shares * 0.001;
-      setMarket(prev => {
-        if (!prev) return prev;
-        const newYesPrice = side === "yes" 
-          ? Math.min(0.99, prev.yesPrice + priceImpact)
-          : Math.max(0.01, prev.yesPrice - priceImpact);
-        return {
-          ...prev,
-          yesPrice: newYesPrice,
-          noPrice: 1 - newYesPrice,
-        };
+  const handleTrade = async (side: "yes" | "no", shares: number) => {
+    if (!user || !profile) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to place predictions",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    if (isTrading) return;
+    setIsTrading(true);
+
+    try {
+      const entryPrice = side === "yes" ? market.yesPrice : market.noPrice;
+      const cost = shares * entryPrice;
+
+      // Check balance
+      if (cost > profile.balance) {
+        toast({
+          title: "Insufficient balance",
+          description: `You need ${cost.toFixed(2)} credits but have ${profile.balance.toFixed(2)}`,
+          variant: "destructive",
+        });
+        setIsTrading(false);
+        return;
+      }
+
+      // Create position in database
+      const { data: position, error: positionError } = await supabase
+        .from('positions')
+        .insert({
+          user_id: user.id,
+          market_id: market.id,
+          side: side,
+          size: shares,
+          entry_price: entryPrice,
+          status: 'open'
+        })
+        .select()
+        .single();
+
+      if (positionError) throw positionError;
+
+      // Deduct cost from user balance
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({ balance: profile.balance - cost })
+        .eq('id', user.id);
+
+      if (balanceError) throw balanceError;
+
+      // Create transaction record
+      await supabase
+        .from('transactions')
+        .insert({
+          user_id: user.id,
+          type: 'trade',
+          amount: -cost,
+          balance_before: profile.balance,
+          balance_after: profile.balance - cost,
+          status: 'completed',
+          metadata: {
+            market_id: market.id,
+            position_id: position.id,
+            side: side,
+            shares: shares,
+            price: entryPrice
+          }
+        });
+
+      toast({
+        title: "Prediction placed successfully!",
+        description: `Bought ${shares} ${side.toUpperCase()} shares at $${entryPrice.toFixed(2)}. Cost: ${cost.toFixed(2)} credits`,
       });
 
-      // Add to price history
-      setPriceHistory(prev => [
-        ...prev.slice(-23),
-        {
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          yesPrice: market.yesPrice,
-          noPrice: market.noPrice,
-        }
-      ]);
+      // Update local market state for visual feedback
+      if (market.type === "orderbook") {
+        setOrderBook(generateOrderBook());
+      } else {
+        const priceImpact = shares * 0.001;
+        setMarket(prev => {
+          if (!prev) return prev;
+          const newYesPrice = side === "yes" 
+            ? Math.min(0.99, prev.yesPrice + priceImpact)
+            : Math.max(0.01, prev.yesPrice - priceImpact);
+          return {
+            ...prev,
+            yesPrice: newYesPrice,
+            noPrice: 1 - newYesPrice,
+          };
+        });
+
+        setPriceHistory(prev => [
+          ...prev.slice(-23),
+          {
+            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            yesPrice: market.yesPrice,
+            noPrice: market.noPrice,
+          }
+        ]);
+      }
+    } catch (error: any) {
+      console.error('Trade error:', error);
+      toast({
+        title: "Trade failed",
+        description: error.message || "Failed to place prediction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTrading(false);
     }
   };
 
@@ -198,7 +287,7 @@ const MarketDetail = () => {
                     marketId={market.id}
                     yesPrice={market.yesPrice}
                     noPrice={market.noPrice}
-                    userBalance={userBalance}
+                    userBalance={profile?.balance || 0}
                     marketType={market.type}
                     onTrade={handleTrade}
                   />
