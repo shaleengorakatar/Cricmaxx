@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Search, Loader2, Calendar } from "lucide-react";
 import { OracleMarketRule, CricketMatch } from "@/types/oracle";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
+const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
+const CRICAPI_BASE_URL = "https://api.cricapi.com/v1";
 interface OracleStep2EntityProps {
   formData: Partial<OracleMarketRule>;
   setFormData: (data: Partial<OracleMarketRule>) => void;
@@ -29,20 +30,22 @@ const OracleStep2Entity = ({ formData, setFormData }: OracleStep2EntityProps) =>
   const fetchMatches = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'series', 
-          params: { 
-            offset: 0,
-            ...(searchTerm && { search: searchTerm })
-          } 
-        }
-      });
+      const url = new URL(`${CRICAPI_BASE_URL}/series`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+      if (searchTerm) {
+        url.searchParams.set("search", searchTerm.trim());
+      }
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to fetch matches");
+      }
       
-      if (error) throw error;
-      
-      if (data?.status === "success" && data?.data) {
-        setMatches(data.data);
+      if (json?.status === "success" && json?.data) {
+        setMatches(json.data);
       } else {
         toast.error("No matches found");
         setMatches([]);
