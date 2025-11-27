@@ -7,8 +7,9 @@ import { format, isAfter } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { supabase } from "@/integrations/supabase/client";
 
+const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
+const CRICAPI_BASE_URL = "https://api.cricapi.com/v1";
 interface Series {
   id: string;
   name: string;
@@ -33,31 +34,39 @@ const UpcomingMatches = () => {
   const fetchUpcomingSeries = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'series', 
-          params: { offset: 0 } 
-        }
-      });
+      const url = new URL(`${CRICAPI_BASE_URL}/series`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to fetch series");
+      }
       
-      if (error) throw error;
-      
-      if (data?.data) {
+      if (json?.data) {
         // Filter for upcoming series (startDate >= today)
         const now = new Date();
-        const upcomingSeries = data.data.filter((s: Series) => {
+        const upcomingSeries = json.data.filter((s: Series) => {
           try {
             const seriesDate = new Date(s.startDate);
-            return isAfter(seriesDate, now) || format(seriesDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+            return (
+              isAfter(seriesDate, now) ||
+              format(seriesDate, "yyyy-MM-dd") === format(now, "yyyy-MM-dd")
+            );
           } catch {
             return false;
           }
         });
         
         setSeries(upcomingSeries);
+      } else {
+        setSeries([]);
       }
     } catch (error) {
       console.error("Error fetching series:", error);
+      setSeries([]);
     } finally {
       setLoading(false);
     }

@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
 
+const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
+const CRICAPI_BASE_URL = "https://api.cricapi.com/v1";
 interface Match {
   id: string;
   name: string;
@@ -63,16 +64,21 @@ const CricketScoresWidget = () => {
   const fetchMatches = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'currentMatches', 
-          params: { offset: 0 } 
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.data) {
-        setMatches(data.data.slice(0, 10));
+      const url = new URL(`${CRICAPI_BASE_URL}/currentMatches`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to fetch matches");
+      }
+
+      if (json?.data) {
+        setMatches(json.data.slice(0, 10));
+      } else {
+        setMatches([]);
       }
     } catch (error) {
       console.error("Error fetching matches:", error);
@@ -84,29 +90,37 @@ const CricketScoresWidget = () => {
   const fetchLiveScore = async (matchId: string) => {
     setScoreLoading(true);
     setSelectedMatch(matchId);
-    setDialogType('score');
+    setDialogType("score");
     try {
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'match_info', 
-          params: { id: matchId } 
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.data) {
-        const matchData = data.data;
+      const url = new URL(`${CRICAPI_BASE_URL}/match_info`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+      url.searchParams.set("id", matchId);
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to fetch live score");
+      }
+
+      if (json?.data) {
+        const matchData = json.data;
         setLiveScore({
-          team1: matchData.teams?.[0] || '',
-          team2: matchData.teams?.[1] || '',
-          score: matchData.score?.[0]?.r && matchData.score?.[0]?.w 
-            ? `${matchData.score[0].r}/${matchData.score[0].w} (${matchData.score[0].o} overs)` 
-            : matchData.status || 'Match info not available',
-          stat: matchData.venue || ''
+          team1: matchData.teams?.[0] || "",
+          team2: matchData.teams?.[1] || "",
+          score:
+            matchData.score?.[0]?.r && matchData.score?.[0]?.w
+              ? `${matchData.score[0].r}/${matchData.score[0].w} (${matchData.score[0].o} overs)`
+              : matchData.status || "Match info not available",
+          stat: matchData.venue || "",
         });
+      } else {
+        setLiveScore(null);
       }
     } catch (error) {
       console.error("Error fetching live score:", error);
+      setLiveScore(null);
     } finally {
       setScoreLoading(false);
     }
@@ -115,21 +129,28 @@ const CricketScoresWidget = () => {
   const fetchMatchInfo = async (matchId: string) => {
     setInfoLoading(true);
     setSelectedMatch(matchId);
-    setDialogType('info');
+    setDialogType("info");
     try {
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'match_info', 
-          params: { id: matchId } 
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.data) {
-        setMatchInfo(data.data);
+      const url = new URL(`${CRICAPI_BASE_URL}/match_info`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+      url.searchParams.set("id", matchId);
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to fetch match info");
+      }
+
+      if (json?.data) {
+        setMatchInfo(json.data);
+      } else {
+        setMatchInfo(null);
       }
     } catch (error) {
       console.error("Error fetching match info:", error);
+      setMatchInfo(null);
     } finally {
       setInfoLoading(false);
     }

@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
+const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
+const CRICAPI_BASE_URL = "https://api.cricapi.com/v1";
 interface Series {
   id: string;
   name: string;
@@ -33,19 +34,20 @@ const SeriesSearchWidget = () => {
     setLoading(true);
     setSearched(true);
     try {
-      const { data, error } = await supabase.functions.invoke('cricket-proxy', {
-        body: { 
-          endpoint: 'series', 
-          params: { 
-            offset: 0, 
-            search: searchTerm 
-          } 
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.data) {
-        setSeries(data.data);
+      const url = new URL(`${CRICAPI_BASE_URL}/series`);
+      url.searchParams.set("apikey", CRICAPI_KEY);
+      url.searchParams.set("offset", "0");
+      url.searchParams.set("search", searchTerm.trim());
+
+      const response = await fetch(url.toString());
+      const json = await response.json();
+
+      if (!response.ok) {
+        throw new Error(json?.reason || "Failed to search series");
+      }
+
+      if (json?.data) {
+        setSeries(json.data);
       } else {
         setSeries([]);
       }
