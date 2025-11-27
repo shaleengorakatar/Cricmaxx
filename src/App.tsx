@@ -26,6 +26,7 @@ import MobileMyPredictions from "./pages/mobile/MobileMyPredictions";
 import MobileWallet from "./pages/mobile/MobileWallet";
 import MobileProfile from "./pages/mobile/MobileProfile";
 import MobileAuth from "./pages/mobile/MobileAuth";
+import MobileSwipePreds from "./pages/mobile/MobileSwipePreds";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="/mobile" element={<MobileHome />} />
           <Route path="/mobile/auth" element={<MobileAuth />} />
           <Route path="/mobile/markets" element={<MobileMarkets />} />
+          <Route path="/mobile/swipepreds" element={<MobileSwipePreds />} />
           <Route path="/mobile/predictions" element={<MobileMyPredictions />} />
           <Route path="/mobile/wallet" element={<MobileWallet />} />
           <Route path="/mobile/profile" element={<MobileProfile />} />
