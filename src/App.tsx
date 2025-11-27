@@ -20,6 +20,12 @@ import KYCVerification from "./pages/KYCVerification";
 import AccountSettings from "./pages/AccountSettings";
 import UpcomingMatches from "./pages/UpcomingMatches";
 import NotFound from "./pages/NotFound";
+import MobileHome from "./pages/mobile/MobileHome";
+import MobileMarkets from "./pages/mobile/MobileMarkets";
+import MobileMyPredictions from "./pages/mobile/MobileMyPredictions";
+import MobileWallet from "./pages/mobile/MobileWallet";
+import MobileProfile from "./pages/mobile/MobileProfile";
+import MobileAuth from "./pages/mobile/MobileAuth";
 
 const queryClient = new QueryClient();
 
@@ -44,8 +50,16 @@ const App = () => (
           <Route path="/creator" element={<CreatorDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/settings" element={<AccountSettings />} />
+          <Route path="/account-settings" element={<AccountSettings />} />
           <Route path="/terms" element={<TermsOfUse />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          {/* Mobile Routes */}
+          <Route path="/mobile" element={<MobileHome />} />
+          <Route path="/mobile/auth" element={<MobileAuth />} />
+          <Route path="/mobile/markets" element={<MobileMarkets />} />
+          <Route path="/mobile/predictions" element={<MobileMyPredictions />} />
+          <Route path="/mobile/wallet" element={<MobileWallet />} />
+          <Route path="/mobile/profile" element={<MobileProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

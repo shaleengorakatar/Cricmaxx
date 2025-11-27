@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Users } from "lucide-react";
+import { TrendingUp, Users, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
@@ -59,6 +59,18 @@ const Hero = () => {
             >
               <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
               Create a Market
+            </Button>
+          </div>
+
+          {/* Mobile App Link */}
+          <div className="mt-8">
+            <Button
+              variant="ghost"
+              className="text-primary-foreground/80 hover:text-primary-foreground text-base"
+              onClick={() => navigate('/mobile')}
+            >
+              <Smartphone className="mr-2 h-5 w-5" />
+              Try Mobile App Preview
             </Button>
           </div>
         </div>
