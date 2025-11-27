@@ -1,12 +1,10 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 interface CricketProxyRequest {
-  endpoint: 'currentMatches' | 'series' | 'match_info';
+  endpoint: 'currentMatches' | 'series' | 'match_info' | 'series_info';
   params?: Record<string, string | number>;
 }
 
@@ -14,7 +12,7 @@ interface CricketProxyRequest {
 const cache = new Map<string, { data: any; expires: number }>();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Rate limiting: Track requests per user
+// Rate limiting: Track requests per IP
 const rateLimits = new Map<string, { count: number; resetAt: number }>();
 const MAX_REQUESTS_PER_HOUR = 100;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -24,28 +22,28 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 1000;
 const REQUEST_TIMEOUT_MS = 10000; // 10 seconds
 
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetAt: number } {
+function checkRateLimit(clientId: string): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
-  const userLimit = rateLimits.get(userId);
+  const clientLimit = rateLimits.get(clientId);
 
   // Reset if window expired
-  if (!userLimit || now > userLimit.resetAt) {
+  if (!clientLimit || now > clientLimit.resetAt) {
     const resetAt = now + RATE_LIMIT_WINDOW_MS;
-    rateLimits.set(userId, { count: 1, resetAt });
+    rateLimits.set(clientId, { count: 1, resetAt });
     return { allowed: true, remaining: MAX_REQUESTS_PER_HOUR - 1, resetAt };
   }
 
   // Check if limit exceeded
-  if (userLimit.count >= MAX_REQUESTS_PER_HOUR) {
-    return { allowed: false, remaining: 0, resetAt: userLimit.resetAt };
+  if (clientLimit.count >= MAX_REQUESTS_PER_HOUR) {
+    return { allowed: false, remaining: 0, resetAt: clientLimit.resetAt };
   }
 
   // Increment counter
-  userLimit.count++;
+  clientLimit.count++;
   return { 
     allowed: true, 
-    remaining: MAX_REQUESTS_PER_HOUR - userLimit.count, 
-    resetAt: userLimit.resetAt 
+    remaining: MAX_REQUESTS_PER_HOUR - clientLimit.count, 
+    resetAt: clientLimit.resetAt 
   };
 }
 
@@ -82,27 +80,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Missing authorization header');
-    }
-
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
-      console.error('Authentication failed:', authError);
-      throw new Error('Unauthorized');
-    }
+    // Get client identifier for rate limiting (use IP or a header)
+    const clientId = req.headers.get('x-forwarded-for') || 
+                     req.headers.get('x-real-ip') || 
+                     'unknown-client';
 
     // Check rate limit
-    const rateLimit = checkRateLimit(user.id);
+    const rateLimit = checkRateLimit(clientId);
     if (!rateLimit.allowed) {
       const resetDate = new Date(rateLimit.resetAt).toISOString();
       return new Response(
@@ -128,7 +112,7 @@ Deno.serve(async (req) => {
     const { endpoint, params = {} }: CricketProxyRequest = await req.json();
 
     // Validate endpoint
-    const validEndpoints = ['currentMatches', 'series', 'match_info'];
+    const validEndpoints = ['currentMatches', 'series', 'match_info', 'series_info'];
     if (!validEndpoints.includes(endpoint)) {
       throw new Error(`Invalid endpoint: ${endpoint}`);
     }
