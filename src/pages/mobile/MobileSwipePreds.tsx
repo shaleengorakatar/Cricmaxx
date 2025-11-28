@@ -22,6 +22,7 @@ export default function MobileSwipePreds() {
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
 
@@ -176,6 +177,7 @@ export default function MobileSwipePreds() {
   const saveStakePreference = (value: number) => {
     setStakeAmount(value);
     localStorage.setItem("swipepreds_stake", value.toString());
+    setSettingsOpen(false);
     toast({
       title: "Saved",
       description: `Quick predict amount set to $${value}`,
@@ -239,7 +241,7 @@ export default function MobileSwipePreds() {
             <Badge variant="outline" className="text-xs">
               ${profile?.balance.toFixed(0) || "0"}
             </Badge>
-            <Dialog>
+            <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9">
                   <Settings className="h-5 w-5" />
