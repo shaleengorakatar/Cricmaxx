@@ -471,7 +471,7 @@ serve(async (req) => {
       });
     }
 
-    // Route: GET /search - Search users by username
+    // Route: GET /search - Search users by username or email
     if (path === '/search' && method === 'GET') {
       const query = url.searchParams.get('query') || '';
 
@@ -486,8 +486,8 @@ serve(async (req) => {
 
       const { data: users, error: searchError } = await supabaseClient
         .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .ilike('username', `%${query}%`)
+        .select('id, username, display_name, avatar_url, email')
+        .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
         .neq('id', user.id)
         .limit(10);
 
