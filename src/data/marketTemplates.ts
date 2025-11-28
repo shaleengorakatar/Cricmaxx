@@ -9,17 +9,15 @@ export const marketTemplates: MarketTemplateConfig[] = [
       {
         name: "playerName",
         label: "Player Name",
-        type: "select",
-        options: ["Virat Kohli", "Rohit Sharma", "KL Rahul", "Jasprit Bumrah", "Ravindra Jadeja"],
-        placeholder: "Select player",
+        type: "text",
+        placeholder: "e.g., Virat Kohli",
         required: true,
       },
       {
         name: "statistic",
         label: "Statistic",
-        type: "select",
-        options: ["runs", "wickets", "catches"],
-        placeholder: "Select statistic",
+        type: "text",
+        placeholder: "e.g., runs, wickets, catches",
         required: true,
       },
       {
@@ -137,8 +135,8 @@ export const marketTemplates: MarketTemplateConfig[] = [
       {
         name: "category",
         label: "Category",
-        type: "select",
-        options: ["Cricket", "Politics", "Finance", "Technology", "Sports", "Entertainment"],
+        type: "text",
+        placeholder: "e.g., Cricket, Politics, Finance",
         required: true,
       },
       {
