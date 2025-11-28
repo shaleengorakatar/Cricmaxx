@@ -87,7 +87,7 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
       <CardContent className="space-y-3">
         <div className="flex gap-2">
           <Input
-            placeholder="Search by username..."
+            placeholder="Search by username or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="flex-1"
