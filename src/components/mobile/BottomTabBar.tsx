@@ -4,7 +4,7 @@ import { Home, TrendingUp, FileText, Wallet, User, Zap } from "lucide-react";
 const tabs = [
   { name: "Home", path: "/mobile", icon: Home },
   { name: "Markets", path: "/mobile/markets", icon: TrendingUp },
-  { name: "QuickFire", path: "/mobile/swipepreds", icon: Zap },
+  { name: "RapidPreds", path: "/mobile/swipepreds", icon: Zap },
   { name: "Predictions", path: "/mobile/predictions", icon: FileText },
   { name: "Wallet", path: "/mobile/wallet", icon: Wallet },
   { name: "Profile", path: "/mobile/profile", icon: User },

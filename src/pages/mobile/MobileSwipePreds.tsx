@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Market } from "@/types/market";
+import { mockMarkets } from "@/data/mockMarkets";
 
 export default function MobileSwipePreds() {
   const { profile } = useAuth();
@@ -42,16 +43,13 @@ export default function MobileSwipePreds() {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load markets",
-        variant: "destructive",
-      });
+    if (error || !data || data.length === 0) {
+      // Use mock markets as fallback
+      setMarkets(mockMarkets);
       return;
     }
 
-    const formattedMarkets: Market[] = (data || []).map((m) => ({
+    const formattedMarkets: Market[] = data.map((m) => ({
       id: m.id,
       question: m.question,
       category: m.category as Market["category"],
