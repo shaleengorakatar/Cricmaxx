@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MobileLayout } from "@/layouts/MobileLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -19,8 +19,14 @@ export default function MobileSwipePreds() {
   const [stakeAmount, setStakeAmount] = useState(5);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const startX = useRef(0);
 
   const currentMarket = markets[currentIndex];
+  const nextMarket = markets[currentIndex + 1];
+  const thirdMarket = markets[currentIndex + 2];
 
   useEffect(() => {
     fetchMarkets();
@@ -34,7 +40,7 @@ export default function MobileSwipePreds() {
       .select("*")
       .in("status", ["approved", "open"])
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
     if (error) {
       toast({
@@ -61,6 +67,30 @@ export default function MobileSwipePreds() {
     setMarkets(formattedMarkets);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentX = e.touches[0].clientX;
+    const diff = currentX - startX.current;
+    setDragOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    if (Math.abs(dragOffset) > 100) {
+      if (dragOffset > 0) {
+        handleTrade("yes");
+      } else {
+        handleTrade("no");
+      }
+    }
+    setDragOffset(0);
+  };
+
   const handleTrade = async (side: "yes" | "no") => {
     if (!profile || !currentMarket) return;
     
@@ -74,12 +104,12 @@ export default function MobileSwipePreds() {
     }
 
     setIsPlacingTrade(true);
+    setSwipeDirection(side === "yes" ? "right" : "left");
 
     try {
       const price = side === "yes" ? currentMarket.yesPrice : currentMarket.noPrice;
       const totalCost = stakeAmount * price;
 
-      // Insert position
       const { error: positionError } = await supabase.from("positions").insert({
         user_id: profile.id,
         market_id: currentMarket.id,
@@ -91,7 +121,6 @@ export default function MobileSwipePreds() {
 
       if (positionError) throw positionError;
 
-      // Update balance
       const { error: balanceError } = await supabase
         .from("profiles")
         .update({ balance: profile.balance - totalCost })
@@ -99,7 +128,6 @@ export default function MobileSwipePreds() {
 
       if (balanceError) throw balanceError;
 
-      // Insert transaction
       await supabase.from("transactions").insert({
         user_id: profile.id,
         type: "trade",
@@ -115,7 +143,6 @@ export default function MobileSwipePreds() {
         description: `${side.toUpperCase()} for $${stakeAmount}`,
       });
 
-      setSwipeDirection(side === "yes" ? "right" : "left");
       setTimeout(() => {
         loadNextMarket();
         setSwipeDirection(null);
@@ -126,6 +153,7 @@ export default function MobileSwipePreds() {
         description: error.message,
         variant: "destructive",
       });
+      setSwipeDirection(null);
     } finally {
       setIsPlacingTrade(false);
     }
@@ -156,159 +184,272 @@ export default function MobileSwipePreds() {
     });
   };
 
-  const getMarketTag = () => {
-    if (!currentMarket) return null;
-    const hoursUntilExpiry = (new Date(currentMarket.expiryTime).getTime() - Date.now()) / (1000 * 60 * 60);
+  const getMarketTag = (market: Market) => {
+    if (!market) return null;
+    const hoursUntilExpiry = (new Date(market.expiryTime).getTime() - Date.now()) / (1000 * 60 * 60);
     
-    if (hoursUntilExpiry < 6) return { label: "🔥 Expiring Soon", variant: "destructive" as const };
-    if (currentMarket.volume > 10000) return { label: "📈 Trending", variant: "default" as const };
-    return { label: "⚡ Hot", variant: "secondary" as const };
+    if (hoursUntilExpiry < 6) return { label: "Expiring Soon", icon: Flame, color: "bg-red-500" };
+    if (market.volume > 10000) return { label: "Trending", icon: TrendingUp, color: "bg-accent" };
+    return { label: "Hot", icon: Zap, color: "bg-orange-500" };
+  };
+
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, string> = {
+      Cricket: "🏏",
+      Politics: "🏛️",
+      Finance: "💰",
+      Technology: "💻",
+      Sports: "⚽",
+      Entertainment: "🎬",
+    };
+    return icons[category] || "📊";
   };
 
   if (!currentMarket) {
     return (
       <MobileLayout>
         <div className="flex items-center justify-center min-h-screen p-4">
-          <p className="text-muted-foreground">Loading markets...</p>
+          <div className="text-center space-y-4">
+            <div className="animate-pulse">
+              <Zap className="h-16 w-16 mx-auto text-accent" />
+            </div>
+            <p className="text-muted-foreground text-lg">Loading markets...</p>
+          </div>
         </div>
       </MobileLayout>
     );
   }
 
-  const tag = getMarketTag();
+  const tag = getMarketTag(currentMarket);
+  const rotation = dragOffset * 0.05;
+  const yesOpacity = Math.min(dragOffset / 100, 1);
+  const noOpacity = Math.min(-dragOffset / 100, 1);
 
   return (
     <MobileLayout>
-      <div className="flex flex-col items-center justify-between min-h-screen p-4 pb-20">
+      <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-background/80">
         {/* Header */}
-        <div className="w-full flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between p-4 pt-2">
           <div>
-            <h1 className="text-2xl font-bold">⚡ SwipePreds</h1>
-            <p className="text-sm text-muted-foreground">Quick predictions</p>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Zap className="h-6 w-6 text-accent" />
+              RapidPreds
+            </h1>
+            <p className="text-xs text-muted-foreground">Swipe to predict</p>
           </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Settings className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Quick Predict Amount</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <Label>Stake Amount: ${stakeAmount}</Label>
-                <Slider
-                  value={[stakeAmount]}
-                  onValueChange={(v) => setStakeAmount(v[0])}
-                  min={1}
-                  max={100}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex gap-2">
-                  {[5, 10, 25, 50].map((amount) => (
-                    <Button
-                      key={amount}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStakeAmount(amount)}
-                    >
-                      ${amount}
-                    </Button>
-                  ))}
-                </div>
-                <Button onClick={() => saveStakePreference(stakeAmount)} className="w-full">
-                  Save Preference
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              ${profile?.balance.toFixed(0) || "0"}
+            </Badge>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Settings className="h-5 w-5" />
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Quick Predict Amount</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <Label>Stake Amount: ${stakeAmount}</Label>
+                  <Slider
+                    value={[stakeAmount]}
+                    onValueChange={(v) => setStakeAmount(v[0])}
+                    min={1}
+                    max={100}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {[5, 10, 25, 50, 100].map((amount) => (
+                      <Button
+                        key={amount}
+                        variant={stakeAmount === amount ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStakeAmount(amount)}
+                      >
+                        ${amount}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button onClick={() => saveStakePreference(stakeAmount)} className="w-full">
+                    Save Preference
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
-        {/* Market Card */}
-        <div
-          className={`w-full max-w-md transition-transform duration-300 ${
-            swipeDirection === "left" ? "-translate-x-full opacity-0" : ""
-          } ${swipeDirection === "right" ? "translate-x-full opacity-0" : ""}`}
-        >
-          <Card className="border-2">
-            <CardHeader>
-              {tag && (
-                <Badge variant={tag.variant} className="w-fit mb-2">
-                  {tag.label}
+        {/* Card Stack Area */}
+        <div className="flex-1 relative flex items-center justify-center px-4 pb-4">
+          {/* Third card (background) */}
+          {thirdMarket && (
+            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2">
+              <Card className="w-full h-[420px] opacity-30 scale-90 -translate-y-4 bg-card/50" />
+            </div>
+          )}
+
+          {/* Second card (behind) */}
+          {nextMarket && (
+            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2">
+              <Card className="w-full h-[420px] opacity-60 scale-95 -translate-y-2 bg-card/80 shadow-lg">
+                <div className="p-5">
+                  <Badge variant="secondary" className="text-xs">
+                    {getCategoryIcon(nextMarket.category)} {nextMarket.category}
+                  </Badge>
+                  <p className="text-base font-semibold mt-3 line-clamp-2 text-muted-foreground">
+                    {nextMarket.question}
+                  </p>
+                </div>
+              </Card>
+            </div>
+          )}
+
+          {/* Main card */}
+          <div
+            ref={cardRef}
+            className={`relative w-full max-w-sm z-10 transition-all ${
+              swipeDirection ? "duration-300" : isDragging ? "duration-0" : "duration-150"
+            } ${swipeDirection === "left" ? "-translate-x-[120%] -rotate-12 opacity-0" : ""} 
+            ${swipeDirection === "right" ? "translate-x-[120%] rotate-12 opacity-0" : ""}`}
+            style={{
+              transform: !swipeDirection ? `translateX(${dragOffset}px) rotate(${rotation}deg)` : undefined,
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* YES Overlay */}
+            <div
+              className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-green-500/20 border-4 border-green-500 pointer-events-none transition-opacity"
+              style={{ opacity: Math.max(0, yesOpacity) }}
+            >
+              <span className="text-5xl font-black text-green-500 -rotate-12 border-4 border-green-500 px-4 py-2 rounded-lg">
+                YES
+              </span>
+            </div>
+
+            {/* NO Overlay */}
+            <div
+              className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-red-500/20 border-4 border-red-500 pointer-events-none transition-opacity"
+              style={{ opacity: Math.max(0, noOpacity) }}
+            >
+              <span className="text-5xl font-black text-red-500 rotate-12 border-4 border-red-500 px-4 py-2 rounded-lg">
+                NO
+              </span>
+            </div>
+
+            <Card className="overflow-hidden rounded-2xl shadow-2xl border-2 border-border/50">
+              {/* Image or gradient header */}
+              <div className="relative h-40 bg-gradient-to-br from-accent/20 via-primary/10 to-secondary/20">
+                {currentMarket.imageUrl ? (
+                  <img
+                    src={currentMarket.imageUrl}
+                    alt={currentMarket.question}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-7xl">{getCategoryIcon(currentMarket.category)}</span>
+                  </div>
+                )}
+                
+                {/* Tags */}
+                <div className="absolute top-3 left-3 flex gap-2">
+                  <Badge className={`${tag?.color} text-white text-xs font-medium`}>
+                    {tag?.icon && <tag.icon className="h-3 w-3 mr-1" />}
+                    {tag?.label}
+                  </Badge>
+                </div>
+                <Badge variant="secondary" className="absolute top-3 right-3 text-xs">
+                  {currentMarket.category}
                 </Badge>
-              )}
-              <CardTitle className="text-xl leading-tight">{currentMarket.question}</CardTitle>
-              <CardDescription className="flex items-center gap-2 mt-2">
-                <Clock className="h-4 w-4" />
-                Expires {new Date(currentMarket.expiryTime).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {currentMarket.imageUrl && (
-                <img
-                  src={currentMarket.imageUrl}
-                  alt={currentMarket.question}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-              )}
-              <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
-                <div className="text-center flex-1">
-                  <p className="text-sm text-muted-foreground">YES</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {(currentMarket.yesPrice * 100).toFixed(0)}¢
-                  </p>
+              </div>
+
+              {/* Content */}
+              <div className="p-5 space-y-4">
+                <h2 className="text-xl font-bold leading-tight line-clamp-3">
+                  {currentMarket.question}
+                </h2>
+
+                {/* Odds Display */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Yes</p>
+                    <p className="text-3xl font-black text-green-500">
+                      {(currentMarket.yesPrice * 100).toFixed(0)}¢
+                    </p>
+                  </div>
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">No</p>
+                    <p className="text-3xl font-black text-red-500">
+                      {(currentMarket.noPrice * 100).toFixed(0)}¢
+                    </p>
+                  </div>
                 </div>
-                <div className="text-center flex-1">
-                  <p className="text-sm text-muted-foreground">NO</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {(currentMarket.noPrice * 100).toFixed(0)}¢
-                  </p>
+
+                {/* Meta info */}
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span>${currentMarket.volume.toLocaleString()} vol</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>{new Date(currentMarket.expiryTime).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Volume: ${currentMarket.volume.toLocaleString()}</span>
-              </div>
-            </CardContent>
-          </Card>
+            </Card>
+          </div>
+
+          {/* Card counter */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
+            <p className="text-xs text-muted-foreground">
+              {currentIndex + 1} / {markets.length}
+            </p>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="w-full max-w-md space-y-3">
-          <div className="flex gap-3">
-            <Button
-              onClick={() => handleTrade("yes")}
-              disabled={isPlacingTrade}
-              size="lg"
-              className="flex-1 h-16 text-lg font-bold bg-green-600 hover:bg-green-700"
-            >
-              <CheckCircle className="mr-2 h-6 w-6" />
-              YES
-            </Button>
+        <div className="px-4 pb-24 space-y-3">
+          <div className="flex items-center justify-center gap-4">
+            {/* NO Button */}
             <Button
               onClick={() => handleTrade("no")}
               disabled={isPlacingTrade}
               size="lg"
-              className="flex-1 h-16 text-lg font-bold bg-red-600 hover:bg-red-700"
+              className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-transform active:scale-95"
             >
-              <XCircle className="mr-2 h-6 w-6" />
-              NO
+              <XCircle className="h-8 w-8" />
+            </Button>
+
+            {/* Skip Button */}
+            <Button
+              onClick={handleSkip}
+              disabled={isPlacingTrade}
+              variant="outline"
+              size="lg"
+              className="h-12 w-12 rounded-full border-2"
+            >
+              <SkipForward className="h-5 w-5" />
+            </Button>
+
+            {/* YES Button */}
+            <Button
+              onClick={() => handleTrade("yes")}
+              disabled={isPlacingTrade}
+              size="lg"
+              className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-transform active:scale-95"
+            >
+              <CheckCircle className="h-8 w-8" />
             </Button>
           </div>
-          <Button
-            onClick={handleSkip}
-            disabled={isPlacingTrade}
-            variant="outline"
-            size="lg"
-            className="w-full h-14 text-lg"
-          >
-            <SkipForward className="mr-2 h-5 w-5" />
-            Skip
-          </Button>
-          <p className="text-center text-sm text-muted-foreground">
-            Quick predict: ${stakeAmount} • Balance: ${profile?.balance.toFixed(2) || "0.00"}
+
+          <p className="text-center text-xs text-muted-foreground">
+            Swipe right for YES • Swipe left for NO • Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
           </p>
         </div>
       </div>
