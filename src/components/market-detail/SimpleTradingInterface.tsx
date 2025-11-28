@@ -169,6 +169,19 @@ const SimpleTradingInterface = ({
           <h3 className="text-lg font-semibold text-foreground">Quick Prediction</h3>
           
           <div>
+            <Label htmlFor="outcome" className="text-sm">Choose outcome</Label>
+            <Select value={outcome} onValueChange={(value: "yes" | "no") => setOutcome(value)}>
+              <SelectTrigger id="outcome" className="bg-card h-12 text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card z-50">
+                <SelectItem value="yes" className="text-base py-3">Yes</SelectItem>
+                <SelectItem value="no" className="text-base py-3">No</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="amount" className="text-sm">Enter amount to predict ($)</Label>
             <Input
               id="amount"
@@ -180,19 +193,6 @@ const SimpleTradingInterface = ({
               step="0.01"
               className="h-12 text-base"
             />
-          </div>
-
-          <div>
-            <Label htmlFor="outcome" className="text-sm">Choose outcome</Label>
-            <Select value={outcome} onValueChange={(value: "yes" | "no") => setOutcome(value)}>
-              <SelectTrigger id="outcome" className="bg-card h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-card z-50">
-                <SelectItem value="yes" className="text-base py-3">Yes</SelectItem>
-                <SelectItem value="no" className="text-base py-3">No</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Prediction Summary */}
