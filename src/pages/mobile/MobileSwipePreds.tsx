@@ -105,6 +105,23 @@ export default function MobileSwipePreds() {
     setIsPlacingTrade(true);
     setSwipeDirection(side === "yes" ? "right" : "left");
 
+    // Check if market ID is a valid UUID (real market) or mock
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentMarket.id);
+    
+    if (!isValidUUID) {
+      // Mock market - show demo success without DB insert
+      toast({
+        title: "🎉 Demo Prediction!",
+        description: `${side.toUpperCase()} for $${stakeAmount} (demo mode)`,
+      });
+      setTimeout(() => {
+        loadNextMarket();
+        setSwipeDirection(null);
+        setIsPlacingTrade(false);
+      }, 300);
+      return;
+    }
+
     try {
       const price = side === "yes" ? currentMarket.yesPrice : currentMarket.noPrice;
       const totalCost = stakeAmount * price;
@@ -283,30 +300,7 @@ export default function MobileSwipePreds() {
         </div>
 
         {/* Card Stack Area */}
-        <div className="flex-1 relative flex items-center justify-center px-4 pb-4">
-          {/* Third card (background) */}
-          {thirdMarket && (
-            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2">
-              <Card className="w-full h-[420px] opacity-30 scale-90 -translate-y-4 bg-card/50" />
-            </div>
-          )}
-
-          {/* Second card (behind) */}
-          {nextMarket && (
-            <div className="absolute inset-x-4 top-1/2 -translate-y-1/2">
-              <Card className="w-full h-[420px] opacity-60 scale-95 -translate-y-2 bg-card/80 shadow-lg">
-                <div className="p-5">
-                  <Badge variant="secondary" className="text-xs">
-                    {getCategoryIcon(nextMarket.category)} {nextMarket.category}
-                  </Badge>
-                  <p className="text-base font-semibold mt-3 line-clamp-2 text-muted-foreground">
-                    {nextMarket.question}
-                  </p>
-                </div>
-              </Card>
-            </div>
-          )}
-
+        <div className="flex-1 relative flex items-center justify-center px-4 pb-4 overflow-hidden">
           {/* Main card */}
           <div
             ref={cardRef}
@@ -341,9 +335,9 @@ export default function MobileSwipePreds() {
               </span>
             </div>
 
-            <Card className="overflow-hidden rounded-2xl shadow-2xl border-2 border-border/50">
+            <Card className="overflow-hidden rounded-2xl shadow-xl border border-border bg-card">
               {/* Image or gradient header */}
-              <div className="relative h-40 bg-gradient-to-br from-accent/20 via-primary/10 to-secondary/20">
+              <div className="relative h-36 bg-gradient-to-br from-accent/10 via-primary/5 to-secondary/10">
                 {currentMarket.imageUrl ? (
                   <img
                     src={currentMarket.imageUrl}
@@ -352,25 +346,25 @@ export default function MobileSwipePreds() {
                   />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-7xl">{getCategoryIcon(currentMarket.category)}</span>
+                    <span className="text-6xl">{getCategoryIcon(currentMarket.category)}</span>
                   </div>
                 )}
                 
                 {/* Tags */}
-                <div className="absolute top-3 left-3 flex gap-2">
+                <div className="absolute top-3 left-3">
                   <Badge className={`${tag?.color} text-white text-xs font-medium`}>
                     {tag?.icon && <tag.icon className="h-3 w-3 mr-1" />}
                     {tag?.label}
                   </Badge>
                 </div>
-                <Badge variant="secondary" className="absolute top-3 right-3 text-xs">
+                <Badge variant="secondary" className="absolute top-3 right-3 text-xs bg-background/80">
                   {currentMarket.category}
                 </Badge>
               </div>
 
               {/* Content */}
-              <div className="p-5 space-y-4">
-                <h2 className="text-xl font-bold leading-tight line-clamp-3">
+              <div className="p-4 space-y-4">
+                <h2 className="text-lg font-bold leading-snug line-clamp-2">
                   {currentMarket.question}
                 </h2>
 
@@ -378,23 +372,23 @@ export default function MobileSwipePreds() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Yes</p>
-                    <p className="text-3xl font-black text-green-500">
+                    <p className="text-2xl font-black text-green-500">
                       {(currentMarket.yesPrice * 100).toFixed(0)}¢
                     </p>
                   </div>
                   <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">No</p>
-                    <p className="text-3xl font-black text-red-500">
+                    <p className="text-2xl font-black text-red-500">
                       {(currentMarket.noPrice * 100).toFixed(0)}¢
                     </p>
                   </div>
                 </div>
 
                 {/* Meta info */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
                   <div className="flex items-center gap-1">
                     <BarChart3 className="h-3.5 w-3.5" />
-                    <span>${currentMarket.volume.toLocaleString()} vol</span>
+                    <span>${currentMarket.volume.toLocaleString()}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Clock className="h-3.5 w-3.5" />
@@ -404,26 +398,24 @@ export default function MobileSwipePreds() {
               </div>
             </Card>
           </div>
+        </div>
 
-          {/* Card counter */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2">
-            <p className="text-xs text-muted-foreground">
-              {currentIndex + 1} / {markets.length}
-            </p>
-          </div>
+        {/* Card counter */}
+        <div className="text-center pb-2">
+          <span className="text-xs text-muted-foreground">{currentIndex + 1} / {markets.length}</span>
         </div>
 
         {/* Action Buttons */}
-        <div className="px-4 pb-24 space-y-3">
-          <div className="flex items-center justify-center gap-4">
+        <div className="px-6 pb-24 space-y-2">
+          <div className="flex items-center justify-center gap-6">
             {/* NO Button */}
             <Button
               onClick={() => handleTrade("no")}
               disabled={isPlacingTrade}
               size="lg"
-              className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/30 transition-transform active:scale-95"
+              className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25 transition-transform active:scale-95"
             >
-              <XCircle className="h-8 w-8" />
+              <XCircle className="h-7 w-7" />
             </Button>
 
             {/* Skip Button */}
@@ -432,7 +424,7 @@ export default function MobileSwipePreds() {
               disabled={isPlacingTrade}
               variant="outline"
               size="lg"
-              className="h-12 w-12 rounded-full border-2"
+              className="h-11 w-11 rounded-full border-2 border-muted-foreground/30"
             >
               <SkipForward className="h-5 w-5" />
             </Button>
@@ -442,14 +434,14 @@ export default function MobileSwipePreds() {
               onClick={() => handleTrade("yes")}
               disabled={isPlacingTrade}
               size="lg"
-              className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 transition-transform active:scale-95"
+              className="h-14 w-14 rounded-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/25 transition-transform active:scale-95"
             >
-              <CheckCircle className="h-8 w-8" />
+              <CheckCircle className="h-7 w-7" />
             </Button>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground">
-            Swipe right for YES • Swipe left for NO • Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
+          <p className="text-center text-xs text-muted-foreground pt-1">
+            Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
           </p>
         </div>
       </div>
