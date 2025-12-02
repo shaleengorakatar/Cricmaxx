@@ -7,6 +7,7 @@ import MarketResolutionPanel from "@/components/admin/MarketResolutionPanel";
 import OracleResolutionPanel from "@/components/admin/OracleResolutionPanel";
 import UserManagementPanel from "@/components/admin/UserManagementPanel";
 import MonitoringPanel from "@/components/admin/MonitoringPanel";
+import CricketMarketGenerator from "@/components/admin/CricketMarketGenerator";
 import { CreatorApplicationsPanel } from "@/components/admin/CreatorApplicationsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
@@ -244,9 +245,10 @@ const AdminDashboard = () => {
 
           <Tabs defaultValue="approvals" className="space-y-4 md:space-y-6">
             <div className="overflow-x-auto -mx-4 px-4">
-              <TabsList className="grid w-full grid-cols-2 min-w-[500px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-5">
+              <TabsList className="grid w-full grid-cols-2 min-w-[600px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-6">
                 <TabsTrigger value="approvals" className="text-xs md:text-sm">Market Approvals</TabsTrigger>
                 <TabsTrigger value="creators" className="text-xs md:text-sm">Creator Apps</TabsTrigger>
+                <TabsTrigger value="generator" className="text-xs md:text-sm">Auto Generate</TabsTrigger>
                 <TabsTrigger value="resolution" className="text-xs md:text-sm">Resolution</TabsTrigger>
                 <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
                 <TabsTrigger value="monitoring" className="text-xs md:text-sm">Monitoring</TabsTrigger>
@@ -263,6 +265,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="creators">
               <CreatorApplicationsPanel />
+            </TabsContent>
+
+            <TabsContent value="generator">
+              <CricketMarketGenerator />
             </TabsContent>
 
             <TabsContent value="resolution">

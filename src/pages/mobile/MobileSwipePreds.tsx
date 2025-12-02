@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Market } from "@/types/market";
-import { mockMarkets } from "@/data/mockMarkets";
 
 export default function MobileSwipePreds() {
   const { profile } = useAuth();
@@ -37,16 +36,33 @@ export default function MobileSwipePreds() {
   }, []);
 
   const fetchMarkets = async () => {
+    const now = new Date();
+    const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
     const { data, error } = await supabase
       .from("markets")
       .select("*")
       .in("status", ["approved", "open"])
+      .lte("expiry_time", fourteenDaysFromNow.toISOString())
+      .gte("expiry_time", now.toISOString())
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error || !data || data.length === 0) {
-      // Use mock markets as fallback
-      setMarkets(mockMarkets);
+    if (error) {
+      console.error("Error fetching markets:", error);
+      toast({
+        title: "Error loading markets",
+        description: "Could not fetch prediction markets",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      toast({
+        title: "No markets available",
+        description: "No active markets found. Check back soon!",
+      });
       return;
     }
 

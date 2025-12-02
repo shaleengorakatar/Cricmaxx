@@ -8,7 +8,7 @@ import OrderBook from "@/components/market-detail/OrderBook";
 import SimpleTradingInterface from "@/components/market-detail/SimpleTradingInterface";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
-import { mockMarkets } from "@/data/mockMarkets";
+import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,8 +63,9 @@ const MarketDetail = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [market, setMarket] = useState(mockMarkets.find(m => m.id === id));
-  const [priceHistory, setPriceHistory] = useState(market ? generatePriceHistory(market.yesPrice) : []);
+  const [market, setMarket] = useState<Market | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [orderBook, setOrderBook] = useState(generateOrderBook());
   const [isTrading, setIsTrading] = useState(false);
   
@@ -74,12 +75,49 @@ const MarketDetail = () => {
   const [statsExpanded, setStatsExpanded] = useState(false);
 
   useEffect(() => {
-    const foundMarket = mockMarkets.find(m => m.id === id);
-    if (foundMarket) {
-      setMarket(foundMarket);
-      setPriceHistory(generatePriceHistory(foundMarket.yesPrice));
-    }
+    fetchMarket();
   }, [id]);
+
+  const fetchMarket = async () => {
+    if (!id) return;
+
+    const { data, error } = await supabase
+      .from("markets")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) {
+      console.error("Error fetching market:", error);
+      setLoading(false);
+      return;
+    }
+
+    const formattedMarket: Market = {
+      id: data.id,
+      question: data.question,
+      category: data.category as Market["category"],
+      type: data.type as Market["type"],
+      yesPrice: Number(data.yes_price),
+      noPrice: Number(data.no_price),
+      volume: Number(data.volume),
+      expiryTime: data.expiry_time,
+      description: data.description || "",
+      imageUrl: data.image_url || "",
+    };
+
+    setMarket(formattedMarket);
+    setPriceHistory(generatePriceHistory(formattedMarket.yesPrice));
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Loading market...</p>
+      </div>
+    );
+  }
 
   if (!market) {
     return (
