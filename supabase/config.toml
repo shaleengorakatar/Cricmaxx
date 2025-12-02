@@ -24,3 +24,6 @@ verify_jwt = true
 
 [functions.cricket-proxy]
 verify_jwt = false
+
+[functions.cricket-market-generator]
+verify_jwt = true

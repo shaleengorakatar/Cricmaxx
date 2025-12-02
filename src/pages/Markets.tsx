@@ -1,19 +1,60 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCard from "@/components/markets/MarketCard";
 import MarketFilters from "@/components/markets/MarketFilters";
-import { mockMarkets } from "@/data/mockMarkets";
-import { MarketType, MarketCategory } from "@/types/market";
+import { MarketType, MarketCategory, Market } from "@/types/market";
 import { TrendingUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Markets = () => {
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
   const [selectedType, setSelectedType] = useState<MarketType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [allMarkets, setAllMarkets] = useState<Market[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMarkets();
+  }, []);
+
+  const fetchMarkets = async () => {
+    const now = new Date();
+    const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const { data, error } = await supabase
+      .from("markets")
+      .select("*")
+      .in("status", ["approved", "open"])
+      .lte("expiry_time", fourteenDaysFromNow.toISOString())
+      .gte("expiry_time", now.toISOString())
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching markets:", error);
+      setLoading(false);
+      return;
+    }
+
+    const formattedMarkets: Market[] = (data || []).map((m) => ({
+      id: m.id,
+      question: m.question,
+      category: m.category as Market["category"],
+      type: m.type as Market["type"],
+      yesPrice: Number(m.yes_price),
+      noPrice: Number(m.no_price),
+      volume: Number(m.volume),
+      expiryTime: m.expiry_time,
+      description: m.description || "",
+      imageUrl: m.image_url || "",
+    }));
+
+    setAllMarkets(formattedMarkets);
+    setLoading(false);
+  };
 
   const filteredMarkets = useMemo(() => {
-    return mockMarkets.filter((market) => {
+    return allMarkets.filter((market) => {
       // Category filter
       const categoryMatch = selectedCategory === "All" || market.category === selectedCategory;
       
@@ -27,7 +68,7 @@ const Markets = () => {
       
       return categoryMatch && typeMatch && searchMatch;
     });
-  }, [selectedCategory, selectedType, searchQuery]);
+  }, [allMarkets, selectedCategory, selectedType, searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -66,7 +107,11 @@ const Markets = () => {
           </div>
 
           {/* Market Grid - Single column on mobile, multiple on larger screens */}
-          {filteredMarkets.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 sm:py-16">
+              <p className="text-base sm:text-lg text-muted-foreground">Loading markets...</p>
+            </div>
+          ) : filteredMarkets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredMarkets.map((market) => (
                 <MarketCard key={market.id} market={market} />
@@ -74,8 +119,12 @@ const Markets = () => {
             </div>
           ) : (
             <div className="text-center py-12 sm:py-16">
-              <p className="text-base sm:text-lg text-muted-foreground">No markets found matching your filters</p>
-              <p className="text-sm text-muted-foreground mt-2">Try adjusting your search or filters</p>
+              <p className="text-base sm:text-lg text-muted-foreground">
+                {allMarkets.length === 0 ? "No active markets available" : "No markets found matching your filters"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                {allMarkets.length === 0 ? "Check back soon for new markets!" : "Try adjusting your search or filters"}
+              </p>
             </div>
           )}
         </div>
