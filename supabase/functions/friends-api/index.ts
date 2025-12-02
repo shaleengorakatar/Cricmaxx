@@ -31,9 +31,11 @@ serve(async (req) => {
       });
     }
 
+    // Parse request body for path and parameters
+    const body = req.method === 'POST' ? await req.json() : {};
     const url = new URL(req.url);
-    const path = url.pathname.split('/friends-api')[1];
-    const method = req.method;
+    const path = body.path || url.pathname.split('/friends-api')[1] || '';
+    const method = body.method || req.method;
 
     // Route: POST /invite-link - Generate friend invite link
     if (path === '/invite-link' && method === 'POST') {
@@ -66,7 +68,7 @@ serve(async (req) => {
 
     // Route: POST /accept-invite - Accept invite via token
     if (path === '/accept-invite' && method === 'POST') {
-      const { token } = await req.json();
+      const { token } = body;
 
       // Get invite token details
       const { data: inviteToken, error: tokenError } = await supabaseClient
@@ -142,7 +144,7 @@ serve(async (req) => {
 
     // Route: POST /add-by-username - Send friend request by username
     if (path === '/add-by-username' && method === 'POST') {
-      const { username } = await req.json();
+      const { username } = body;
 
       // Comprehensive input validation
       if (!username || typeof username !== 'string') {
@@ -237,7 +239,7 @@ serve(async (req) => {
 
     // Route: POST /accept - Accept friend request
     if (path === '/accept' && method === 'POST') {
-      const { friendship_id } = await req.json();
+      const { friendship_id } = body;
 
       // Update the pending request to accepted
       const { error: updateError } = await supabaseClient
@@ -277,7 +279,7 @@ serve(async (req) => {
 
     // Route: POST /reject - Reject friend request
     if (path === '/reject' && method === 'POST') {
-      const { friendship_id } = await req.json();
+      const { friendship_id } = body;
 
       const { error: deleteError } = await supabaseClient
         .from('friendships')
@@ -296,8 +298,8 @@ serve(async (req) => {
       });
     }
 
-    // Route: GET /list - List all accepted friends
-    if (path === '/list' && method === 'GET') {
+    // Route: /list - List all accepted friends
+    if (path === '/list') {
       const { data: friendships, error: friendError } = await supabaseClient
         .from('friendships')
         .select(`
@@ -357,8 +359,8 @@ serve(async (req) => {
       });
     }
 
-    // Route: GET /requests - Get pending friend requests
-    if (path === '/requests' && method === 'GET') {
+    // Route: /requests - Get pending friend requests
+    if (path === '/requests') {
       // Inbound requests (people who want to be friends with me)
       const { data: inbound, error: inboundError } = await supabaseClient
         .from('friendships')
@@ -404,8 +406,8 @@ serve(async (req) => {
       });
     }
 
-    // Route: GET /ongoing-trades - Get friends' ongoing trades
-    if (path === '/ongoing-trades' && method === 'GET') {
+    // Route: /ongoing-trades - Get friends' ongoing trades
+    if (path === '/ongoing-trades') {
       // Get all accepted friends
       const { data: friendships } = await supabaseClient
         .from('friendships')
@@ -471,9 +473,9 @@ serve(async (req) => {
       });
     }
 
-    // Route: GET /search - Search users by username or email
-    if (path === '/search' && method === 'GET') {
-      const query = url.searchParams.get('query') || '';
+    // Route: /search - Search users by username or email
+    if (path === '/search') {
+      const query = body.query || url.searchParams.get('query') || '';
 
       if (query.length < 2) {
         return new Response(JSON.stringify({

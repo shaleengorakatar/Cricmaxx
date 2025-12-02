@@ -12,22 +12,13 @@ export const useFriends = () => {
 
   const fetchFriends = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/list' }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/list`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        setFriends(result.friends);
+      if (error) throw error;
+      if (data?.success) {
+        setFriends(data.friends);
       }
     } catch (error) {
       console.error('Error fetching friends:', error);
@@ -36,23 +27,14 @@ export const useFriends = () => {
 
   const fetchRequests = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/requests' }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/requests`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        setInboundRequests(result.inbound);
-        setOutboundRequests(result.outbound);
+      if (error) throw error;
+      if (data?.success) {
+        setInboundRequests(data.inbound);
+        setOutboundRequests(data.outbound);
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -61,22 +43,13 @@ export const useFriends = () => {
 
   const fetchFriendsTrades = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/ongoing-trades' }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/ongoing-trades`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
-        setFriendsTrades(result.trades);
+      if (error) throw error;
+      if (data?.success) {
+        setFriendsTrades(data.trades);
       }
     } catch (error) {
       console.error('Error fetching friends trades:', error);
@@ -85,29 +58,16 @@ export const useFriends = () => {
 
   const generateInviteLink = async (): Promise<InviteLink | null> => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in');
-        return null;
-      }
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/invite-link', method: 'POST' }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/invite-link`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
+      if (error) throw error;
+      if (data?.success) {
         return {
-          invite_url: result.invite_url,
-          token: result.token,
-          expires_at: result.expires_at
+          invite_url: data.invite_url,
+          token: data.token,
+          expires_at: data.expires_at
         };
       }
       return null;
@@ -122,21 +82,12 @@ export const useFriends = () => {
     try {
       if (query.length < 2) return [];
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/search', query }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/search?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      const result = await response.json();
-      return result.success ? result.users : [];
+      if (error) throw error;
+      return data?.success ? data.users : [];
     } catch (error) {
       console.error('Error searching users:', error);
       return [];
@@ -145,31 +96,17 @@ export const useFriends = () => {
 
   const addFriend = async (username: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in');
-        return false;
-      }
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/add-by-username', method: 'POST', username }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/add-by-username`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ username })
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
+      if (error) throw error;
+      if (data?.success) {
         toast.success('Friend request sent!');
         await fetchRequests();
         return true;
       } else {
-        toast.error(result.error || 'Failed to send friend request');
+        toast.error(data?.error || 'Failed to send friend request');
         return false;
       }
     } catch (error) {
@@ -181,23 +118,12 @@ export const useFriends = () => {
 
   const acceptFriend = async (friendshipId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return false;
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/accept', method: 'POST', friendship_id: friendshipId }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/accept`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ friendship_id: friendshipId })
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
+      if (error) throw error;
+      if (data?.success) {
         toast.success('Friend request accepted!');
         await Promise.all([fetchFriends(), fetchRequests()]);
         return true;
@@ -212,23 +138,12 @@ export const useFriends = () => {
 
   const rejectFriend = async (friendshipId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return false;
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/reject', method: 'POST', friendship_id: friendshipId }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/reject`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ friendship_id: friendshipId })
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
+      if (error) throw error;
+      if (data?.success) {
         toast.success('Friend request rejected');
         await fetchRequests();
         return true;
@@ -243,31 +158,17 @@ export const useFriends = () => {
 
   const acceptInvite = async (token: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('You must be logged in');
-        return false;
-      }
+      const { data, error } = await supabase.functions.invoke('friends-api', {
+        body: { path: '/accept-invite', method: 'POST', token }
+      });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/friends-api/accept-invite`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ token })
-        }
-      );
-
-      const result = await response.json();
-      if (result.success) {
+      if (error) throw error;
+      if (data?.success) {
         toast.success('Friend added successfully!');
         await fetchFriends();
         return true;
       } else {
-        toast.error(result.error || 'Failed to accept invite');
+        toast.error(data?.error || 'Failed to accept invite');
         return false;
       }
     } catch (error) {
