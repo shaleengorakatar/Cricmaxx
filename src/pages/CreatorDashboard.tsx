@@ -15,40 +15,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for creator markets
-const mockCreatorMarkets: CreatorMarket[] = [
-  {
-    id: "c1",
-    question: "Will Virat Kohli score 50+ runs on 15 Dec 2025?",
-    status: "open",
-    volume: 45000,
-    feesEarned: 900,
-    createdAt: "2025-11-01T10:00:00Z",
-    template: "cricket_player_performance",
-  },
-  {
-    id: "c2",
-    question: "Will India defeat Australia on 20 Dec 2025?",
-    status: "pending",
-    volume: 0,
-    feesEarned: 0,
-    createdAt: "2025-11-10T14:30:00Z",
-    template: "cricket_match_result",
-  },
-  {
-    id: "c3",
-    question: "Will Bitcoin reach $100000 by 31 Dec 2025?",
-    status: "resolved",
-    volume: 125000,
-    feesEarned: 2500,
-    createdAt: "2025-10-15T09:00:00Z",
-    template: "finance_price_target",
-    outcome: "yes",
-  },
-];
-
 const CreatorDashboard = () => {
-  const [markets, setMarkets] = useState<CreatorMarket[]>(mockCreatorMarkets);
+  const [markets, setMarkets] = useState<CreatorMarket[]>([]);
   const [applicationStatus, setApplicationStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   const [loadingStatus, setLoadingStatus] = useState(true);
   const { isAuthenticated, isCreator, loading, user } = useAuth();
@@ -58,12 +26,48 @@ const CreatorDashboard = () => {
   const totalVolume = markets.reduce((sum, market) => sum + market.volume, 0);
   const activeMarkets = markets.filter(m => m.status === "open" || m.status === "approved").length;
 
-  const handleMarketCreated = () => {
-    // Refresh markets list
-    // In real app, this would fetch from database
+  // Fetch creator's markets from database
+  const fetchMarkets = async () => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from('markets')
+      .select('*')
+      .eq('created_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data && !error) {
+      const formattedMarkets: CreatorMarket[] = data.map(m => {
+        // Map category to template type
+        const templateMap: Record<string, CreatorMarket['template']> = {
+          'cricket': 'cricket_player_performance',
+          'Cricket': 'cricket_player_performance',
+          'politics': 'politics_election',
+          'Politics': 'politics_election',
+          'finance': 'finance_price_target',
+          'Finance': 'finance_price_target'
+        };
+
+        return {
+          id: m.id,
+          question: m.question,
+          status: m.status as CreatorMarket['status'],
+          volume: Number(m.volume),
+          feesEarned: Number(m.volume) * 0.02, // 2% commission
+          createdAt: m.created_at,
+          template: templateMap[m.category] || 'custom_yesno',
+          outcome: m.outcome as CreatorMarket['outcome']
+        };
+      });
+      setMarkets(formattedMarkets);
+    }
   };
 
-  // Check application status
+  const handleMarketCreated = () => {
+    fetchMarkets();
+  };
+
+  // Check application status and fetch markets
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (!user) return;
@@ -85,8 +89,11 @@ const CreatorDashboard = () => {
 
     if (user) {
       checkApplicationStatus();
+      if (isCreator) {
+        fetchMarkets();
+      }
     }
-  }, [user]);
+  }, [user, isCreator]);
 
   // Redirect if not authenticated
   useEffect(() => {
