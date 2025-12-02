@@ -16,47 +16,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
-// Mock data for demonstration
-const mockChartData = [
-  { date: "Mon", value: 10000 },
-  { date: "Tue", value: 10250 },
-  { date: "Wed", value: 10100 },
-  { date: "Thu", value: 10450 },
-  { date: "Fri", value: 10800 },
-  { date: "Sat", value: 10650 },
-  { date: "Sun", value: 10950 },
-];
-
-const mockPositions = [
-  {
-    id: "1",
-    market: "Will Bitcoin reach $100k by 2025?",
-    side: "Yes" as const,
-    quantity: 100,
-    entryPrice: 0.65,
-    currentPrice: 0.72,
-    unrealizedPL: 7.00,
-  },
-  {
-    id: "2",
-    market: "Will the S&P 500 close above 5000 this quarter?",
-    side: "No" as const,
-    quantity: 50,
-    entryPrice: 0.45,
-    currentPrice: 0.38,
-    unrealizedPL: 3.50,
-  },
-  {
-    id: "3",
-    market: "Will inflation fall below 3% next month?",
-    side: "Yes" as const,
-    quantity: 200,
-    entryPrice: 0.58,
-    currentPrice: 0.52,
-    unrealizedPL: -12.00,
-    expiring: true,
-  },
-];
+interface Position {
+  id: string;
+  market: string;
+  side: "Yes" | "No";
+  quantity: number;
+  entryPrice: number;
+  currentPrice: number;
+  unrealizedPL: number;
+  expiring?: boolean;
+}
 
 interface Transaction {
   id: string;
@@ -70,8 +39,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { isAuthenticated, profile, loading, user } = useAuth();
   const [balance, setBalance] = useState(profile?.balance || 0);
-  const [profitLoss] = useState(950);
+  const [profitLoss, setProfitLoss] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
 
   // Fetch real-time balance from database
   const fetchBalance = async () => {
@@ -108,12 +79,87 @@ const Dashboard = () => {
         type: t.type as any
       }));
       setTransactions(formattedTransactions);
+
+      // Generate chart data from transactions (last 7 days)
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        return date.toLocaleDateString('en-US', { weekday: 'short' });
+      });
+
+      const chartValues = last7Days.map((day, index) => {
+        const dayTransactions = data.filter(t => {
+          const tDate = new Date(t.created_at);
+          return tDate.toLocaleDateString('en-US', { weekday: 'short' }) === day;
+        });
+        
+        const dayBalance = dayTransactions.reduce((sum, t) => {
+          return sum + (t.balance_after - t.balance_before);
+        }, balance);
+        
+        return { date: day, value: Number(dayBalance) };
+      });
+
+      setChartData(chartValues.length > 0 ? chartValues : [{ date: 'Today', value: balance }]);
+    }
+  };
+
+  // Fetch positions from database
+  const fetchPositions = async () => {
+    if (!user?.id) return;
+
+    const { data, error } = await supabase
+      .from('positions')
+      .select(`
+        id,
+        side,
+        size,
+        entry_price,
+        opened_at,
+        markets (
+          question,
+          yes_price,
+          no_price,
+          expiry_time
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false })
+      .limit(10);
+
+    if (data && !error) {
+      const formattedPositions: Position[] = data.map(p => {
+        const market = p.markets as any;
+        const currentPrice = p.side === 'yes' ? Number(market?.yes_price || 0) : Number(market?.no_price || 0);
+        const unrealizedPL = (currentPrice - Number(p.entry_price)) * Number(p.size);
+        const isExpiringSoon = market?.expiry_time ? 
+          new Date(market.expiry_time).getTime() - Date.now() < 24 * 60 * 60 * 1000 : false;
+
+        return {
+          id: p.id,
+          market: market?.question || 'Unknown Market',
+          side: p.side === 'yes' ? 'Yes' : 'No',
+          quantity: Number(p.size),
+          entryPrice: Number(p.entry_price),
+          currentPrice: currentPrice,
+          unrealizedPL: unrealizedPL,
+          expiring: isExpiringSoon
+        };
+      });
+
+      setPositions(formattedPositions);
+
+      // Calculate total P&L
+      const totalPL = formattedPositions.reduce((sum, pos) => sum + pos.unrealizedPL, 0);
+      setProfitLoss(totalPL);
     }
   };
 
   const handleBalanceUpdate = () => {
     fetchBalance();
     fetchTransactions();
+    fetchPositions();
   };
 
   // Redirect if not authenticated
@@ -128,6 +174,7 @@ const Dashboard = () => {
     if (user?.id) {
       fetchBalance();
       fetchTransactions();
+      fetchPositions();
     }
   }, [user?.id]);
 
@@ -170,7 +217,7 @@ const Dashboard = () => {
                 profitLoss={profitLoss}
                 isVerified={profile.kyc_verified}
               />
-              <PLChart data={mockChartData} />
+              <PLChart data={chartData} />
             </div>
             
             <div className="space-y-4 md:space-y-6">
@@ -200,7 +247,7 @@ const Dashboard = () => {
 
           <div className="space-y-4 md:space-y-6">
             <TradingHistoryPanel />
-            <ActivePositions positions={mockPositions} />
+            <ActivePositions positions={positions} />
             <TransactionHistory transactions={transactions} />
           </div>
         </div>
