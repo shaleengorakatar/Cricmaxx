@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      creator_applications: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          description: string
+          follower_count: number
+          id: string
+          previous_experience: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          social_media_handle: string
+          social_media_platform: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          description: string
+          follower_count: number
+          id?: string
+          previous_experience?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_media_handle: string
+          social_media_platform: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          description?: string
+          follower_count?: number
+          id?: string
+          previous_experience?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          social_media_handle?: string
+          social_media_platform?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fraud_alerts: {
         Row: {
           actual_value: number | null

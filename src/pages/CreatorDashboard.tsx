@@ -5,12 +5,15 @@ import MarketCreationForm from "@/components/creator/MarketCreationForm";
 import OracleMarketForm from "@/components/creator/OracleMarketForm";
 import MyMarkets from "@/components/creator/MyMarkets";
 import CreatorGuidance from "@/components/creator/CreatorGuidance";
+import { CreatorApplicationForm } from "@/components/creator/CreatorApplicationForm";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { CreatorMarket } from "@/types/creator";
 import { DollarSign, TrendingUp, BarChart3, Sparkles, FileText } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 // Mock data for creator markets
 const mockCreatorMarkets: CreatorMarket[] = [
@@ -46,7 +49,9 @@ const mockCreatorMarkets: CreatorMarket[] = [
 
 const CreatorDashboard = () => {
   const [markets, setMarkets] = useState<CreatorMarket[]>(mockCreatorMarkets);
-  const { isAuthenticated, isCreator, loading } = useAuth();
+  const [applicationStatus, setApplicationStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const { isAuthenticated, isCreator, loading, user } = useAuth();
   const navigate = useNavigate();
 
   const totalEarnings = markets.reduce((sum, market) => sum + market.feesEarned, 0);
@@ -58,6 +63,31 @@ const CreatorDashboard = () => {
     // In real app, this would fetch from database
   };
 
+  // Check application status
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from('creator_applications')
+        .select('status')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking application:', error);
+      }
+      
+      const status = data?.status as 'pending' | 'approved' | 'rejected' | undefined;
+      setApplicationStatus(status || 'none');
+      setLoadingStatus(false);
+    };
+
+    if (user) {
+      checkApplicationStatus();
+    }
+  }, [user]);
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -65,8 +95,12 @@ const CreatorDashboard = () => {
     }
   }, [loading, isAuthenticated, navigate]);
 
+  const handleApplicationSubmitted = () => {
+    setApplicationStatus('pending');
+  };
+
   // Show loading while checking auth
-  if (loading) {
+  if (loading || loadingStatus) {
     return null;
   }
 
@@ -74,17 +108,63 @@ const CreatorDashboard = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 flex items-center justify-center pt-20 pb-12">
-          <Card className="p-8 max-w-md mx-4">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Creator Access Required</h2>
-            <p className="text-muted-foreground mb-6">
-              You need to be approved as a creator to access this page. 
-              Creators can launch automated prediction markets and earn fees from trading volume.
-            </p>
-            <button className="w-full bg-accent text-accent-foreground px-4 py-2 rounded-lg hover:bg-accent/90">
-              Apply to Become a Creator
-            </button>
-          </Card>
+        <main className="flex-1 pt-20 pb-12">
+          <div className="container mx-auto px-4 max-w-2xl">
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Creator Dashboard</h1>
+              <p className="text-sm md:text-base text-muted-foreground">
+                Apply to become a creator and start earning from your markets
+              </p>
+            </div>
+
+            {applicationStatus === 'none' && (
+              <CreatorApplicationForm onApplicationSubmitted={handleApplicationSubmitted} />
+            )}
+
+            {applicationStatus === 'pending' && (
+              <Card className="p-8">
+                <div className="text-center">
+                  <Badge variant="secondary" className="mb-4">
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Application Under Review
+                  </Badge>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Application Submitted</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Your creator application is currently under review by our admin team. 
+                    We typically review applications within 24-48 hours. You'll receive an email once your application is processed.
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded-lg text-left">
+                    <p className="text-sm font-medium mb-2">What happens next?</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Admin reviews your profile and social media presence</li>
+                      <li>• We verify your follower count and engagement</li>
+                      <li>• If approved, you'll gain creator access immediately</li>
+                      <li>• You'll be notified via email about the decision</li>
+                    </ul>
+                  </div>
+                </div>
+              </Card>
+            )}
+
+            {applicationStatus === 'rejected' && (
+              <Card className="p-8">
+                <div className="text-center">
+                  <Badge variant="destructive" className="mb-4">
+                    Application Not Approved
+                  </Badge>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">Application Update</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Unfortunately, your creator application was not approved at this time. 
+                    This may be due to not meeting the minimum follower requirements or other criteria.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    You may reapply after growing your following or providing additional information. 
+                    Contact support if you have questions.
+                  </p>
+                </div>
+              </Card>
+            )}
+          </div>
         </main>
         <Footer />
       </div>
