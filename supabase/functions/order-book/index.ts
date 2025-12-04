@@ -44,12 +44,16 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const action = url.pathname.split('/').pop();
+    const pathAction = url.pathname.split('/').pop();
+    
+    // Support both URL path actions and body-based actions
+    const body = req.method === 'POST' ? await req.json() : {};
+    const action = body.action || pathAction;
 
     if (action === 'place' && req.method === 'POST') {
-      return await placeOrder(supabase, user.id, await req.json());
+      return await placeOrder(supabase, user.id, body);
     } else if (action === 'cancel' && req.method === 'POST') {
-      return await cancelOrder(supabase, user.id, await req.json());
+      return await cancelOrder(supabase, user.id, body);
     } else if (action === 'depth' && req.method === 'GET') {
       const marketId = url.searchParams.get('marketId');
       return await getMarketDepth(supabase, marketId);
@@ -331,10 +335,16 @@ async function matchOrder(supabase: any, order: any) {
     }
 
     // Update market volume
+    const { data: currentMarket } = await supabase
+      .from('markets')
+      .select('volume')
+      .eq('id', market_id)
+      .single();
+    
     await supabase
       .from('markets')
       .update({ 
-        volume: supabase.sql`volume + ${fillQuantity}`,
+        volume: (currentMarket?.volume || 0) + fillQuantity,
         updated_at: new Date().toISOString()
       })
       .eq('id', market_id);
