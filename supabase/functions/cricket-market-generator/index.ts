@@ -27,32 +27,63 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify JWT for authentication
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      throw new Error('Unauthorized');
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Unauthorized');
-    }
-
-    // Check if user is admin
-    const { data: roles } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+    const body = await req.json().catch(() => ({}));
+    const isScheduled = body?.scheduled === true;
     
-    const isAdmin = roles?.some((r: any) => r.role === 'admin');
-    if (!isAdmin) {
-      throw new Error('Admin access required');
+    let userId: string;
+    let supabaseClient;
+
+    if (isScheduled) {
+      // Scheduled execution from cron - use service role
+      console.log('Running as scheduled task');
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      // Use a system user ID for scheduled markets
+      // Get the first admin user as the creator
+      const { data: adminRole } = await supabaseClient
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+        .limit(1)
+        .single();
+      
+      if (!adminRole) {
+        throw new Error('No admin user found for scheduled market creation');
+      }
+      userId = adminRole.user_id;
+    } else {
+      // Manual execution - verify JWT authentication
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader) {
+        throw new Error('Unauthorized');
+      }
+
+      supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
+
+      // Check if user is admin
+      const { data: roles } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      
+      const isAdmin = roles?.some((r: any) => r.role === 'admin');
+      if (!isAdmin) {
+        throw new Error('Admin access required');
+      }
+      
+      userId = user.id;
     }
 
     console.log('Fetching cricket matches...');
@@ -109,14 +140,14 @@ Deno.serve(async (req) => {
             .from('markets')
             .select('id')
             .eq('question', marketQuestion)
-            .single();
+            .maybeSingle();
 
           if (!existingMarket) {
             const { data: market, error: marketError } = await supabaseClient
               .from('markets')
               .insert({
                 question: marketQuestion,
-                description: `${match.matchType} - ${match.name} at ${match.venue}`,
+                description: `${match.matchType.toUpperCase()} - ${match.name} at ${match.venue}`,
                 category: 'Cricket',
                 type: 'amm',
                 yes_price: 0.50,
@@ -124,7 +155,7 @@ Deno.serve(async (req) => {
                 volume: 0,
                 expiry_time: expiryTime.toISOString(),
                 status: 'approved',
-                created_by: user.id,
+                created_by: userId,
                 image_url: match.teamInfo?.[0]?.img || null,
               })
               .select()
@@ -155,26 +186,26 @@ Deno.serve(async (req) => {
             });
 
             createdMarkets.push({ id: market.id, question: marketQuestion });
+            console.log(`Created market: ${marketQuestion}`);
           }
         }
 
-        // Market 2: Will top player score 50+ runs?
-        if (match.teams && match.teams.length >= 1) {
-          // Use a generic "Top Batsman" for now since we don't have player data
+        // Market 2: Will any player score 50+ runs?
+        if (match.teams && match.teams.length >= 2) {
           const marketQuestion = `Will any player score 50+ runs in ${match.teams[0]} vs ${match.teams[1]}?`;
 
           const { data: existingMarket2 } = await supabaseClient
             .from('markets')
             .select('id')
             .eq('question', marketQuestion)
-            .single();
+            .maybeSingle();
 
           if (!existingMarket2) {
             const { data: market2, error: market2Error } = await supabaseClient
               .from('markets')
               .insert({
                 question: marketQuestion,
-                description: `${match.matchType} - ${match.name} at ${match.venue}`,
+                description: `${match.matchType.toUpperCase()} - ${match.name} at ${match.venue}`,
                 category: 'Cricket',
                 type: 'amm',
                 yes_price: 0.50,
@@ -182,7 +213,7 @@ Deno.serve(async (req) => {
                 volume: 0,
                 expiry_time: expiryTime.toISOString(),
                 status: 'approved',
-                created_by: user.id,
+                created_by: userId,
                 image_url: match.teamInfo?.[0]?.img || null,
               })
               .select()
@@ -213,16 +244,21 @@ Deno.serve(async (req) => {
             });
 
             createdMarkets.push({ id: market2.id, question: marketQuestion });
+            console.log(`Created market: ${marketQuestion}`);
           }
         }
       } catch (err: any) {
+        console.error(`Error processing match ${match.name}:`, err);
         errors.push({ match: match.name, error: err.message });
       }
     }
 
+    console.log(`Completed: Created ${createdMarkets.length} markets`);
+
     return new Response(
       JSON.stringify({
         success: true,
+        scheduled: isScheduled,
         message: `Generated ${createdMarkets.length} markets from ${upcomingMatches.length} matches`,
         created_markets: createdMarkets,
         errors: errors.length > 0 ? errors : undefined,
