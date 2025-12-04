@@ -9,6 +9,7 @@ import UserManagementPanel from "@/components/admin/UserManagementPanel";
 import MonitoringPanel from "@/components/admin/MonitoringPanel";
 import CricketMarketGenerator from "@/components/admin/CricketMarketGenerator";
 import { CreatorApplicationsPanel } from "@/components/admin/CreatorApplicationsPanel";
+import PlatformFeesPanel from "@/components/admin/PlatformFeesPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -64,12 +65,13 @@ const AdminDashboard = () => {
 
           <Tabs defaultValue="approvals" className="space-y-4 md:space-y-6">
             <div className="overflow-x-auto -mx-4 px-4">
-              <TabsList className="grid w-full grid-cols-2 min-w-[600px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-6">
+              <TabsList className="grid w-full grid-cols-2 min-w-[700px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-7">
                 <TabsTrigger value="approvals" className="text-xs md:text-sm">Market Approvals</TabsTrigger>
                 <TabsTrigger value="creators" className="text-xs md:text-sm">Creator Apps</TabsTrigger>
                 <TabsTrigger value="generator" className="text-xs md:text-sm">Auto Generate</TabsTrigger>
                 <TabsTrigger value="resolution" className="text-xs md:text-sm">Resolution</TabsTrigger>
                 <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+                <TabsTrigger value="fees" className="text-xs md:text-sm">Fees & Revenue</TabsTrigger>
                 <TabsTrigger value="monitoring" className="text-xs md:text-sm">Monitoring</TabsTrigger>
               </TabsList>
             </div>
@@ -95,6 +97,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="users">
               <UserManagementPanel />
+            </TabsContent>
+
+            <TabsContent value="fees">
+              <PlatformFeesPanel />
             </TabsContent>
 
             <TabsContent value="monitoring">
