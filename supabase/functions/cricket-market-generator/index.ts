@@ -30,6 +30,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const isScheduled = body?.scheduled === true;
     
+    console.log('Request body:', JSON.stringify(body));
+    console.log('Is scheduled:', isScheduled);
+    
     let userId: string;
     let supabaseClient;
 
@@ -43,22 +46,26 @@ Deno.serve(async (req) => {
       
       // Use a system user ID for scheduled markets
       // Get the first admin user as the creator
-      const { data: adminRole } = await supabaseClient
+      const { data: adminRole, error: adminError } = await supabaseClient
         .from('user_roles')
         .select('user_id')
         .eq('role', 'admin')
         .limit(1)
-        .single();
+        .maybeSingle();
+      
+      console.log('Admin lookup result:', adminRole, adminError);
       
       if (!adminRole) {
         throw new Error('No admin user found for scheduled market creation');
       }
       userId = adminRole.user_id;
     } else {
-      // Manual execution - verify JWT authentication
+      // Manual execution - check for auth header
       const authHeader = req.headers.get('authorization');
+      console.log('Auth header present:', !!authHeader);
+      
       if (!authHeader) {
-        throw new Error('Unauthorized');
+        throw new Error('Unauthorized - no auth header');
       }
 
       supabaseClient = createClient(
@@ -68,15 +75,19 @@ Deno.serve(async (req) => {
       );
 
       const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      console.log('User lookup result:', user?.id, authError?.message);
+      
       if (authError || !user) {
-        throw new Error('Unauthorized');
+        throw new Error(`Unauthorized - ${authError?.message || 'no user'}`);
       }
 
       // Check if user is admin
-      const { data: roles } = await supabaseClient
+      const { data: roles, error: rolesError } = await supabaseClient
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id);
+      
+      console.log('Roles lookup result:', roles, rolesError);
       
       const isAdmin = roles?.some((r: any) => r.role === 'admin');
       if (!isAdmin) {
@@ -85,6 +96,8 @@ Deno.serve(async (req) => {
       
       userId = user.id;
     }
+
+    console.log('Using userId:', userId);
 
     console.log('Fetching cricket matches...');
 
