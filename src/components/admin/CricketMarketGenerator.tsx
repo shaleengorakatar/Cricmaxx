@@ -349,18 +349,18 @@ export default function CricketMarketGenerator() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-accent" />
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
           Cricket Market Generator
         </CardTitle>
-        <CardDescription>
-          Auto-generate prediction markets from live cricket matches in the next 14 days
+        <CardDescription className="text-xs sm:text-sm">
+          Auto-generate markets from upcoming cricket matches
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          <div className="w-32">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="w-full sm:w-32">
             <Label className="text-xs text-muted-foreground">Platform Fee %</Label>
             <Input
               type="number"
@@ -369,29 +369,31 @@ export default function CricketMarketGenerator() {
               min="0"
               max="10"
               step="0.5"
-              className="h-10"
+              className="h-11 sm:h-10"
             />
           </div>
-          <Button
-            onClick={handleGenerateMarkets}
-            disabled={isGenerating}
-            className="flex items-center gap-2"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating Markets...
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4" />
-                Generate Markets from Cricket API
-              </>
-            )}
-          </Button>
+          <div className="flex-1 flex items-end">
+            <Button
+              onClick={handleGenerateMarkets}
+              disabled={isGenerating}
+              className="w-full sm:w-auto h-11 sm:h-10 flex items-center justify-center gap-2"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  <span className="text-sm">Generate Markets</span>
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Admin-created markets: {platformFee}% platform fee, 0% creator fee
+          Fee: {platformFee}% platform, 0% creator
         </p>
 
         {lastResult && (

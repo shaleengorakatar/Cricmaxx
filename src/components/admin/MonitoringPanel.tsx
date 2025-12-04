@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -123,17 +122,17 @@ const MonitoringPanel = () => {
     <div className="space-y-6">
       {/* Fraud Alerts */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-600" />
-              Fraud Detection Alerts
+        <CardHeader className="pb-3">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="flex items-center gap-2 text-base sm:text-lg">
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
+              Fraud Alerts
             </span>
-            <Badge variant="secondary">{pendingAlerts.length} Pending</Badge>
+            <Badge variant="secondary" className="w-fit">{pendingAlerts.length} Pending</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-[600px]">
+          <div className="space-y-4 max-h-[60vh] md:max-h-[600px] overflow-y-auto">
             {fraudAlerts && fraudAlerts.length === 0 ? (
               <div className="text-center py-12">
                 <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
@@ -153,39 +152,42 @@ const MonitoringPanel = () => {
                     <div className="space-y-3">
                       {pendingAlerts.map((alert) => (
                         <Card key={alert.id} className="border-l-4 border-l-orange-500">
-                          <CardContent className="p-4">
-                            <div className="flex justify-between items-start mb-2">
-                              {getSeverityBadge(alert.severity)}
-                              <span className="text-xs text-muted-foreground">
-                                {format(new Date(alert.created_at), 'MMM d, yyyy h:mm a')}
-                              </span>
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                {getSeverityBadge(alert.severity)}
+                                <span className="text-xs text-muted-foreground">
+                                  {format(new Date(alert.created_at), 'MMM d, h:mm a')}
+                                </span>
+                              </div>
                             </div>
-                            <h4 className="font-semibold mb-1">
+                            <h4 className="font-semibold text-sm sm:text-base mb-1">
                               {alert.profiles?.name || 'Unknown User'}
                             </h4>
-                            <p className="text-xs text-muted-foreground mb-1">
+                            <p className="text-xs text-muted-foreground mb-2 truncate">
                               {alert.profiles?.email}
                             </p>
-                            <p className="text-sm mb-2">{alert.description}</p>
-                            <div className="flex gap-2 text-xs text-muted-foreground mb-3">
-                              <span>Type: {alert.alert_type.replace(/_/g, ' ')}</span>
+                            <p className="text-xs sm:text-sm mb-2 line-clamp-2">{alert.description}</p>
+                            <div className="flex flex-wrap gap-1 sm:gap-2 text-xs text-muted-foreground mb-3">
+                              <span className="bg-muted px-2 py-0.5 rounded">{alert.alert_type.replace(/_/g, ' ')}</span>
                               {alert.threshold_value && (
-                                <span>• Threshold: ${alert.threshold_value.toLocaleString()}</span>
+                                <span className="bg-muted px-2 py-0.5 rounded">${alert.threshold_value.toLocaleString()}</span>
                               )}
                               {alert.actual_value && (
-                                <span>• Actual: ${alert.actual_value.toLocaleString()}</span>
+                                <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded">${alert.actual_value.toLocaleString()}</span>
                               )}
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
+                              className="w-full sm:w-auto h-10"
                               onClick={() => handleMarkReviewed(alert.id)}
                               disabled={markReviewedMutation.isPending}
                             >
                               {markReviewedMutation.isPending ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
-                                'Mark as Reviewed'
+                                'Mark Reviewed'
                               )}
                             </Button>
                           </CardContent>
@@ -226,27 +228,26 @@ const MonitoringPanel = () => {
                 )}
               </div>
             )}
-          </ScrollArea>
+          </div>
         </CardContent>
       </Card>
 
       {/* Info Box */}
       <Card className="border-l-4 border-l-blue-500">
-        <CardContent className="p-4">
-          <h4 className="font-semibold mb-2 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-blue-600" />
-            AML/Fraud Detection System
+        <CardContent className="p-3 sm:p-4">
+          <h4 className="font-semibold text-sm sm:text-base mb-2 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-blue-600 shrink-0" />
+            AML/Fraud Detection
           </h4>
-          <p className="text-sm text-muted-foreground mb-3">
-            Industry-standard monitoring with configurable thresholds detecting:
+          <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+            Monitoring detects:
           </p>
-          <ul className="text-xs space-y-1 text-muted-foreground">
-            <li>• High volume deposits/withdrawals ($10,000+ in 24 hours)</li>
-            <li>• Rapid transaction patterns (20+ transactions/hour)</li>
-            <li>• Multiple withdrawal attempts (5+ in 24 hours)</li>
-            <li>• Large single transactions ($5,000+)</li>
-            <li>• Structuring patterns (transactions just below reporting thresholds)</li>
-          </ul>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-xs text-muted-foreground">
+            <span>• High volume ($10K+/24h)</span>
+            <span>• Rapid transactions (20+/hr)</span>
+            <span>• Multiple withdrawals (5+/24h)</span>
+            <span>• Large single transactions</span>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -286,68 +286,78 @@ export const CreatorApplicationsPanel = () => {
       </div>
 
       <Dialog open={!!selectedApp} onOpenChange={() => setSelectedApp(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg sm:max-w-2xl max-h-[85vh] overflow-y-auto mx-4 sm:mx-auto">
           <DialogHeader>
-            <DialogTitle>Review Creator Application</DialogTitle>
-            <DialogDescription>
-              Review the application details and approve or reject
+            <DialogTitle className="text-base sm:text-lg">Review Application</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              Review and approve or reject this creator application
             </DialogDescription>
           </DialogHeader>
           
           {selectedApp && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-semibold mb-1">Applicant</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <h3 className="font-semibold text-sm mb-1">Applicant</h3>
                 <p className="text-sm">{selectedApp.profiles.name}</p>
-                <p className="text-xs text-muted-foreground">{selectedApp.profiles.email}</p>
+                <p className="text-xs text-muted-foreground truncate">{selectedApp.profiles.email}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <h3 className="font-semibold text-xs mb-1">Platform</h3>
+                  <p className="text-sm capitalize">{selectedApp.social_media_platform}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <h3 className="font-semibold text-xs mb-1">Followers</h3>
+                  <p className="text-sm font-medium">{selectedApp.follower_count.toLocaleString()}</p>
+                </div>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-1">Social Media</h3>
-                <p className="text-sm capitalize">{selectedApp.social_media_platform}: {selectedApp.social_media_handle}</p>
-                <p className="text-sm text-muted-foreground">{selectedApp.follower_count.toLocaleString()} followers</p>
+                <h3 className="font-semibold text-sm mb-1">Handle</h3>
+                <p className="text-sm text-muted-foreground">{selectedApp.social_media_handle}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-1">Description</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedApp.description}</p>
+                <h3 className="font-semibold text-sm mb-1">Description</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap line-clamp-4 sm:line-clamp-none">{selectedApp.description}</p>
               </div>
 
               {selectedApp.previous_experience && (
                 <div>
-                  <h3 className="font-semibold mb-1">Previous Experience</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedApp.previous_experience}</p>
+                  <h3 className="font-semibold text-sm mb-1">Experience</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap line-clamp-3 sm:line-clamp-none">{selectedApp.previous_experience}</p>
                 </div>
               )}
 
               <div>
-                <Label htmlFor="admin-notes">Admin Notes (Optional)</Label>
+                <Label htmlFor="admin-notes" className="text-sm">Admin Notes</Label>
                 <Textarea
                   id="admin-notes"
-                  placeholder="Add notes about this decision..."
+                  placeholder="Add notes..."
                   value={adminNotes}
                   onChange={(e) => setAdminNotes(e.target.value)}
-                  className="mt-2"
+                  className="mt-1.5 min-h-[60px]"
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <Button
                   variant="default"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={() => handleReview(selectedApp.id, 'approved')}
                   disabled={processing}
                 >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
                   Approve
                 </Button>
                 <Button
                   variant="destructive"
-                  className="flex-1"
+                  className="flex-1 h-11"
                   onClick={() => handleReview(selectedApp.id, 'rejected')}
                   disabled={processing}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
+                  <XCircle className="h-4 w-4 mr-1.5" />
                   Reject
                 </Button>
               </div>
