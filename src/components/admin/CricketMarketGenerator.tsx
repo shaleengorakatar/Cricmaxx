@@ -5,43 +5,204 @@ import { Badge } from "@/components/ui/badge";
 import { Zap, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+
+interface CricketMatch {
+  id: string;
+  name: string;
+  matchType: string;
+  status: string;
+  venue: string;
+  date: string;
+  dateTimeGMT: string;
+  teams: string[];
+  teamInfo?: { name: string; shortname: string; img: string }[];
+  matchStarted: boolean;
+  matchEnded: boolean;
+}
+
+const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
 
 export default function CricketMarketGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
+  const { user } = useAuth();
 
   const handleGenerateMarkets = async () => {
+    if (!user) {
+      toast({ title: "Error", description: "Not authenticated", variant: "destructive" });
+      return;
+    }
+
     setIsGenerating(true);
     setLastResult(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error("Not authenticated");
+      // Fetch cricket data directly from client (works reliably)
+      console.log("Fetching cricket matches from CricAPI...");
+      const response = await fetch(
+        `https://api.cricapi.com/v1/currentMatches?apikey=${CRICAPI_KEY}&offset=0`
+      );
+
+      if (!response.ok) {
+        throw new Error(`CricAPI error: ${response.status}`);
       }
 
-      const response = await supabase.functions.invoke("cricket-market-generator", {
-        body: { manual: true },
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const cricketData = await response.json();
+      const matches: CricketMatch[] = cricketData.data || [];
+
+      console.log(`Found ${matches.length} matches`);
+
+      // Filter matches starting in next 14 days
+      const now = new Date();
+      const twoWeeksFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+      const upcomingMatches = matches.filter((match) => {
+        const matchDate = new Date(match.dateTimeGMT);
+        return matchDate > now && matchDate < twoWeeksFromNow && !match.matchEnded;
       });
 
-      if (response.error) {
-        throw response.error;
+      console.log(`Filtered to ${upcomingMatches.length} upcoming matches`);
+
+      const createdMarkets: { id: string; question: string }[] = [];
+      const errors: { match: string; error: string }[] = [];
+
+      // Create markets for each match
+      for (const match of upcomingMatches) {
+        try {
+          const matchDate = new Date(match.dateTimeGMT);
+          const expiryTime = new Date(matchDate.getTime() - 60 * 60 * 1000); // 1 hour before
+
+          if (!match.teams || match.teams.length < 2) continue;
+
+          // Market 1: Team Win
+          const teamAName = match.teams[0];
+          const marketQuestion1 = `Will ${teamAName} win vs ${match.teams[1]}?`;
+
+          // Check if exists
+          const { data: existing1 } = await supabase
+            .from('markets')
+            .select('id')
+            .eq('question', marketQuestion1)
+            .maybeSingle();
+
+          if (!existing1) {
+            const { data: market1, error: err1 } = await supabase
+              .from('markets')
+              .insert({
+                question: marketQuestion1,
+                description: `${match.matchType.toUpperCase()} - ${match.name} at ${match.venue}`,
+                category: 'Cricket',
+                type: 'amm',
+                yes_price: 0.50,
+                no_price: 0.50,
+                volume: 0,
+                expiry_time: expiryTime.toISOString(),
+                status: 'approved',
+                created_by: user.id,
+                image_url: match.teamInfo?.[0]?.img || null,
+              })
+              .select()
+              .single();
+
+            if (err1) {
+              errors.push({ match: match.name, error: err1.message });
+            } else if (market1) {
+              // Create oracle rule
+              await supabase.from('market_oracle_rules').insert({
+                market_id: market1.id,
+                match_id: match.id,
+                match_name: match.name,
+                match_date: matchDate.toISOString(),
+                event_template: 'match_winner',
+                entity_type: 'team',
+                entity_id: teamAName,
+                entity_name: teamAName,
+                stat_field: 'match.winner',
+                comparison_operator: '==',
+                threshold_value: 1,
+                outcome_if_true: 'yes',
+                outcome_if_false: 'no',
+                data_source_url: `https://api.cricapi.com/v1/match_info?id=${match.id}`,
+                resolution_status: 'pending',
+              });
+              createdMarkets.push({ id: market1.id, question: marketQuestion1 });
+            }
+          }
+
+          // Market 2: 50+ Runs
+          const marketQuestion2 = `Will any player score 50+ runs in ${match.teams[0]} vs ${match.teams[1]}?`;
+
+          const { data: existing2 } = await supabase
+            .from('markets')
+            .select('id')
+            .eq('question', marketQuestion2)
+            .maybeSingle();
+
+          if (!existing2) {
+            const { data: market2, error: err2 } = await supabase
+              .from('markets')
+              .insert({
+                question: marketQuestion2,
+                description: `${match.matchType.toUpperCase()} - ${match.name} at ${match.venue}`,
+                category: 'Cricket',
+                type: 'amm',
+                yes_price: 0.50,
+                no_price: 0.50,
+                volume: 0,
+                expiry_time: expiryTime.toISOString(),
+                status: 'approved',
+                created_by: user.id,
+                image_url: match.teamInfo?.[0]?.img || null,
+              })
+              .select()
+              .single();
+
+            if (err2) {
+              errors.push({ match: match.name, error: err2.message });
+            } else if (market2) {
+              await supabase.from('market_oracle_rules').insert({
+                market_id: market2.id,
+                match_id: match.id,
+                match_name: match.name,
+                match_date: matchDate.toISOString(),
+                event_template: 'player_runs',
+                entity_type: 'match',
+                entity_id: match.id,
+                entity_name: match.name,
+                stat_field: 'score.max_runs',
+                comparison_operator: '>=',
+                threshold_value: 50,
+                outcome_if_true: 'yes',
+                outcome_if_false: 'no',
+                data_source_url: `https://api.cricapi.com/v1/match_info?id=${match.id}`,
+                resolution_status: 'pending',
+              });
+              createdMarkets.push({ id: market2.id, question: marketQuestion2 });
+            }
+          }
+        } catch (err: any) {
+          errors.push({ match: match.name, error: err.message });
+        }
       }
 
-      setLastResult(response.data);
-      
+      const result = {
+        success: true,
+        message: `Generated ${createdMarkets.length} markets from ${upcomingMatches.length} matches`,
+        created_markets: createdMarkets,
+        errors: errors.length > 0 ? errors : undefined,
+      };
+
+      setLastResult(result);
       toast({
         title: "Markets Generated!",
-        description: `Created ${response.data.created_markets?.length || 0} new markets`,
+        description: `Created ${createdMarkets.length} new markets`,
       });
     } catch (error: any) {
       console.error("Error generating markets:", error);
       toast({
         title: "Generation Failed",
-        description: error.message || "Could not generate markets from cricket data",
+        description: error.message || "Could not generate markets",
         variant: "destructive",
       });
     } finally {
