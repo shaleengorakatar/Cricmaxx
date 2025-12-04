@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { Trophy, Users, TrendingUp, TrendingDown, Minus, Crown } from "lucide-react";
+import { Trophy, Users, TrendingUp, TrendingDown, Minus, Crown, Eye, EyeOff } from "lucide-react";
 import UserRatingModal from "@/components/leaderboard/UserRatingModal";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeaderboardUser {
   id: string;
@@ -23,8 +26,39 @@ interface LeaderboardUser {
 
 const Leaderboard = () => {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'global' | 'friends'>('global');
   const [selectedUser, setSelectedUser] = useState<LeaderboardUser | null>(null);
+
+  // Privacy toggle mutation
+  const privacyMutation = useMutation({
+    mutationFn: async (showOnLeaderboard: boolean) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('profiles')
+        .update({ show_on_leaderboard: showOnLeaderboard })
+        .eq('id', user.id);
+      if (error) throw error;
+      return showOnLeaderboard;
+    },
+    onSuccess: (showOnLeaderboard) => {
+      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
+      toast({
+        title: showOnLeaderboard ? "Visible on Leaderboard" : "Hidden from Leaderboard",
+        description: showOnLeaderboard 
+          ? "Your rating is now visible on public leaderboards." 
+          : "Your rating is now hidden from all leaderboards.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Update failed",
+        description: "Failed to update visibility. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch global leaderboard
   const { data: globalLeaderboard, isLoading: globalLoading } = useQuery({
@@ -160,7 +194,7 @@ const Leaderboard = () => {
           {profile && (
             <Card className="mb-6 border-primary/20 bg-primary/5">
               <CardContent className="py-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <Avatar className="w-10 h-10">
                       <AvatarImage src={profile.avatar_url || undefined} />
@@ -171,11 +205,31 @@ const Leaderboard = () => {
                       <p className="text-sm text-muted-foreground">Your Rating</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">🔮 {profile.rating_score || 1000}</p>
-                    {userRank && !isUserInTop20 && (
-                      <p className="text-sm text-muted-foreground">You are #{userRank}</p>
-                    )}
+                  <div className="flex items-center gap-4">
+                    {/* Privacy Toggle */}
+                    <div className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border">
+                      {profile.show_on_leaderboard ? (
+                        <Eye className="w-4 h-4 text-muted-foreground" />
+                      ) : (
+                        <EyeOff className="w-4 h-4 text-muted-foreground" />
+                      )}
+                      <Label htmlFor="privacy-toggle" className="text-xs text-muted-foreground cursor-pointer">
+                        {profile.show_on_leaderboard ? 'Visible' : 'Hidden'}
+                      </Label>
+                      <Switch
+                        id="privacy-toggle"
+                        checked={profile.show_on_leaderboard ?? true}
+                        onCheckedChange={(checked) => privacyMutation.mutate(checked)}
+                        disabled={privacyMutation.isPending}
+                        className="scale-75"
+                      />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-primary">🔮 {profile.rating_score || 1000}</p>
+                      {userRank && !isUserInTop20 && (
+                        <p className="text-sm text-muted-foreground">You are #{userRank}</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
