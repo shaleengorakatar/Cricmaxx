@@ -1,17 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MarketType, MarketCategory } from "@/types/market";
+import { MarketCategory } from "@/types/market";
 import { Search, Filter, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 
 interface MarketFiltersProps {
   selectedCategory: MarketCategory | "All";
-  selectedType: MarketType | "all";
   searchQuery: string;
   onCategoryChange: (category: MarketCategory | "All") => void;
-  onTypeChange: (type: MarketType | "all") => void;
   onSearchChange: (query: string) => void;
 }
 
@@ -27,18 +25,13 @@ const categories: (MarketCategory | "All")[] = [
 
 const MarketFilters = ({
   selectedCategory,
-  selectedType,
   searchQuery,
   onCategoryChange,
-  onTypeChange,
   onSearchChange,
 }: MarketFiltersProps) => {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   
-  // Count active filters (excluding "All" and "all")
-  const activeFilterCount = 
-    (selectedCategory !== "All" ? 1 : 0) + 
-    (selectedType !== "all" ? 1 : 0);
+  const activeFilterCount = selectedCategory !== "All" ? 1 : 0;
 
   return (
     <div className="space-y-4">
@@ -101,48 +94,12 @@ const MarketFilters = ({
               </Select>
             </div>
 
-            {/* Market Type Toggle */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground md:hidden">
-                Market Type
-              </label>
-              <div className="grid grid-cols-3 gap-2 bg-muted p-1 rounded-lg">
-                <Button
-                  variant={selectedType === "all" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => onTypeChange("all")}
-                  className={`h-10 text-sm ${selectedType === "all" ? "bg-primary text-primary-foreground" : ""}`}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={selectedType === "orderbook" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => onTypeChange("orderbook")}
-                  className={`h-10 text-sm ${selectedType === "orderbook" ? "bg-primary text-primary-foreground" : ""}`}
-                >
-                  Order Book
-                </Button>
-                <Button
-                  variant={selectedType === "amm" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => onTypeChange("amm")}
-                  className={`h-10 text-sm ${selectedType === "amm" ? "bg-primary text-primary-foreground" : ""}`}
-                >
-                  AMM
-                </Button>
-              </div>
-            </div>
-
             {/* Clear Filters - Mobile only */}
             {activeFilterCount > 0 && (
               <Button
                 variant="outline"
                 className="w-full md:hidden"
-                onClick={() => {
-                  onCategoryChange("All");
-                  onTypeChange("all");
-                }}
+                onClick={() => onCategoryChange("All")}
               >
                 Clear Filters
               </Button>

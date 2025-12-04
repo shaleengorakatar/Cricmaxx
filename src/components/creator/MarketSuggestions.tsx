@@ -199,7 +199,7 @@ const MarketSuggestions = () => {
       const { error } = await supabase.from('markets').insert({
         question: suggestion.question,
         category: suggestion.category,
-        type: 'amm',
+        type: 'orderbook',
         expiry_time: suggestion.expiryTime,
         created_by: user.id,
         status: 'pending',

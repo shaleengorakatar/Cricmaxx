@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 // Mock price history data
 const generatePriceHistory = (yesPrice: number) => {
@@ -61,13 +60,11 @@ const generateOrderBook = () => {
 const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
+  const { profile } = useAuth();
   const [market, setMarket] = useState<Market | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [orderBook, setOrderBook] = useState(generateOrderBook());
-  const [isTrading, setIsTrading] = useState(false);
   
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
@@ -103,9 +100,6 @@ const MarketDetail = () => {
               yesPrice: Number(data.yes_price),
               noPrice: Number(data.no_price),
               volume: Number(data.volume),
-              liquidityPool: Number(data.liquidity_pool),
-              poolYesShares: Number(data.pool_yes_shares),
-              poolNoShares: Number(data.pool_no_shares),
             };
           });
 
@@ -153,9 +147,6 @@ const MarketDetail = () => {
       expiryTime: data.expiry_time,
       description: data.description || "",
       imageUrl: data.image_url || "",
-      liquidityPool: Number(data.liquidity_pool),
-      poolYesShares: Number(data.pool_yes_shares),
-      poolNoShares: Number(data.pool_no_shares),
     };
 
     setMarket(formattedMarket);
@@ -184,177 +175,6 @@ const MarketDetail = () => {
       </div>
     );
   }
-
-  // LMSR pricing: calculate cost to buy shares
-  const calculateLMSRCost = (poolYes: number, poolNo: number, side: "yes" | "no", shares: number, b: number = 100) => {
-    const currentCost = b * Math.log(Math.exp(poolYes / b) + Math.exp(poolNo / b));
-    let newPoolYes = poolYes;
-    let newPoolNo = poolNo;
-    
-    if (side === "yes") {
-      newPoolYes = poolYes + shares;
-    } else {
-      newPoolNo = poolNo + shares;
-    }
-    
-    const newCost = b * Math.log(Math.exp(newPoolYes / b) + Math.exp(newPoolNo / b));
-    return newCost - currentCost;
-  };
-
-  // Calculate new prices after trade
-  const calculateNewPrices = (poolYes: number, poolNo: number, b: number = 100) => {
-    const expYes = Math.exp(poolYes / b);
-    const expNo = Math.exp(poolNo / b);
-    const total = expYes + expNo;
-    return {
-      yesPrice: expYes / total,
-      noPrice: expNo / total
-    };
-  };
-
-  const handleTrade = async (side: "yes" | "no", shares: number) => {
-    if (!user || !profile) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to place predictions",
-        variant: "destructive",
-      });
-      navigate('/auth');
-      return;
-    }
-
-    if (isTrading) return;
-    setIsTrading(true);
-
-    try {
-      const poolYes = market.poolYesShares || 1000;
-      const poolNo = market.poolNoShares || 1000;
-      const b = 100; // Liquidity parameter
-      
-      // Calculate cost using LMSR
-      const cost = calculateLMSRCost(poolYes, poolNo, side, shares, b);
-      const entryPrice = cost / shares;
-
-      // Check balance
-      if (cost > profile.balance) {
-        toast({
-          title: "Insufficient balance",
-          description: `You need ${cost.toFixed(2)} credits but have ${profile.balance.toFixed(2)}`,
-          variant: "destructive",
-        });
-        setIsTrading(false);
-        return;
-      }
-
-      // Calculate new pool state
-      const newPoolYes = side === "yes" ? poolYes + shares : poolYes;
-      const newPoolNo = side === "no" ? poolNo + shares : poolNo;
-      const newPrices = calculateNewPrices(newPoolYes, newPoolNo, b);
-      const newLiquidityPool = (market.liquidityPool || 1000) + cost;
-
-      // Create position in database
-      const { data: position, error: positionError } = await supabase
-        .from('positions')
-        .insert({
-          user_id: user.id,
-          market_id: market.id,
-          side: side,
-          size: shares,
-          entry_price: entryPrice,
-          status: 'open'
-        })
-        .select()
-        .single();
-
-      if (positionError) throw positionError;
-
-      // Deduct cost from user balance
-      const { error: balanceError } = await supabase
-        .from('profiles')
-        .update({ balance: profile.balance - cost })
-        .eq('id', user.id);
-
-      if (balanceError) throw balanceError;
-
-      // Create transaction record
-      await supabase
-        .from('transactions')
-        .insert({
-          user_id: user.id,
-          type: 'trade',
-          amount: -cost,
-          balance_before: profile.balance,
-          balance_after: profile.balance - cost,
-          status: 'completed',
-          metadata: {
-            market_id: market.id,
-            position_id: position.id,
-            side: side,
-            shares: shares,
-            price: entryPrice
-          }
-        });
-
-      // Update market in database with new pool state and prices
-      const { error: marketError } = await supabase
-        .from('markets')
-        .update({ 
-          volume: market.volume + shares,
-          yes_price: newPrices.yesPrice,
-          no_price: newPrices.noPrice,
-          liquidity_pool: newLiquidityPool,
-          pool_yes_shares: newPoolYes,
-          pool_no_shares: newPoolNo,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', market.id);
-
-      if (marketError) {
-        console.error('Failed to update market stats:', marketError);
-      }
-
-      toast({
-        title: "Prediction placed successfully!",
-        description: `Bought ${shares} ${side.toUpperCase()} shares for ${cost.toFixed(2)} credits`,
-      });
-
-      // Update local market state for immediate visual feedback
-      setMarket(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          yesPrice: newPrices.yesPrice,
-          noPrice: newPrices.noPrice,
-          volume: prev.volume + shares,
-          liquidityPool: newLiquidityPool,
-          poolYesShares: newPoolYes,
-          poolNoShares: newPoolNo,
-        };
-      });
-
-      if (market.type === "orderbook") {
-        setOrderBook(generateOrderBook());
-      }
-
-      setPriceHistory(prev => [
-        ...prev.slice(-23),
-        {
-          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          yesPrice: newPrices.yesPrice,
-          noPrice: newPrices.noPrice,
-        }
-      ]);
-    } catch (error: any) {
-      console.error('Trade error:', error);
-      toast({
-        title: "Trade failed",
-        description: error.message || "Failed to place prediction. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTrading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -397,27 +217,25 @@ const MarketDetail = () => {
                 </Card>
               </div>
               
-              {/* Order Book - Collapsible on mobile for orderbook markets */}
-              {market.type === "orderbook" && (
-                <div className="md:block">
-                  <Card className="overflow-hidden">
-                    <button
-                      onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                      className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                      {orderBookExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </button>
-                    <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                      <OrderBook orders={orderBook} />
-                    </div>
-                  </Card>
-                </div>
-              )}
+              {/* Order Book - Collapsible on mobile */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                    {orderBookExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                    <OrderBook orders={orderBook} />
+                  </div>
+                </Card>
+              </div>
             </div>
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
@@ -474,40 +292,33 @@ const MarketDetail = () => {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Liquidity Pool:</span>
-                      <span className="font-semibold text-accent">
-                        ${(market.liquidityPool || 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Market Type:</span>
-                      <span className="font-semibold text-foreground">
-                        {market.type === "orderbook" ? "Order Book" : "Automated Market (LMSR)"}
-                      </span>
+                      <span className="font-semibold text-foreground">Order Book</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Platform Fee:</span>
-                      <span className="font-semibold text-foreground">2%</span>
+                      <span className="font-semibold text-foreground">3%</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Settlement:</span>
+                      <span className="font-semibold text-foreground">$1.00 per winning share</span>
                     </div>
                   </div>
                 </div>
               </Card>
-            </div>
-          </div>
 
-          {/* Legal Disclaimer - Responsive */}
-          <div className="mt-6 sm:mt-8 bg-muted/30 border border-border rounded-lg p-4 sm:p-6">
-            <h3 className="text-sm font-semibold text-foreground mb-2 sm:mb-3 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Important Trading Disclosure
-            </h3>
-            <p className="text-xs sm:text-xs text-muted-foreground leading-relaxed italic">
-              <strong className="text-foreground not-italic">Disclaimer:</strong> Shariz offers fixed-payout event contracts (binary options) 
-              that pay $1.00 if the predicted event occurs and $0.00 if not. All markets are regulated by the U.S. Commodity Futures 
-              Trading Commission (CFTC) as event contracts under federal commodity law, not gambling. Trading involves substantial risk 
-              of loss. Only trade with funds you can afford to lose. Past performance does not guarantee future results. 
-              See <a href="/terms" className="text-accent hover:underline">Terms of Use</a> for complete details and risk disclosures.
-            </p>
+              {/* CFTC Disclaimer */}
+              <Card className="p-4 bg-muted/30">
+                <div className="flex gap-2">
+                  <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    Shariz offers fixed-payout event contracts regulated by CFTC. 
+                    If your prediction is correct, you receive $1.00 per share. 
+                    If incorrect, your shares expire worthless. This is not gambling.
+                  </p>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </main>

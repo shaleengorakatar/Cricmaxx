@@ -105,7 +105,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
           question,
           description: resolutionSource,
           category: template.category,
-          type: 'amm', // Creator markets use AMM model
+          type: 'orderbook',
           status: 'pending', // Requires admin approval
           expiry_time: expiryTime.toISOString(),
           created_by: user.id,
