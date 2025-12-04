@@ -593,7 +593,11 @@ export type Database = {
           last_active_at: string | null
           mfa_enabled: boolean | null
           name: string
+          predictions_correct: number
+          predictions_total: number
+          rating_score: number
           share_trades_with_friends: boolean | null
+          show_on_leaderboard: boolean
           terms_accepted_at: string | null
           updated_at: string | null
           username: string | null
@@ -609,7 +613,11 @@ export type Database = {
           last_active_at?: string | null
           mfa_enabled?: boolean | null
           name: string
+          predictions_correct?: number
+          predictions_total?: number
+          rating_score?: number
           share_trades_with_friends?: boolean | null
+          show_on_leaderboard?: boolean
           terms_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null
@@ -625,7 +633,11 @@ export type Database = {
           last_active_at?: string | null
           mfa_enabled?: boolean | null
           name?: string
+          predictions_correct?: number
+          predictions_total?: number
+          rating_score?: number
           share_trades_with_friends?: boolean | null
+          show_on_leaderboard?: boolean
           terms_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null

@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
-import { User, Settings, LogOut, Menu, X } from "lucide-react";
+import { User, Settings, LogOut, Menu, X, Trophy } from "lucide-react";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
@@ -50,6 +50,14 @@ const Navigation = () => {
               activeClassName="text-primary font-semibold"
             >
               Upcoming Matches
+            </NavLink>
+            <NavLink 
+              to="/leaderboard"
+              className="text-foreground hover:text-primary transition-colors"
+              activeClassName="text-primary font-semibold"
+            >
+              <Trophy className="w-4 h-4 inline mr-1" />
+              Leaderboard
             </NavLink>
             {isAuthenticated && (
               <>
@@ -122,6 +130,14 @@ const Navigation = () => {
                     activeClassName="text-primary font-semibold"
                   >
                     Upcoming Matches
+                  </NavLink>
+                  <NavLink 
+                    to="/leaderboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
+                    activeClassName="text-primary font-semibold"
+                  >
+                    🏆 Leaderboard
                   </NavLink>
                   {isAuthenticated && (
                     <>

@@ -10,6 +10,13 @@ export interface UserProfile {
   kyc_verified: boolean;
   mfa_enabled: boolean;
   balance: number;
+  username?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  rating_score: number;
+  predictions_total: number;
+  predictions_correct: number;
+  show_on_leaderboard: boolean;
 }
 
 export interface UserRole {

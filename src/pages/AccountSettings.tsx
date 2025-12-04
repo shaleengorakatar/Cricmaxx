@@ -9,19 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, User, Key } from "lucide-react";
+import { Shield, User, Key, Trophy } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setName(profile.name);
       setMfaEnabled(profile.mfa_enabled);
+      setShowOnLeaderboard(profile.show_on_leaderboard ?? true);
     }
   }, [profile]);
 
@@ -174,6 +176,62 @@ const AccountSettings = () => {
                     </p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Leaderboard Privacy */}
+            <Card>
+              <CardHeader className="px-4 md:px-6">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-primary" />
+                  <CardTitle className="text-lg md:text-xl">Leaderboard Privacy</CardTitle>
+                </div>
+                <CardDescription className="text-sm">Control your visibility on public leaderboards</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 px-4 md:px-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-0.5 flex-1">
+                    <Label htmlFor="leaderboard-toggle" className="text-sm md:text-base">Show my rating on public leaderboard</Label>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      {showOnLeaderboard 
+                        ? "Your rating and stats are visible on the global and friends leaderboards" 
+                        : "Your rating is hidden from all leaderboards (you can still see your own stats)"}
+                    </p>
+                  </div>
+                  <Switch
+                    id="leaderboard-toggle"
+                    checked={showOnLeaderboard}
+                    onCheckedChange={async (enabled) => {
+                      setLoading(true);
+                      try {
+                        const { error } = await supabase
+                          .from('profiles')
+                          .update({ show_on_leaderboard: enabled })
+                          .eq('id', user.id);
+
+                        if (error) throw error;
+
+                        setShowOnLeaderboard(enabled);
+                        toast({
+                          title: enabled ? "Visible on Leaderboard" : "Hidden from Leaderboard",
+                          description: enabled 
+                            ? "Your rating is now visible on public leaderboards." 
+                            : "Your rating is now hidden from all leaderboards.",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "Update failed",
+                          description: "Failed to update leaderboard visibility. Please try again.",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="shrink-0"
+                  />
+                </div>
               </CardContent>
             </Card>
 
