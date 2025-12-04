@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,6 +34,14 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
   const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'global' | 'friends'>('global');
   const [selectedUser, setSelectedUser] = useState<LeaderboardUser | null>(null);
+  const [localShowOnLeaderboard, setLocalShowOnLeaderboard] = useState(profile?.show_on_leaderboard ?? true);
+
+  // Sync local state with profile when it changes
+  useEffect(() => {
+    if (profile) {
+      setLocalShowOnLeaderboard(profile.show_on_leaderboard ?? true);
+    }
+  }, [profile?.show_on_leaderboard]);
 
   // Privacy toggle mutation
   const privacyMutation = useMutation({
@@ -46,6 +54,10 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
       if (error) throw error;
       return showOnLeaderboard;
     },
+    onMutate: async (showOnLeaderboard) => {
+      // Optimistically update local state
+      setLocalShowOnLeaderboard(showOnLeaderboard);
+    },
     onSuccess: (showOnLeaderboard) => {
       queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
       toast({
@@ -55,7 +67,9 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
           : "Your rating is now hidden from all leaderboards.",
       });
     },
-    onError: () => {
+    onError: (_, showOnLeaderboard) => {
+      // Revert on error
+      setLocalShowOnLeaderboard(!showOnLeaderboard);
       toast({
         title: "Update failed",
         description: "Failed to update visibility. Please try again.",
@@ -212,13 +226,13 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <div className="flex items-center gap-1 px-2 py-1 bg-background rounded border">
-                        {profile.show_on_leaderboard ? (
+                        {localShowOnLeaderboard ? (
                           <Eye className="w-3 h-3 text-muted-foreground" />
                         ) : (
                           <EyeOff className="w-3 h-3 text-muted-foreground" />
                         )}
                         <Switch
-                          checked={profile.show_on_leaderboard ?? true}
+                          checked={localShowOnLeaderboard}
                           onCheckedChange={(checked) => privacyMutation.mutate(checked)}
                           disabled={privacyMutation.isPending}
                           className="scale-75"
