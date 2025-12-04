@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Target, Award, Sparkles } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, Award } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const UserRatingBadge = () => {
   const { profile } = useAuth();
@@ -20,21 +26,29 @@ const UserRatingBadge = () => {
 
   return (
     <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-full transition-colors"
-      >
-        <Sparkles className="w-4 h-4 text-primary" />
-        <span className="font-semibold text-primary text-sm">
-          🔮 {ratingScore}
-        </span>
-      </button>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => setIsOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-full transition-colors"
+            >
+              <span className="font-semibold text-primary text-sm">
+                🔮 {ratingScore}
+              </span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Prediction Rating</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+              <span>🔮</span>
               Your Rating Breakdown
             </DialogTitle>
           </DialogHeader>
