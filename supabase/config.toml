@@ -26,4 +26,4 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.cricket-market-generator]
-verify_jwt = true
+verify_jwt = false
