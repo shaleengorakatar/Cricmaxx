@@ -33,19 +33,18 @@ Deno.serve(async (req) => {
     console.log('Request body:', JSON.stringify(body));
     console.log('Is scheduled:', isScheduled);
     
+    // Always use service role for database operations
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
     let userId: string;
-    let supabaseClient;
 
     if (isScheduled) {
-      // Scheduled execution from cron - use service role
+      // Scheduled execution from cron - get first admin as creator
       console.log('Running as scheduled task');
-      supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      );
       
-      // Use a system user ID for scheduled markets
-      // Get the first admin user as the creator
       const { data: adminRole, error: adminError } = await supabaseClient
         .from('user_roles')
         .select('user_id')
@@ -60,7 +59,7 @@ Deno.serve(async (req) => {
       }
       userId = adminRole.user_id;
     } else {
-      // Manual execution - check for auth header
+      // Manual execution - verify user is admin via JWT
       const authHeader = req.headers.get('authorization');
       console.log('Auth header present:', !!authHeader);
       
@@ -68,13 +67,10 @@ Deno.serve(async (req) => {
         throw new Error('Unauthorized - no auth header');
       }
 
-      supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        { global: { headers: { Authorization: authHeader } } }
-      );
-
-      const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+      // Extract token and verify user
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+      
       console.log('User lookup result:', user?.id, authError?.message);
       
       if (authError || !user) {

@@ -22,6 +22,9 @@ export default function CricketMarketGenerator() {
 
       const response = await supabase.functions.invoke("cricket-market-generator", {
         body: { manual: true },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       if (response.error) {
