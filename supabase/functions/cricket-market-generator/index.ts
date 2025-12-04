@@ -5,6 +5,37 @@ const corsHeaders = {
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
+// Retry configuration (same as cricket-proxy)
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+const REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithRetry(url: string, retries = MAX_RETRIES): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Shariz-Platform/1.0',
+        'Accept': 'application/json',
+      },
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (retries > 0) {
+      console.log(`Fetch failed, retrying... (${MAX_RETRIES - retries + 1}/${MAX_RETRIES})`, error);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * (MAX_RETRIES - retries + 1)));
+      return fetchWithRetry(url, retries - 1);
+    }
+    throw error;
+  }
+}
+
 interface CricketMatch {
   id: string;
   name: string;
@@ -103,11 +134,13 @@ Deno.serve(async (req) => {
       throw new Error('CRICAPI_KEY not configured');
     }
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://api.cricapi.com/v1/currentMatches?apikey=${cricApiKey}&offset=0`
     );
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('CricAPI error:', response.status, errorText);
       throw new Error(`CricAPI error: ${response.status}`);
     }
 
