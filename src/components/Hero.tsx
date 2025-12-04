@@ -34,10 +34,9 @@ const Hero = () => {
           
           {/* Mobile-optimized description */}
           <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-12 text-primary-foreground/90 max-w-3xl mx-auto leading-relaxed px-2">
-            Welcome to Shariz, a web-based prediction market platform offering two distinct trading models. 
-            Choose <span className="font-semibold">peer-to-peer order book markets</span> for exchange-style trading, 
-            or explore <span className="font-semibold">creator-led automated markets</span> powered by LMSR/AMM models 
-            with fixed-payout event contracts. All trades are federally compliant under CFTC regulations, 
+            Welcome to Shariz, a web-based prediction market platform with real-time order book trading. 
+            Trade on <span className="font-semibold">peer-to-peer prediction markets</span> with exchange-style order matching 
+            and fixed-payout event contracts. All trades are federally compliant under CFTC regulations, 
             ensuring trust and legality.
           </p>
 

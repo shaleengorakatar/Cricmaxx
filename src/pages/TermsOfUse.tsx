@@ -96,12 +96,9 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">2. Platform Description</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
-                  Shariz is a federally-compliant prediction market platform offering two types of markets:
+                  Shariz is a federally-compliant prediction market platform offering peer-to-peer order book trading
+                  with exchange-style order matching and fixed-payout event contracts.
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
-                  <li><strong>Model 1 (Order Book Markets):</strong> Peer-to-peer trading with exchange-style order matching</li>
-                  <li><strong>Model 2 (Automated Markets):</strong> Creator-led markets using LMSR/AMM pricing models</li>
-                </ul>
               </section>
 
               <section>
@@ -154,7 +151,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Clear question definitions and resolution criteria</li>
                   <li>Defined expiration dates and settlement procedures</li>
-                  <li>Transparent pricing mechanisms (order book or LMSR)</li>
+                  <li>Transparent order book pricing mechanisms</li>
                   <li>Verified resolution sources for determining outcomes</li>
                   <li>Platform and creator fees as disclosed per market</li>
                 </ul>

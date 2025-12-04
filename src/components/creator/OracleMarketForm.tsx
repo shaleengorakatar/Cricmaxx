@@ -109,7 +109,7 @@ const OracleMarketForm = ({ onMarketCreated }: OracleMarketFormProps) => {
           question,
           description: `Oracle-based market for ${formData.match_name}`,
           category: template?.category.split(' - ')[0] || 'Cricket',
-          type: 'amm',
+          type: 'orderbook',
           yes_price: 0.50,
           no_price: 0.50,
           volume: 0,

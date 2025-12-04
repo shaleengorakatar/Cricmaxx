@@ -1,4 +1,4 @@
-export type MarketType = "orderbook" | "amm";
+export type MarketType = "orderbook";
 export type MarketCategory = "Cricket" | "Politics" | "Finance" | "Technology" | "Sports" | "Entertainment";
 
 export interface Market {
@@ -12,8 +12,4 @@ export interface Market {
   expiryTime: string;
   description?: string;
   imageUrl?: string;
-  // Liquidity pool fields for AMM markets
-  liquidityPool?: number;
-  poolYesShares?: number;
-  poolNoShares?: number;
 }

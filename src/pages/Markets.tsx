@@ -3,13 +3,12 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCard from "@/components/markets/MarketCard";
 import MarketFilters from "@/components/markets/MarketFilters";
-import { MarketType, MarketCategory, Market } from "@/types/market";
+import { MarketCategory, Market } from "@/types/market";
 import { TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Markets = () => {
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
-  const [selectedType, setSelectedType] = useState<MarketType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,17 +117,14 @@ const Markets = () => {
       // Category filter
       const categoryMatch = selectedCategory === "All" || market.category === selectedCategory;
       
-      // Type filter
-      const typeMatch = selectedType === "all" || market.type === selectedType;
-      
       // Search filter
       const searchMatch = searchQuery === "" || 
         market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
         market.category.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return categoryMatch && typeMatch && searchMatch;
+      return categoryMatch && searchMatch;
     });
-  }, [allMarkets, selectedCategory, selectedType, searchQuery]);
+  }, [allMarkets, selectedCategory, searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -151,10 +147,8 @@ const Markets = () => {
           <div className="mb-6 sm:mb-8">
             <MarketFilters
               selectedCategory={selectedCategory}
-              selectedType={selectedType}
               searchQuery={searchQuery}
               onCategoryChange={setSelectedCategory}
-              onTypeChange={setSelectedType}
               onSearchChange={setSearchQuery}
             />
           </div>
