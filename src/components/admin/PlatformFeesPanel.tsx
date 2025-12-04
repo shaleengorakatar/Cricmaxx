@@ -123,24 +123,24 @@ const PlatformFeesPanel = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Revenue Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Platform Revenue</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+            <CardTitle className="text-xs sm:text-sm font-medium">Platform Revenue</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             {revenueLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-7 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-primary">
+                <div className="text-xl sm:text-2xl font-bold text-primary">
                   ${revenueData?.totalPlatformRevenue.toFixed(2) || '0.00'}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  From {revenueData?.tradeCount || 0} trades
+                  {revenueData?.tradeCount || 0} trades
                 </p>
               </>
             )}
@@ -148,20 +148,20 @@ const PlatformFeesPanel = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Creator Fees Paid</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+            <CardTitle className="text-xs sm:text-sm font-medium">Creator Fees</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             {revenueLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-7 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-accent">
+                <div className="text-xl sm:text-2xl font-bold text-accent">
                   ${revenueData?.totalCreatorFees.toFixed(2) || '0.00'}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Distributed to creators
+                  To creators
                 </p>
               </>
             )}
@@ -169,20 +169,20 @@ const PlatformFeesPanel = () => {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Net Platform Revenue</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 pt-4">
+            <CardTitle className="text-xs sm:text-sm font-medium">Net Revenue</CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             {revenueLoading ? (
-              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-7 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
                   ${((revenueData?.totalPlatformRevenue || 0)).toFixed(2)}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  After all deductions
+                  After deductions
                 </p>
               </>
             )}
@@ -192,16 +192,16 @@ const PlatformFeesPanel = () => {
 
       {/* Fee Configuration */}
       <Card>
-        <CardHeader>
-          <CardTitle>Default Fee Configuration</CardTitle>
-          <CardDescription>
-            Set default platform and creator fees for new markets. These will be applied to pending markets.
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">Fee Settings</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Set default fees for new markets
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="platformFee">Default Platform Fee (%)</Label>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="platformFee" className="text-xs sm:text-sm">Platform Fee (%)</Label>
               <Input
                 id="platformFee"
                 type="number"
@@ -211,13 +211,11 @@ const PlatformFeesPanel = () => {
                 value={defaultPlatformFee}
                 onChange={(e) => setDefaultPlatformFee(e.target.value)}
                 placeholder="3.00"
+                className="h-10 sm:h-9"
               />
-              <p className="text-xs text-muted-foreground">
-                Fee charged on each trade (0-10%)
-              </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="creatorFee">Default Creator Fee (%)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="creatorFee" className="text-xs sm:text-sm">Creator Fee (%)</Label>
               <Input
                 id="creatorFee"
                 type="number"
@@ -227,29 +225,27 @@ const PlatformFeesPanel = () => {
                 value={defaultCreatorFee}
                 onChange={(e) => setDefaultCreatorFee(e.target.value)}
                 placeholder="2.00"
+                className="h-10 sm:h-9"
               />
-              <p className="text-xs text-muted-foreground">
-                Fee paid to market creators (0-10%)
-              </p>
             </div>
           </div>
           <Button 
             onClick={() => updateDefaultFees.mutate()}
             disabled={updateDefaultFees.isPending}
-            className="mt-4"
+            className="mt-4 w-full sm:w-auto h-11 sm:h-10"
           >
             <Save className="h-4 w-4 mr-2" />
-            {updateDefaultFees.isPending ? 'Saving...' : 'Update Default Fees'}
+            {updateDefaultFees.isPending ? 'Saving...' : 'Update Fees'}
           </Button>
         </CardContent>
       </Card>
 
       {/* Revenue by Market */}
       <Card>
-        <CardHeader>
-          <CardTitle>Top Revenue Markets</CardTitle>
-          <CardDescription>
-            Markets generating the most platform fees
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">Top Markets</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            Highest revenue markets
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -260,34 +256,62 @@ const PlatformFeesPanel = () => {
               ))}
             </div>
           ) : revenueData?.marketBreakdown.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">No trading activity yet</p>
+            <p className="text-muted-foreground text-center py-4 text-sm">No trading activity yet</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Market</TableHead>
-                  <TableHead className="text-right">Trades</TableHead>
-                  <TableHead className="text-right">Platform Fees</TableHead>
-                  <TableHead className="text-right">Creator Fees</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile: Card layout */}
+              <div className="sm:hidden space-y-3">
                 {revenueData?.marketBreakdown.map((market) => (
-                  <TableRow key={market.id}>
-                    <TableCell className="font-medium max-w-[300px] truncate">
-                      {market.question}
-                    </TableCell>
-                    <TableCell className="text-right">{market.tradeCount}</TableCell>
-                    <TableCell className="text-right text-primary">
-                      ${market.platformFees.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right text-accent">
-                      ${market.creatorFees.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
+                  <div key={market.id} className="bg-muted/50 rounded-lg p-3">
+                    <p className="font-medium text-sm line-clamp-2 mb-2">{market.question}</p>
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">Trades</p>
+                        <p className="font-medium">{market.tradeCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Platform</p>
+                        <p className="font-medium text-primary">${market.platformFees.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Creator</p>
+                        <p className="font-medium text-accent">${market.creatorFees.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop: Table layout */}
+              <div className="hidden sm:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Market</TableHead>
+                      <TableHead className="text-right">Trades</TableHead>
+                      <TableHead className="text-right">Platform</TableHead>
+                      <TableHead className="text-right">Creator</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {revenueData?.marketBreakdown.map((market) => (
+                      <TableRow key={market.id}>
+                        <TableCell className="font-medium max-w-[250px] truncate">
+                          {market.question}
+                        </TableCell>
+                        <TableCell className="text-right">{market.tradeCount}</TableCell>
+                        <TableCell className="text-right text-primary">
+                          ${market.platformFees.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right text-accent">
+                          ${market.creatorFees.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

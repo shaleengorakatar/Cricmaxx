@@ -65,16 +65,33 @@ const AdminDashboard = () => {
           </div>
 
           <Tabs defaultValue="approvals" className="space-y-4 md:space-y-6">
-            <div className="overflow-x-auto -mx-4 px-4">
-              <TabsList className="grid w-full grid-cols-2 min-w-[800px] md:min-w-0 md:w-auto md:inline-grid md:grid-cols-8">
-                <TabsTrigger value="approvals" className="text-xs md:text-sm">Market Approvals</TabsTrigger>
-                <TabsTrigger value="creators" className="text-xs md:text-sm">Creator Apps</TabsTrigger>
-                <TabsTrigger value="generator" className="text-xs md:text-sm">Auto Generate</TabsTrigger>
-                <TabsTrigger value="liquidity" className="text-xs md:text-sm">Liquidity</TabsTrigger>
-                <TabsTrigger value="resolution" className="text-xs md:text-sm">Resolution</TabsTrigger>
-                <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
-                <TabsTrigger value="fees" className="text-xs md:text-sm">Fees & Revenue</TabsTrigger>
-                <TabsTrigger value="monitoring" className="text-xs md:text-sm">Monitoring</TabsTrigger>
+            {/* Mobile: Scrollable pill tabs */}
+            <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
+              <TabsList className="inline-flex h-auto p-1 gap-1 bg-muted/50 rounded-lg min-w-max md:grid md:grid-cols-4 lg:grid-cols-8 md:w-full">
+                <TabsTrigger value="approvals" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Approvals
+                </TabsTrigger>
+                <TabsTrigger value="creators" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Creators
+                </TabsTrigger>
+                <TabsTrigger value="generator" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Generate
+                </TabsTrigger>
+                <TabsTrigger value="liquidity" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Liquidity
+                </TabsTrigger>
+                <TabsTrigger value="resolution" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Resolve
+                </TabsTrigger>
+                <TabsTrigger value="users" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="fees" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Fees
+                </TabsTrigger>
+                <TabsTrigger value="monitoring" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Monitor
+                </TabsTrigger>
               </TabsList>
             </div>
 
