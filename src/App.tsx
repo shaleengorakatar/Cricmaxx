@@ -9,6 +9,7 @@ import Markets from "./pages/Markets";
 import MarketDetail from "./pages/MarketDetail";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import Leaderboard from "./pages/Leaderboard";
 import Friends from "./pages/Friends";
 import FriendInvite from "./pages/FriendInvite";
 import TermsOfUse from "./pages/TermsOfUse";
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/invite/:token" element={<FriendInvite />} />
           <Route path="/creator" element={<CreatorDashboard />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/settings" element={<AccountSettings />} />
           <Route path="/account-settings" element={<AccountSettings />} />
           <Route path="/terms" element={<TermsOfUse />} />

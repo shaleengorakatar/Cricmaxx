@@ -103,6 +103,7 @@ serve(async (req) => {
       let payout = 0;
       let pnl = 0;
       const cost = position.size * position.entry_price;
+      let isCorrect = false;
 
       if (outcome === 'void') {
         // Refund the original cost
@@ -112,36 +113,65 @@ serve(async (req) => {
         // Winner: gets $1 per share
         payout = position.size;
         pnl = payout - cost;
+        isCorrect = true;
       } else {
         // Loser: gets nothing
         payout = 0;
         pnl = -cost;
+        isCorrect = false;
       }
 
       totalPayouts += payout;
 
-      // Get user's current balance
+      // Get user's current balance and rating
       const { data: profile } = await supabase
         .from('profiles')
-        .select('balance')
+        .select('balance, rating_score, predictions_total, predictions_correct')
         .eq('id', position.user_id)
         .single();
 
       const currentBalance = profile?.balance || 0;
       const newBalance = currentBalance + payout;
-
-      // Update user balance
-      if (payout > 0) {
-        const { error: balanceError } = await supabase
-          .from('profiles')
-          .update({ balance: newBalance })
-          .eq('id', position.user_id);
-
-        if (balanceError) {
-          console.error(`Failed to update balance for user ${position.user_id}:`, balanceError);
+      
+      // Calculate rating change (skip for void outcomes)
+      let newRating = profile?.rating_score || 1000;
+      let newTotal = profile?.predictions_total || 0;
+      let newCorrect = profile?.predictions_correct || 0;
+      
+      if (outcome !== 'void') {
+        newTotal += 1;
+        if (isCorrect) {
+          newRating += 100; // +100 for correct prediction
+          newCorrect += 1;
+        } else {
+          newRating -= 50; // -50 for incorrect prediction
         }
+        // Ensure rating doesn't go below 0
+        newRating = Math.max(0, newRating);
+      }
 
-        // Create payout transaction record
+      // Update user balance and rating
+      const updateData: any = {
+        predictions_total: newTotal,
+        predictions_correct: newCorrect,
+        rating_score: newRating
+      };
+      
+      if (payout > 0) {
+        updateData.balance = newBalance;
+      }
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', position.user_id);
+
+      if (profileError) {
+        console.error(`Failed to update profile for user ${position.user_id}:`, profileError);
+      }
+
+      // Create payout transaction record (if there's a payout)
+      if (payout > 0) {
         const { error: txError } = await supabase
           .from('transactions')
           .insert({
@@ -157,7 +187,9 @@ serve(async (req) => {
               outcome: outcome,
               side: position.side,
               shares: position.size,
-              pnl: pnl
+              pnl: pnl,
+              rating_change: outcome === 'void' ? 0 : (isCorrect ? 100 : -50),
+              new_rating: newRating
             }
           });
 
@@ -186,7 +218,8 @@ serve(async (req) => {
         side: position.side,
         shares: position.size,
         payout,
-        pnl
+        pnl,
+        ratingChange: outcome === 'void' ? 0 : (isCorrect ? 100 : -50)
       });
     }
 

@@ -8,6 +8,7 @@ import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
+import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -182,14 +183,18 @@ const MarketDetail = () => {
       
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/markets')}
-            className="mb-4 sm:mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Markets
-          </Button>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate('/markets')}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Markets
+            </Button>
+            
+            {/* User Rating Badge */}
+            <UserRatingBadge />
+          </div>
 
           {/* Mobile: Single column layout, Desktop: Grid layout */}
           <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
