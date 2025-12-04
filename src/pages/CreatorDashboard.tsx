@@ -5,6 +5,7 @@ import MarketCreationForm from "@/components/creator/MarketCreationForm";
 import OracleMarketForm from "@/components/creator/OracleMarketForm";
 import MyMarkets from "@/components/creator/MyMarkets";
 import CreatorGuidance from "@/components/creator/CreatorGuidance";
+import MarketSuggestions from "@/components/creator/MarketSuggestions";
 import { CreatorApplicationForm } from "@/components/creator/CreatorApplicationForm";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -268,6 +269,7 @@ const CreatorDashboard = () => {
 
             {/* Sidebar - 1 column */}
             <div className="space-y-4 md:space-y-6">
+              <MarketSuggestions />
               <CreatorGuidance />
             </div>
           </div>
