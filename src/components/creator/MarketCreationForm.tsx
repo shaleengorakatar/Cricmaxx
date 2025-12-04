@@ -99,6 +99,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
       expiryTime.setDate(expiryTime.getDate() + 30);
 
       // Insert market into database
+      // Creator markets: 2% goes to creator, 1% goes to platform
       const { error: marketError } = await supabase
         .from('markets')
         .insert({
@@ -109,6 +110,8 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
           status: 'pending', // Requires admin approval
           expiry_time: expiryTime.toISOString(),
           created_by: user.id,
+          platform_fee_percent: 1, // Platform gets 1%
+          creator_fee_percent: 2,  // Creator gets 2%
         });
 
       if (marketError) {
@@ -287,15 +290,15 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
               </div>
             </div>
 
-            {/* Creator Fee Info */}
             <div className="bg-muted rounded-lg p-3 text-sm">
               <div className="flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="font-medium text-foreground mb-1">Creator Earnings</p>
                   <p className="text-muted-foreground text-xs">
-                    You'll earn 2% of the trading volume on this market as commission. 
-                    Platform takes 3% fee. Initial market price starts at 50/50 (Yes: $0.50, No: $0.50).
+                    You'll earn <span className="text-green-500 font-semibold">2%</span> of the trading volume on this market. 
+                    Platform takes <span className="font-semibold">1%</span> fee. Total fee: 3%.
+                    Initial market price starts at 50/50 (Yes: $0.50, No: $0.50).
                   </p>
                 </div>
               </div>

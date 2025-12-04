@@ -163,6 +163,33 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 async function matchOrder(supabase: any, order: any) {
   const { id, market_id, user_id, side, order_type, price, quantity } = order;
   
+  // Get market info for fee calculation
+  const { data: market } = await supabase
+    .from('markets')
+    .select('created_by, platform_fee_percent, creator_fee_percent')
+    .eq('id', market_id)
+    .single();
+
+  const platformFeePercent = market?.platform_fee_percent || 3;
+  const creatorFeePercent = market?.creator_fee_percent || 0;
+  const creatorId = market?.created_by;
+
+  // Check if creator is an admin (admins don't get creator fees)
+  let creatorIsAdmin = false;
+  if (creatorId) {
+    const { data: creatorRoles } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', creatorId);
+    creatorIsAdmin = creatorRoles?.some((r: any) => r.role === 'admin') || false;
+  }
+
+  // Calculate effective fees
+  // If creator is admin: all fees go to platform
+  // If creator is regular creator: platform gets 1%, creator gets 2%
+  const effectivePlatformFee = creatorIsAdmin ? platformFeePercent : 1;
+  const effectiveCreatorFee = creatorIsAdmin ? 0 : Math.min(creatorFeePercent, 2);
+  
   // Find matching orders on the opposite side
   // YES buy matches with NO buy (they complement each other to $1)
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
@@ -249,23 +276,59 @@ async function matchOrder(supabase: any, order: any) {
     await createPosition(supabase, user_id, market_id, side, fillQuantity, tradePrice);
     await createPosition(supabase, matchOrder.user_id, market_id, oppositeSide, fillQuantity, 1 - tradePrice);
 
-    // Deduct costs from both users
+    // Calculate costs and fees
     const userCost = fillQuantity * tradePrice;
     const matchUserCost = fillQuantity * (1 - tradePrice);
+    const tradeValue = fillQuantity; // Total trade value for fee calculation
+    
+    // Calculate fees based on trade value
+    const platformFeeAmount = (tradeValue * effectivePlatformFee) / 100;
+    const creatorFeeAmount = (tradeValue * effectiveCreatorFee) / 100;
+    
+    console.log(`Trade fees - Platform: $${platformFeeAmount.toFixed(4)}, Creator: $${creatorFeeAmount.toFixed(4)}`);
+
+    // Deduct costs from both users (including their share of fees)
+    const userFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
+    const matchUserFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
 
     await supabase.rpc('process_wallet_operation', {
       _user_id: user_id,
       _operation: 'withdrawal',
-      _amount: userCost,
-      _metadata: { type: 'trade', order_id: id, trade_id: trade.id }
+      _amount: userCost + userFeeShare,
+      _metadata: { 
+        type: 'trade', 
+        order_id: id, 
+        trade_id: trade.id,
+        fee_paid: userFeeShare
+      }
     });
 
     await supabase.rpc('process_wallet_operation', {
       _user_id: matchOrder.user_id,
       _operation: 'withdrawal',
-      _amount: matchUserCost,
-      _metadata: { type: 'trade', order_id: matchOrder.id, trade_id: trade.id }
+      _amount: matchUserCost + matchUserFeeShare,
+      _metadata: { 
+        type: 'trade', 
+        order_id: matchOrder.id, 
+        trade_id: trade.id,
+        fee_paid: matchUserFeeShare
+      }
     });
+
+    // Credit creator fee to creator (if not admin)
+    if (creatorFeeAmount > 0 && creatorId && !creatorIsAdmin) {
+      await supabase.rpc('process_wallet_operation', {
+        _user_id: creatorId,
+        _operation: 'deposit',
+        _amount: creatorFeeAmount,
+        _metadata: { 
+          type: 'creator_fee', 
+          market_id, 
+          trade_id: trade.id 
+        }
+      });
+      console.log(`Credited $${creatorFeeAmount.toFixed(4)} creator fee to ${creatorId}`);
+    }
 
     // Update market volume
     await supabase

@@ -360,6 +360,7 @@ export type Database = {
           category: string
           created_at: string
           created_by: string
+          creator_fee_percent: number
           description: string | null
           expiry_time: string
           id: string
@@ -367,6 +368,7 @@ export type Database = {
           liquidity_pool: number
           no_price: number
           outcome: string | null
+          platform_fee_percent: number
           pool_no_shares: number
           pool_yes_shares: number
           question: string
@@ -381,6 +383,7 @@ export type Database = {
           category: string
           created_at?: string
           created_by: string
+          creator_fee_percent?: number
           description?: string | null
           expiry_time: string
           id?: string
@@ -388,6 +391,7 @@ export type Database = {
           liquidity_pool?: number
           no_price?: number
           outcome?: string | null
+          platform_fee_percent?: number
           pool_no_shares?: number
           pool_yes_shares?: number
           question: string
@@ -402,6 +406,7 @@ export type Database = {
           category?: string
           created_at?: string
           created_by?: string
+          creator_fee_percent?: number
           description?: string | null
           expiry_time?: string
           id?: string
@@ -409,6 +414,7 @@ export type Database = {
           liquidity_pool?: number
           no_price?: number
           outcome?: string | null
+          platform_fee_percent?: number
           pool_no_shares?: number
           pool_yes_shares?: number
           question?: string
