@@ -36,7 +36,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
       const value = formData[field.name];
       if (value) {
         const displayValue = field.type === "date" 
-          ? format(new Date(value), "dd MMM yyyy")
+          ? format(new Date(value), "dd MMM yyyy 'at' h:mm a")
           : value;
         preview = preview.replace(`{${field.name}}`, displayValue);
       } else {
@@ -234,30 +234,49 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
                   )}
                   
                    {field.type === "date" && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full h-12 justify-start text-left font-normal",
-                            !formData[field.name] && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {formData[field.name] ? format(new Date(formData[field.name]), "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0 bg-card z-50" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
-                          onSelect={(date) => handleFieldChange(field.name, date?.toISOString())}
-                          disabled={(date) => date < new Date()}
-                          initialFocus
-                          className={cn("p-3 pointer-events-auto")}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "flex-1 h-12 justify-start text-left font-normal",
+                              !formData[field.name] && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {formData[field.name] ? format(new Date(formData[field.name]), "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-card z-50" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                const existing = formData[field.name] ? new Date(formData[field.name]) : new Date();
+                                date.setHours(existing.getHours(), existing.getMinutes());
+                                handleFieldChange(field.name, date.toISOString());
+                              }
+                            }}
+                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="time"
+                        className="h-12 w-full sm:w-32"
+                        value={formData[field.name] ? format(new Date(formData[field.name]), "HH:mm") : ""}
+                        onChange={(e) => {
+                          const [hours, minutes] = e.target.value.split(':').map(Number);
+                          const date = formData[field.name] ? new Date(formData[field.name]) : new Date();
+                          date.setHours(hours, minutes);
+                          handleFieldChange(field.name, date.toISOString());
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               ))}
