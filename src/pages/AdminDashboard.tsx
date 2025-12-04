@@ -157,7 +157,6 @@ const mockStats: PlatformStatsType = {
 
 const AdminDashboard = () => {
   const [pendingMarkets, setPendingMarkets] = useState(mockPendingMarkets);
-  const [marketsToResolve, setMarketsToResolve] = useState(mockMarketsToResolve);
   const [users, setUsers] = useState(mockUsers);
   const [alerts, setAlerts] = useState(mockAlerts);
   const { isAuthenticated, isAdmin, loading } = useAuth();
@@ -193,10 +192,6 @@ const AdminDashboard = () => {
 
   const handleReject = (id: string) => {
     setPendingMarkets(prev => prev.filter(m => m.id !== id));
-  };
-
-  const handleResolve = (id: string, outcome: "yes" | "no" | "void") => {
-    setMarketsToResolve(prev => prev.filter(m => m.id !== id));
   };
 
   const handleToggleKYC = (id: string) => {
@@ -273,10 +268,7 @@ const AdminDashboard = () => {
 
             <TabsContent value="resolution">
               <div className="space-y-6">
-                <MarketResolutionPanel 
-                  markets={marketsToResolve}
-                  onResolve={handleResolve}
-                />
+                <MarketResolutionPanel />
                 <OracleResolutionPanel />
               </div>
             </TabsContent>

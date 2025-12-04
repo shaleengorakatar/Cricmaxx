@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AdminMarket } from "@/types/admin";
-import { Flag, AlertCircle } from "lucide-react";
+import { Flag, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,16 +19,55 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface MarketResolutionPanelProps {
-  markets: AdminMarket[];
-  onResolve: (id: string, outcome: "yes" | "no" | "void") => void;
+interface MarketToResolve {
+  id: string;
+  question: string;
+  status: string;
+  volume: number;
+  expiryTime: string;
+  liquidityPool: number;
 }
 
-const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProps) => {
+const MarketResolutionPanel = () => {
+  const [markets, setMarkets] = useState<MarketToResolve[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resolving, setResolving] = useState<string | null>(null);
   const [resolutions, setResolutions] = useState<Record<string, "yes" | "no" | "void">>({});
   const { toast } = useToast();
 
-  const handleResolve = (market: AdminMarket) => {
+  useEffect(() => {
+    fetchMarketsToResolve();
+  }, []);
+
+  const fetchMarketsToResolve = async () => {
+    const { data, error } = await supabase
+      .from('markets')
+      .select('*')
+      .in('status', ['approved', 'open', 'closed'])
+      .lt('expiry_time', new Date().toISOString())
+      .order('expiry_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching markets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch markets for resolution",
+        variant: "destructive",
+      });
+    } else {
+      setMarkets((data || []).map(m => ({
+        id: m.id,
+        question: m.question,
+        status: m.status,
+        volume: Number(m.volume),
+        expiryTime: m.expiry_time,
+        liquidityPool: Number(m.liquidity_pool),
+      })));
+    }
+    setLoading(false);
+  };
+
+  const handleResolve = async (market: MarketToResolve) => {
     const outcome = resolutions[market.id];
     if (!outcome) {
       toast({
@@ -39,12 +78,50 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
       return;
     }
 
-    onResolve(market.id, outcome);
-    toast({
-      title: "Market resolved",
-      description: `Market settled with outcome: ${outcome.toUpperCase()}. Payouts will be processed.`,
-    });
+    setResolving(market.id);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('market-resolver', {
+        body: { marketId: market.id, outcome },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Market resolved successfully!",
+        description: `Outcome: ${outcome.toUpperCase()}. Processed ${data.positionsProcessed} positions. Total payouts: $${data.totalPayouts.toFixed(2)}`,
+      });
+
+      // Remove from list
+      setMarkets(prev => prev.filter(m => m.id !== market.id));
+    } catch (error: any) {
+      console.error('Resolution error:', error);
+      toast({
+        title: "Resolution failed",
+        description: error.message || "Failed to resolve market",
+        variant: "destructive",
+      });
+    } finally {
+      setResolving(null);
+    }
   };
+
+  if (loading) {
+    return (
+      <Card className="p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto mb-4" />
+          <p className="text-sm text-muted-foreground">Loading markets...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (markets.length === 0) {
     return (
@@ -53,7 +130,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
           <Flag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No markets to resolve</h3>
           <p className="text-sm text-muted-foreground">
-            All markets are either open or already resolved
+            All expired markets have been resolved
           </p>
         </div>
       </Card>
@@ -66,8 +143,8 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
         <div className="flex items-start gap-2">
           <AlertCircle className="h-4 w-4 text-yellow-600 mt-0.5" />
           <p className="text-xs text-yellow-800 dark:text-yellow-200">
-            <span className="font-medium">Important:</span> Resolving a market will immediately process payouts. 
-            Yes winners receive $1.00 per share, No winners receive $1.00 per share, and Void refunds all positions.
+            <span className="font-medium">Important:</span> Resolving a market will immediately process payouts from the liquidity pool. 
+            Winners receive $1.00 per share, losers receive $0, and Void refunds original positions.
           </p>
         </div>
       </div>
@@ -89,7 +166,11 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
                   <span className="text-muted-foreground">Volume: </span>
                   <span className="text-foreground font-medium">{market.volume.toLocaleString()} shares</span>
                 </div>
-                <div className="col-span-2">
+                <div>
+                  <span className="text-muted-foreground">Liquidity Pool: </span>
+                  <span className="text-accent font-medium">${market.liquidityPool.toFixed(2)}</span>
+                </div>
+                <div>
                   <span className="text-muted-foreground">Expired: </span>
                   <span className="text-foreground">{format(new Date(market.expiryTime), "MMM dd, yyyy 'at' HH:mm")}</span>
                 </div>
@@ -106,6 +187,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
                   onValueChange={(value: "yes" | "no" | "void") => 
                     setResolutions(prev => ({ ...prev, [market.id]: value }))
                   }
+                  disabled={resolving === market.id}
                 >
                   <SelectTrigger className="bg-card h-12">
                     <SelectValue placeholder="Choose outcome" />
@@ -120,9 +202,21 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
 
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button className="w-full md:w-auto h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform">
-                    <Flag className="h-4 w-4 mr-2" />
-                    Settle Market
+                  <Button 
+                    className="w-full md:w-auto h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
+                    disabled={resolving === market.id}
+                  >
+                    {resolving === market.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Flag className="h-4 w-4 mr-2" />
+                        Settle Market
+                      </>
+                    )}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -130,7 +224,7 @@ const MarketResolutionPanel = ({ markets, onResolve }: MarketResolutionPanelProp
                     <AlertDialogTitle>Settle Market</AlertDialogTitle>
                     <AlertDialogDescription>
                       Are you sure you want to settle this market with outcome: <strong>{resolutions[market.id]?.toUpperCase() || "NONE"}</strong>?
-                      This action cannot be undone and will immediately process payouts.
+                      This action cannot be undone and will immediately process payouts from the liquidity pool.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
