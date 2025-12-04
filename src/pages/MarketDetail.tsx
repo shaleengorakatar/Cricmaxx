@@ -103,6 +103,9 @@ const MarketDetail = () => {
               yesPrice: Number(data.yes_price),
               noPrice: Number(data.no_price),
               volume: Number(data.volume),
+              liquidityPool: Number(data.liquidity_pool),
+              poolYesShares: Number(data.pool_yes_shares),
+              poolNoShares: Number(data.pool_no_shares),
             };
           });
 
@@ -150,6 +153,9 @@ const MarketDetail = () => {
       expiryTime: data.expiry_time,
       description: data.description || "",
       imageUrl: data.image_url || "",
+      liquidityPool: Number(data.liquidity_pool),
+      poolYesShares: Number(data.pool_yes_shares),
+      poolNoShares: Number(data.pool_no_shares),
     };
 
     setMarket(formattedMarket);
@@ -179,6 +185,33 @@ const MarketDetail = () => {
     );
   }
 
+  // LMSR pricing: calculate cost to buy shares
+  const calculateLMSRCost = (poolYes: number, poolNo: number, side: "yes" | "no", shares: number, b: number = 100) => {
+    const currentCost = b * Math.log(Math.exp(poolYes / b) + Math.exp(poolNo / b));
+    let newPoolYes = poolYes;
+    let newPoolNo = poolNo;
+    
+    if (side === "yes") {
+      newPoolYes = poolYes + shares;
+    } else {
+      newPoolNo = poolNo + shares;
+    }
+    
+    const newCost = b * Math.log(Math.exp(newPoolYes / b) + Math.exp(newPoolNo / b));
+    return newCost - currentCost;
+  };
+
+  // Calculate new prices after trade
+  const calculateNewPrices = (poolYes: number, poolNo: number, b: number = 100) => {
+    const expYes = Math.exp(poolYes / b);
+    const expNo = Math.exp(poolNo / b);
+    const total = expYes + expNo;
+    return {
+      yesPrice: expYes / total,
+      noPrice: expNo / total
+    };
+  };
+
   const handleTrade = async (side: "yes" | "no", shares: number) => {
     if (!user || !profile) {
       toast({
@@ -194,8 +227,13 @@ const MarketDetail = () => {
     setIsTrading(true);
 
     try {
-      const entryPrice = side === "yes" ? market.yesPrice : market.noPrice;
-      const cost = shares * entryPrice;
+      const poolYes = market.poolYesShares || 1000;
+      const poolNo = market.poolNoShares || 1000;
+      const b = 100; // Liquidity parameter
+      
+      // Calculate cost using LMSR
+      const cost = calculateLMSRCost(poolYes, poolNo, side, shares, b);
+      const entryPrice = cost / shares;
 
       // Check balance
       if (cost > profile.balance) {
@@ -207,6 +245,12 @@ const MarketDetail = () => {
         setIsTrading(false);
         return;
       }
+
+      // Calculate new pool state
+      const newPoolYes = side === "yes" ? poolYes + shares : poolYes;
+      const newPoolNo = side === "no" ? poolNo + shares : poolNo;
+      const newPrices = calculateNewPrices(newPoolYes, newPoolNo, b);
+      const newLiquidityPool = (market.liquidityPool || 1000) + cost;
 
       // Create position in database
       const { data: position, error: positionError } = await supabase
@@ -251,20 +295,16 @@ const MarketDetail = () => {
           }
         });
 
-      // Calculate new market stats
-      const priceImpact = shares * 0.001; // Simple price impact formula
-      const newYesPrice = side === "yes" 
-        ? Math.min(0.99, market.yesPrice + priceImpact)
-        : Math.max(0.01, market.yesPrice - priceImpact);
-      const newVolume = market.volume + shares;
-
-      // Update market in database with new volume and prices
+      // Update market in database with new pool state and prices
       const { error: marketError } = await supabase
         .from('markets')
         .update({ 
-          volume: newVolume,
-          yes_price: newYesPrice,
-          no_price: 1 - newYesPrice,
+          volume: market.volume + shares,
+          yes_price: newPrices.yesPrice,
+          no_price: newPrices.noPrice,
+          liquidity_pool: newLiquidityPool,
+          pool_yes_shares: newPoolYes,
+          pool_no_shares: newPoolNo,
           updated_at: new Date().toISOString()
         })
         .eq('id', market.id);
@@ -275,7 +315,7 @@ const MarketDetail = () => {
 
       toast({
         title: "Prediction placed successfully!",
-        description: `Bought ${shares} ${side.toUpperCase()} shares at $${entryPrice.toFixed(2)}. Cost: ${cost.toFixed(2)} credits`,
+        description: `Bought ${shares} ${side.toUpperCase()} shares for ${cost.toFixed(2)} credits`,
       });
 
       // Update local market state for immediate visual feedback
@@ -283,9 +323,12 @@ const MarketDetail = () => {
         if (!prev) return prev;
         return {
           ...prev,
-          yesPrice: newYesPrice,
-          noPrice: 1 - newYesPrice,
-          volume: newVolume,
+          yesPrice: newPrices.yesPrice,
+          noPrice: newPrices.noPrice,
+          volume: prev.volume + shares,
+          liquidityPool: newLiquidityPool,
+          poolYesShares: newPoolYes,
+          poolNoShares: newPoolNo,
         };
       });
 
@@ -297,8 +340,8 @@ const MarketDetail = () => {
         ...prev.slice(-23),
         {
           time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-          yesPrice: newYesPrice,
-          noPrice: 1 - newYesPrice,
+          yesPrice: newPrices.yesPrice,
+          noPrice: newPrices.noPrice,
         }
       ]);
     } catch (error: any) {
@@ -433,9 +476,15 @@ const MarketDetail = () => {
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Liquidity Pool:</span>
+                      <span className="font-semibold text-accent">
+                        ${(market.liquidityPool || 1000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Market Type:</span>
                       <span className="font-semibold text-foreground">
-                        {market.type === "orderbook" ? "Order Book" : "Automated Market"}
+                        {market.type === "orderbook" ? "Order Book" : "Automated Market (LMSR)"}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
