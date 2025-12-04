@@ -36,7 +36,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
       const value = formData[field.name];
       if (value) {
         const displayValue = field.type === "date" 
-          ? format(new Date(value), "dd MMM yyyy 'at' h:mm a")
+          ? format(new Date(value), "dd MMM yyyy")
           : value;
         preview = preview.replace(`{${field.name}}`, displayValue);
       } else {
