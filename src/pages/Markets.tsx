@@ -16,6 +16,66 @@ const Markets = () => {
 
   useEffect(() => {
     fetchMarkets();
+
+    // Real-time subscription for market updates
+    const channel = supabase
+      .channel('markets-list')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'markets'
+        },
+        (payload) => {
+          console.log('Real-time markets update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const data = payload.new as any;
+            // Only add if it's approved/open and within 14 days
+            const expiry = new Date(data.expiry_time);
+            const now = new Date();
+            const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+            
+            if (['approved', 'open'].includes(data.status) && expiry >= now && expiry <= fourteenDaysFromNow) {
+              const newMarket: Market = {
+                id: data.id,
+                question: data.question,
+                category: data.category as Market["category"],
+                type: data.type as Market["type"],
+                yesPrice: Number(data.yes_price),
+                noPrice: Number(data.no_price),
+                volume: Number(data.volume),
+                expiryTime: data.expiry_time,
+                description: data.description || "",
+                imageUrl: data.image_url || "",
+              };
+              setAllMarkets(prev => [newMarket, ...prev]);
+            }
+          } else if (payload.eventType === 'UPDATE') {
+            const data = payload.new as any;
+            setAllMarkets(prev => prev.map(m => 
+              m.id === data.id 
+                ? {
+                    ...m,
+                    yesPrice: Number(data.yes_price),
+                    noPrice: Number(data.no_price),
+                    volume: Number(data.volume),
+                    question: data.question,
+                    category: data.category as Market["category"],
+                  }
+                : m
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setAllMarkets(prev => prev.filter(m => m.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchMarkets = async () => {
