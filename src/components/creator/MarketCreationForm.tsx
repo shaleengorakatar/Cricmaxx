@@ -94,9 +94,17 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
         return;
       }
 
-      // Set expiry time (default to 30 days from now)
-      const expiryTime = new Date();
-      expiryTime.setDate(expiryTime.getDate() + 30);
+      // Use the date field from the form (matchDate, electionDate, targetDate, or expiryDate)
+      const dateField = template.fields.find(f => f.type === 'date');
+      let expiryTime: Date;
+      
+      if (dateField && formData[dateField.name]) {
+        expiryTime = new Date(formData[dateField.name]);
+      } else {
+        // Fallback to 7 days from now
+        expiryTime = new Date();
+        expiryTime.setDate(expiryTime.getDate() + 7);
+      }
 
       // Insert market into database
       // Creator markets: 2% goes to creator, 1% goes to platform
