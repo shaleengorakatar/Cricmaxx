@@ -3,15 +3,21 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCard from "@/components/markets/MarketCard";
 import MarketFilters from "@/components/markets/MarketFilters";
+import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
+import LeaderboardModal from "@/components/leaderboard/LeaderboardModal";
 import { MarketCategory, Market } from "@/types/market";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
 
 const Markets = () => {
+  const { isAuthenticated } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   useEffect(() => {
     fetchMarkets();
@@ -134,13 +140,33 @@ const Markets = () => {
         <div className="container mx-auto px-4">
           {/* Header - Mobile optimized */}
           <div className="mb-6 sm:mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Browse Markets</h1>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
+                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Browse Markets</h1>
+                </div>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Discover and trade on prediction markets across various categories
+                </p>
+              </div>
+              
+              {/* Rating & Leaderboard Buttons */}
+              {isAuthenticated && (
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <UserRatingBadge />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLeaderboardOpen(true)}
+                    className="gap-1.5"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    <span className="hidden sm:inline">Leaderboard</span>
+                  </Button>
+                </div>
+              )}
             </div>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Discover and trade on prediction markets across various categories
-            </p>
           </div>
 
           {/* Filters */}
@@ -185,6 +211,12 @@ const Markets = () => {
       </main>
 
       <Footer />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal 
+        isOpen={leaderboardOpen} 
+        onClose={() => setLeaderboardOpen(false)} 
+      />
     </div>
   );
 };
