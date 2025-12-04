@@ -78,6 +78,52 @@ const MarketDetail = () => {
     fetchMarket();
   }, [id]);
 
+  // Real-time subscription for market updates
+  useEffect(() => {
+    if (!id) return;
+
+    const channel = supabase
+      .channel(`market-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'markets',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          console.log('Real-time market update:', payload);
+          const data = payload.new as any;
+          
+          setMarket(prev => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              yesPrice: Number(data.yes_price),
+              noPrice: Number(data.no_price),
+              volume: Number(data.volume),
+            };
+          });
+
+          // Add new price point to chart
+          setPriceHistory(prev => [
+            ...prev.slice(-23),
+            {
+              time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              yesPrice: Number(data.yes_price),
+              noPrice: Number(data.no_price),
+            }
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);
+
   const fetchMarket = async () => {
     if (!id) return;
 
