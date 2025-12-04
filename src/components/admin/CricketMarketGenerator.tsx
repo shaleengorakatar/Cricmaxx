@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Zap, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -21,11 +23,10 @@ interface CricketMatch {
   matchEnded: boolean;
 }
 
-const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
-
 export default function CricketMarketGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
+  const [platformFee, setPlatformFee] = useState("3");
   const { user } = useAuth();
 
   const handleGenerateMarkets = async () => {
@@ -38,18 +39,17 @@ export default function CricketMarketGenerator() {
     setLastResult(null);
 
     try {
-      // Fetch cricket data directly from client (works reliably)
-      console.log("Fetching cricket matches from CricAPI...");
-      const response = await fetch(
-        `https://api.cricapi.com/v1/currentMatches?apikey=${CRICAPI_KEY}&offset=0`
-      );
+      // Fetch cricket data via proxy edge function
+      console.log("Fetching cricket matches via proxy...");
+      const { data: cricketData, error: proxyError } = await supabase.functions.invoke('cricket-proxy', {
+        body: { endpoint: 'currentMatches', params: { offset: 0 } }
+      });
 
-      if (!response.ok) {
-        throw new Error(`CricAPI error: ${response.status}`);
+      if (proxyError) {
+        throw new Error(`Cricket API error: ${proxyError.message}`);
       }
 
-      const cricketData = await response.json();
-      const matches: CricketMatch[] = cricketData.data || [];
+      const matches: CricketMatch[] = cricketData?.data || [];
 
       console.log(`Found ${matches.length} matches`);
 
@@ -107,6 +107,7 @@ export default function CricketMarketGenerator() {
             .maybeSingle();
 
           if (!existing1) {
+            const feePercent = parseFloat(platformFee) || 3;
             const { data: market1, error: err1 } = await supabase
               .from('markets')
               .insert({
@@ -121,6 +122,8 @@ export default function CricketMarketGenerator() {
                 status: 'approved',
                 created_by: user.id,
                 image_url: match.teamInfo?.[0]?.img || null,
+                platform_fee_percent: feePercent,
+                creator_fee_percent: 0, // Admin-created markets have 0 creator fee
               })
               .select()
               .single();
@@ -159,6 +162,7 @@ export default function CricketMarketGenerator() {
             .maybeSingle();
 
           if (!existing2) {
+            const feePercent = parseFloat(platformFee) || 3;
             const { data: market2, error: err2 } = await supabase
               .from('markets')
               .insert({
@@ -173,6 +177,8 @@ export default function CricketMarketGenerator() {
                 status: 'approved',
                 created_by: user.id,
                 image_url: match.teamInfo?.[0]?.img || null,
+                platform_fee_percent: feePercent,
+                creator_fee_percent: 0,
               })
               .select()
               .single();
@@ -212,6 +218,7 @@ export default function CricketMarketGenerator() {
               .maybeSingle();
 
             if (!existing3) {
+              const feePercent = parseFloat(platformFee) || 3;
               const { data: market3, error: err3 } = await supabase
                 .from('markets')
                 .insert({
@@ -226,6 +233,8 @@ export default function CricketMarketGenerator() {
                   status: 'approved',
                   created_by: user.id,
                   image_url: match.teamInfo?.[0]?.img || null,
+                  platform_fee_percent: feePercent,
+                  creator_fee_percent: 0,
                 })
                 .select()
                 .single();
@@ -265,6 +274,7 @@ export default function CricketMarketGenerator() {
             .maybeSingle();
 
           if (!existing4) {
+            const feePercent = parseFloat(platformFee) || 3;
             const { data: market4, error: err4 } = await supabase
               .from('markets')
               .insert({
@@ -279,6 +289,8 @@ export default function CricketMarketGenerator() {
                 status: 'approved',
                 created_by: user.id,
                 image_url: match.teamInfo?.[1]?.img || match.teamInfo?.[0]?.img || null,
+                platform_fee_percent: feePercent,
+                creator_fee_percent: 0,
               })
               .select()
               .single();
@@ -347,7 +359,19 @@ export default function CricketMarketGenerator() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
+          <div className="w-32">
+            <Label className="text-xs text-muted-foreground">Platform Fee %</Label>
+            <Input
+              type="number"
+              value={platformFee}
+              onChange={(e) => setPlatformFee(e.target.value)}
+              min="0"
+              max="10"
+              step="0.5"
+              className="h-10"
+            />
+          </div>
           <Button
             onClick={handleGenerateMarkets}
             disabled={isGenerating}
@@ -366,6 +390,9 @@ export default function CricketMarketGenerator() {
             )}
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Admin-created markets: {platformFee}% platform fee, 0% creator fee
+        </p>
 
         {lastResult && (
           <div className="mt-4 p-4 bg-secondary/20 rounded-lg space-y-3">

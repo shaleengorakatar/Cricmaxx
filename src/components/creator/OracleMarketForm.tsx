@@ -103,6 +103,7 @@ const OracleMarketForm = ({ onMarketCreated }: OracleMarketFormProps) => {
       const template = eventTemplates.find(t => t.id === formData.event_template);
 
       // Create market first
+      // Creator markets: 2% goes to creator, 1% goes to platform
       const { data: market, error: marketError } = await supabase
         .from('markets')
         .insert({
@@ -115,7 +116,9 @@ const OracleMarketForm = ({ onMarketCreated }: OracleMarketFormProps) => {
           volume: 0,
           status: 'pending',
           expiry_time: formData.match_date,
-          created_by: user.id
+          created_by: user.id,
+          platform_fee_percent: 1, // Platform gets 1%
+          creator_fee_percent: 2,  // Creator gets 2%
         })
         .select()
         .single();
