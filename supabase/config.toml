@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.market-resolver]
 verify_jwt = true
+
+[functions.order-book]
+verify_jwt = true
