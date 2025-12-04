@@ -421,6 +421,59 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          avg_fill_price: number | null
+          created_at: string
+          filled_quantity: number
+          id: string
+          market_id: string
+          order_type: string
+          price: number | null
+          quantity: number
+          side: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_fill_price?: number | null
+          created_at?: string
+          filled_quantity?: number
+          id?: string
+          market_id: string
+          order_type: string
+          price?: number | null
+          quantity: number
+          side: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_fill_price?: number | null
+          created_at?: string
+          filled_quantity?: number
+          id?: string
+          market_id?: string
+          order_type?: string
+          price?: number | null
+          quantity?: number
+          side?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           closed_at: string | null
@@ -608,6 +661,67 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      trades: {
+        Row: {
+          buy_order_id: string
+          buyer_id: string
+          buyer_side: string
+          created_at: string
+          id: string
+          market_id: string
+          price: number
+          quantity: number
+          sell_order_id: string
+          seller_id: string
+        }
+        Insert: {
+          buy_order_id: string
+          buyer_id: string
+          buyer_side: string
+          created_at?: string
+          id?: string
+          market_id: string
+          price: number
+          quantity: number
+          sell_order_id: string
+          seller_id: string
+        }
+        Update: {
+          buy_order_id?: string
+          buyer_id?: string
+          buyer_side?: string
+          created_at?: string
+          id?: string
+          market_id?: string
+          price?: number
+          quantity?: number
+          sell_order_id?: string
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_buy_order_id_fkey"
+            columns: ["buy_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_sell_order_id_fkey"
+            columns: ["sell_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transactions: {
         Row: {

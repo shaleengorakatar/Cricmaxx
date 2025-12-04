@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
-import SimpleTradingInterface from "@/components/market-detail/SimpleTradingInterface";
+import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import { Market } from "@/types/market";
@@ -429,13 +429,11 @@ const MarketDetail = () => {
                   <TabsTrigger value="alerts">Alerts</TabsTrigger>
                 </TabsList>
                 <TabsContent value="trade" className="mt-4">
-                  <SimpleTradingInterface
+                  <OrderBookTrading
                     marketId={market.id}
                     yesPrice={market.yesPrice}
                     noPrice={market.noPrice}
                     userBalance={profile?.balance || 0}
-                    marketType={market.type}
-                    onTrade={handleTrade}
                   />
                 </TabsContent>
                 <TabsContent value="calculator" className="mt-4">
