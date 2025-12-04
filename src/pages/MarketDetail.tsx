@@ -205,37 +205,56 @@ const MarketDetail = () => {
           }
         });
 
+      // Calculate new market stats
+      const priceImpact = shares * 0.001; // Simple price impact formula
+      const newYesPrice = side === "yes" 
+        ? Math.min(0.99, market.yesPrice + priceImpact)
+        : Math.max(0.01, market.yesPrice - priceImpact);
+      const newVolume = market.volume + shares;
+
+      // Update market in database with new volume and prices
+      const { error: marketError } = await supabase
+        .from('markets')
+        .update({ 
+          volume: newVolume,
+          yes_price: newYesPrice,
+          no_price: 1 - newYesPrice,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', market.id);
+
+      if (marketError) {
+        console.error('Failed to update market stats:', marketError);
+      }
+
       toast({
         title: "Prediction placed successfully!",
         description: `Bought ${shares} ${side.toUpperCase()} shares at $${entryPrice.toFixed(2)}. Cost: ${cost.toFixed(2)} credits`,
       });
 
-      // Update local market state for visual feedback
+      // Update local market state for immediate visual feedback
+      setMarket(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          yesPrice: newYesPrice,
+          noPrice: 1 - newYesPrice,
+          volume: newVolume,
+        };
+      });
+
       if (market.type === "orderbook") {
         setOrderBook(generateOrderBook());
-      } else {
-        const priceImpact = shares * 0.001;
-        setMarket(prev => {
-          if (!prev) return prev;
-          const newYesPrice = side === "yes" 
-            ? Math.min(0.99, prev.yesPrice + priceImpact)
-            : Math.max(0.01, prev.yesPrice - priceImpact);
-          return {
-            ...prev,
-            yesPrice: newYesPrice,
-            noPrice: 1 - newYesPrice,
-          };
-        });
-
-        setPriceHistory(prev => [
-          ...prev.slice(-23),
-          {
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            yesPrice: market.yesPrice,
-            noPrice: market.noPrice,
-          }
-        ]);
       }
+
+      setPriceHistory(prev => [
+        ...prev.slice(-23),
+        {
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          yesPrice: newYesPrice,
+          noPrice: 1 - newYesPrice,
+        }
+      ]);
     } catch (error: any) {
       console.error('Trade error:', error);
       toast({
