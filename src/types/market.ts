@@ -12,4 +12,8 @@ export interface Market {
   expiryTime: string;
   description?: string;
   imageUrl?: string;
+  // Liquidity pool fields for AMM markets
+  liquidityPool?: number;
+  poolYesShares?: number;
+  poolNoShares?: number;
 }

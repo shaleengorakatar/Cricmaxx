@@ -364,8 +364,11 @@ export type Database = {
           expiry_time: string
           id: string
           image_url: string | null
+          liquidity_pool: number
           no_price: number
           outcome: string | null
+          pool_no_shares: number
+          pool_yes_shares: number
           question: string
           resolution_time: string | null
           status: string
@@ -382,8 +385,11 @@ export type Database = {
           expiry_time: string
           id?: string
           image_url?: string | null
+          liquidity_pool?: number
           no_price?: number
           outcome?: string | null
+          pool_no_shares?: number
+          pool_yes_shares?: number
           question: string
           resolution_time?: string | null
           status?: string
@@ -400,8 +406,11 @@ export type Database = {
           expiry_time?: string
           id?: string
           image_url?: string | null
+          liquidity_pool?: number
           no_price?: number
           outcome?: string | null
+          pool_no_shares?: number
+          pool_yes_shares?: number
           question?: string
           resolution_time?: string | null
           status?: string
