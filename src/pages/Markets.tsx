@@ -87,7 +87,8 @@ const Markets = () => {
     const now = new Date();
     const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-    const { data, error } = await supabase
+    // Fetch active markets (within 14 days)
+    const { data: activeMarkets, error: activeError } = await supabase
       .from("markets")
       .select("*")
       .in("status", ["approved", "open"])
@@ -95,13 +96,45 @@ const Markets = () => {
       .gte("expiry_time", now.toISOString())
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching markets:", error);
+    if (activeError) {
+      console.error("Error fetching markets:", activeError);
       setLoading(false);
       return;
     }
 
-    const formattedMarkets: Market[] = (data || []).map((m) => ({
+    let allMarketData = activeMarkets || [];
+
+    // If authenticated, also fetch markets where user has positions (even if expired)
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: positions } = await supabase
+        .from("positions")
+        .select("market_id")
+        .eq("user_id", user.id)
+        .eq("status", "open");
+
+      if (positions && positions.length > 0) {
+        const positionMarketIds = positions.map(p => p.market_id);
+        const activeMarketIds = new Set(allMarketData.map(m => m.id));
+        
+        // Filter out markets we already have
+        const missingMarketIds = positionMarketIds.filter(id => !activeMarketIds.has(id));
+        
+        if (missingMarketIds.length > 0) {
+          const { data: positionMarkets } = await supabase
+            .from("markets")
+            .select("*")
+            .in("id", missingMarketIds)
+            .in("status", ["approved", "open", "closed"]);
+
+          if (positionMarkets) {
+            allMarketData = [...allMarketData, ...positionMarkets];
+          }
+        }
+      }
+    }
+
+    const formattedMarkets: Market[] = allMarketData.map((m) => ({
       id: m.id,
       question: m.question,
       category: m.category as Market["category"],
