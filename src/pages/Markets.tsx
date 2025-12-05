@@ -16,6 +16,7 @@ const Markets = () => {
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
+  const [userPositionMarketIds, setUserPositionMarketIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
@@ -115,6 +116,8 @@ const Markets = () => {
 
       if (positions && positions.length > 0) {
         const positionMarketIds = positions.map(p => p.market_id);
+        setUserPositionMarketIds(new Set(positionMarketIds));
+        
         const activeMarketIds = new Set(allMarketData.map(m => m.id));
         
         // Filter out markets we already have
@@ -131,7 +134,11 @@ const Markets = () => {
             allMarketData = [...allMarketData, ...positionMarkets];
           }
         }
+      } else {
+        setUserPositionMarketIds(new Set());
       }
+    } else {
+      setUserPositionMarketIds(new Set());
     }
 
     const formattedMarkets: Market[] = allMarketData.map((m) => ({
@@ -227,7 +234,11 @@ const Markets = () => {
           ) : filteredMarkets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredMarkets.map((market) => (
-                <MarketCard key={market.id} market={market} />
+                <MarketCard 
+                  key={market.id} 
+                  market={market} 
+                  hasPosition={userPositionMarketIds.has(market.id)}
+                />
               ))}
             </div>
           ) : (
