@@ -167,17 +167,20 @@ const Markets = () => {
   };
 
   const filteredMarkets = useMemo(() => {
-    return allMarkets.filter((market) => {
-      // Category filter
-      const categoryMatch = selectedCategory === "All" || market.category === selectedCategory;
-      
-      // Search filter
-      const searchMatch = searchQuery === "" || 
-        market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        market.category.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return categoryMatch && searchMatch;
-    });
+    return allMarkets
+      .filter((market) => {
+        // Category filter
+        const categoryMatch = selectedCategory === "All" || market.category === selectedCategory;
+        
+        // Search filter
+        const searchMatch = searchQuery === "" || 
+          market.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          market.category.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return categoryMatch && searchMatch;
+      })
+      // Sort by expiry time - soonest first
+      .sort((a, b) => new Date(a.expiryTime).getTime() - new Date(b.expiryTime).getTime());
   }, [allMarkets, selectedCategory, searchQuery]);
 
   return (
