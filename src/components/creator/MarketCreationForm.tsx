@@ -262,8 +262,13 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
                             selected={formData[field.name] ? new Date(formData[field.name]) : undefined}
                             onSelect={(date) => {
                               if (date) {
-                                const existing = formData[field.name] ? new Date(formData[field.name]) : new Date();
-                                date.setHours(existing.getHours(), existing.getMinutes());
+                                // If there's an existing time, preserve it; otherwise default to 23:59 (end of day)
+                                const existing = formData[field.name] ? new Date(formData[field.name]) : null;
+                                if (existing) {
+                                  date.setHours(existing.getHours(), existing.getMinutes());
+                                } else {
+                                  date.setHours(23, 59, 0, 0);
+                                }
                                 handleFieldChange(field.name, date.toISOString());
                               }
                             }}
