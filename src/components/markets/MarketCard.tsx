@@ -14,6 +14,7 @@ import {
 export interface UserPosition {
   side: string;
   size: number;
+  entryPrice: number;
 }
 
 interface MarketCardProps {
@@ -30,6 +31,16 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
   const handleClick = () => {
     navigate(`/market/${market.id}`);
   };
+
+  // Calculate P&L if position exists
+  const calculatePnL = () => {
+    if (!position) return null;
+    const currentPrice = position.side === 'yes' ? market.yesPrice : market.noPrice;
+    const pnl = (currentPrice - position.entryPrice) * position.size;
+    return pnl;
+  };
+
+  const pnl = calculatePnL();
 
   return (
     <Card 
@@ -49,10 +60,18 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
                       Your Position
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent>
+                  <TooltipContent className="space-y-1">
                     <p className="font-medium">
                       {position.size} shares on <span className={position.side === 'yes' ? 'text-green-500' : 'text-red-500'}>{position.side.toUpperCase()}</span>
                     </p>
+                    <p className="text-xs text-muted-foreground">
+                      Entry: ${position.entryPrice.toFixed(2)}
+                    </p>
+                    {pnl !== null && (
+                      <p className={`text-xs font-medium ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        P&L: {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+                      </p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

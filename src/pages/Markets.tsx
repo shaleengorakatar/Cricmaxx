@@ -110,14 +110,18 @@ const Markets = () => {
     if (user) {
       const { data: positions } = await supabase
         .from("positions")
-        .select("market_id, side, size")
+        .select("market_id, side, size, entry_price")
         .eq("user_id", user.id)
         .eq("status", "open");
 
       if (positions && positions.length > 0) {
         const positionsMap = new Map<string, UserPosition>();
         positions.forEach(p => {
-          positionsMap.set(p.market_id, { side: p.side, size: Number(p.size) });
+          positionsMap.set(p.market_id, { 
+            side: p.side, 
+            size: Number(p.size),
+            entryPrice: Number(p.entry_price)
+          });
         });
         setUserPositions(positionsMap);
         
