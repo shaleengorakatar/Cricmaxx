@@ -1,15 +1,16 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, Clock, BarChart3, BookOpen, Zap } from "lucide-react";
+import { TrendingUp, Clock, BarChart3, BookOpen, Zap, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
 interface MarketCardProps {
   market: Market;
+  hasPosition?: boolean;
 }
 
-const MarketCard = ({ market }: MarketCardProps) => {
+const MarketCard = ({ market, hasPosition }: MarketCardProps) => {
   const navigate = useNavigate();
   const expiryDate = new Date(market.expiryTime);
   const timeToExpiry = formatDistanceToNow(expiryDate, { addSuffix: true });
@@ -27,9 +28,17 @@ const MarketCard = ({ market }: MarketCardProps) => {
       <div className="space-y-3 sm:space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base sm:text-base font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 flex-1 leading-snug">
-            {market.question}
-          </h3>
+          <div className="flex-1">
+            {hasPosition && (
+              <Badge className="mb-2 bg-accent/10 text-accent border-accent/30 text-xs">
+                <User className="h-3 w-3 mr-1" />
+                Your Position
+              </Badge>
+            )}
+            <h3 className="text-base sm:text-base font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 leading-snug">
+              {market.question}
+            </h3>
+          </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <Badge variant="outline" className="text-xs whitespace-nowrap">
               {market.category}
