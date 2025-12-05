@@ -40,11 +40,11 @@ const MarketResolutionPanel = () => {
   }, []);
 
   const fetchMarketsToResolve = async () => {
+    // Admins can resolve any open market (including before expiry for early close)
     const { data, error } = await supabase
       .from('markets')
       .select('*')
       .in('status', ['approved', 'open', 'closed'])
-      .lt('expiry_time', new Date().toISOString())
       .order('expiry_time', { ascending: true });
 
     if (error) {
@@ -171,8 +171,11 @@ const MarketResolutionPanel = () => {
                   <span className="text-accent font-medium">${market.liquidityPool.toFixed(2)}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Expired: </span>
+                  <span className="text-muted-foreground">Expires: </span>
                   <span className="text-foreground">{format(new Date(market.expiryTime), "MMM dd, yyyy 'at' HH:mm")}</span>
+                  {new Date(market.expiryTime) > new Date() && (
+                    <Badge variant="outline" className="ml-2 text-xs">Not yet expired</Badge>
+                  )}
                 </div>
               </div>
             </div>
