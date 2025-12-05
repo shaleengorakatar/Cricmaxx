@@ -263,7 +263,7 @@ const CreatorDashboard = () => {
                   <TrendingUp className="h-5 w-5 text-accent" />
                   My Markets
                 </h2>
-                <MyMarkets markets={markets} />
+                <MyMarkets markets={markets} onMarketResolved={fetchMarkets} />
               </div>
             </div>
 
