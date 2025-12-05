@@ -4,13 +4,24 @@ import { Market } from "@/types/market";
 import { TrendingUp, Clock, BarChart3, BookOpen, Zap, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+export interface UserPosition {
+  side: string;
+  size: number;
+}
 
 interface MarketCardProps {
   market: Market;
-  hasPosition?: boolean;
+  position?: UserPosition | null;
 }
 
-const MarketCard = ({ market, hasPosition }: MarketCardProps) => {
+const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
   const expiryDate = new Date(market.expiryTime);
   const timeToExpiry = formatDistanceToNow(expiryDate, { addSuffix: true });
@@ -29,11 +40,22 @@ const MarketCard = ({ market, hasPosition }: MarketCardProps) => {
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1">
-            {hasPosition && (
-              <Badge className="mb-2 bg-accent/10 text-accent border-accent/30 text-xs">
-                <User className="h-3 w-3 mr-1" />
-                Your Position
-              </Badge>
+            {position && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className="mb-2 bg-accent/10 text-accent border-accent/30 text-xs cursor-help">
+                      <User className="h-3 w-3 mr-1" />
+                      Your Position
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-medium">
+                      {position.size} shares on <span className={position.side === 'yes' ? 'text-green-500' : 'text-red-500'}>{position.side.toUpperCase()}</span>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
             <h3 className="text-base sm:text-base font-semibold text-foreground group-hover:text-accent transition-colors line-clamp-3 leading-snug">
               {market.question}

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import MarketCard from "@/components/markets/MarketCard";
+import MarketCard, { UserPosition } from "@/components/markets/MarketCard";
 import MarketFilters from "@/components/markets/MarketFilters";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LeaderboardModal from "@/components/leaderboard/LeaderboardModal";
@@ -16,7 +16,7 @@ const Markets = () => {
   const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
-  const [userPositionMarketIds, setUserPositionMarketIds] = useState<Set<string>>(new Set());
+  const [userPositions, setUserPositions] = useState<Map<string, UserPosition>>(new Map());
   const [loading, setLoading] = useState(true);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
@@ -110,14 +110,18 @@ const Markets = () => {
     if (user) {
       const { data: positions } = await supabase
         .from("positions")
-        .select("market_id")
+        .select("market_id, side, size")
         .eq("user_id", user.id)
         .eq("status", "open");
 
       if (positions && positions.length > 0) {
-        const positionMarketIds = positions.map(p => p.market_id);
-        setUserPositionMarketIds(new Set(positionMarketIds));
+        const positionsMap = new Map<string, UserPosition>();
+        positions.forEach(p => {
+          positionsMap.set(p.market_id, { side: p.side, size: Number(p.size) });
+        });
+        setUserPositions(positionsMap);
         
+        const positionMarketIds = positions.map(p => p.market_id);
         const activeMarketIds = new Set(allMarketData.map(m => m.id));
         
         // Filter out markets we already have
@@ -135,10 +139,10 @@ const Markets = () => {
           }
         }
       } else {
-        setUserPositionMarketIds(new Set());
+        setUserPositions(new Map());
       }
     } else {
-      setUserPositionMarketIds(new Set());
+      setUserPositions(new Map());
     }
 
     const formattedMarkets: Market[] = allMarketData.map((m) => ({
@@ -237,7 +241,7 @@ const Markets = () => {
                 <MarketCard 
                   key={market.id} 
                   market={market} 
-                  hasPosition={userPositionMarketIds.has(market.id)}
+                  position={userPositions.get(market.id)}
                 />
               ))}
             </div>
