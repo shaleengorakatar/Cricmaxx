@@ -78,19 +78,19 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
     },
   });
 
-  // Fetch global leaderboard
+  // Fetch global leaderboard from secure view (no email exposure)
   const { data: globalLeaderboard, isLoading: globalLoading } = useQuery({
     queryKey: ['leaderboard', 'global'],
     queryFn: async () => {
+      // Use the secure leaderboard_profiles view that only exposes non-sensitive data
       const { data, error } = await supabase
-        .from('profiles')
+        .from('leaderboard_profiles' as any)
         .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct')
-        .eq('show_on_leaderboard', true)
         .order('rating_score', { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      return data as LeaderboardUser[];
+      return data as unknown as LeaderboardUser[];
     },
     enabled: isOpen,
   });
@@ -101,15 +101,16 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
     queryFn: async () => {
       if (!user) return null;
       
+      // Use the secure leaderboard_profiles view
       const { data, error } = await supabase
-        .from('profiles')
+        .from('leaderboard_profiles' as any)
         .select('id, rating_score')
-        .eq('show_on_leaderboard', true)
         .order('rating_score', { ascending: false });
 
       if (error) throw error;
       
-      const rank = data.findIndex(p => p.id === user.id) + 1;
+      const profiles = data as unknown as { id: string; rating_score: number }[];
+      const rank = profiles.findIndex(p => p.id === user.id) + 1;
       return rank > 0 ? rank : null;
     },
     enabled: !!user && isOpen,
