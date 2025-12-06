@@ -116,35 +116,37 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
     enabled: !!user && isOpen,
   });
 
-  // Fetch friends leaderboard
+  // Fetch friends leaderboard using secure friend_profiles view
   const { data: friendsLeaderboard, isLoading: friendsLoading } = useQuery({
     queryKey: ['leaderboard', 'friends', user?.id],
     queryFn: async () => {
       if (!user) return [];
 
-      const { data: friendships, error: friendError } = await supabase
-        .from('friendships')
-        .select('user_id, friend_id')
-        .eq('status', 'accepted')
-        .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+      // Use the secure friend_profiles view that only exposes non-sensitive data
+      const { data: friendProfiles, error: friendError } = await supabase
+        .from('friend_profiles' as any)
+        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct, share_trades_with_friends')
+        .order('rating_score', { ascending: false });
 
       if (friendError) throw friendError;
 
-      const friendIds = friendships.map(f => 
-        f.user_id === user.id ? f.friend_id : f.user_id
-      );
-      friendIds.push(user.id);
-
-      const { data, error } = await supabase
+      // Also include current user's profile (they can see their own full data)
+      const { data: ownProfile } = await supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct')
-        .in('id', friendIds)
-        .eq('show_on_leaderboard', true)
-        .order('rating_score', { ascending: false })
-        .limit(20);
+        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct, show_on_leaderboard')
+        .eq('id', user.id)
+        .single();
 
-      if (error) throw error;
-      return data as LeaderboardUser[];
+      // Combine and deduplicate - cast to any to avoid type issues with view
+      const allProfiles: any[] = [...((friendProfiles as any[]) || [])];
+      if (ownProfile && !allProfiles.find((p: any) => p.id === ownProfile.id)) {
+        allProfiles.push(ownProfile);
+      }
+
+      // Sort by rating and limit
+      return allProfiles
+        .sort((a, b) => b.rating_score - a.rating_score)
+        .slice(0, 20) as LeaderboardUser[];
     },
     enabled: !!user && viewMode === 'friends' && isOpen,
   });

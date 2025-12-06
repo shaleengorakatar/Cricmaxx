@@ -182,6 +182,13 @@ export type Database = {
             foreignKeyName: "friend_invite_tokens_used_by_fkey"
             columns: ["used_by"]
             isOneToOne: false
+            referencedRelation: "friend_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_invite_tokens_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
             referencedRelation: "leaderboard_profiles"
             referencedColumns: ["id"]
           },
@@ -190,6 +197,13 @@ export type Database = {
             columns: ["used_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_invite_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friend_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -238,6 +252,13 @@ export type Database = {
             foreignKeyName: "friendships_friend_id_fkey"
             columns: ["friend_id"]
             isOneToOne: false
+            referencedRelation: "friend_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
             referencedRelation: "leaderboard_profiles"
             referencedColumns: ["id"]
           },
@@ -246,6 +267,13 @@ export type Database = {
             columns: ["friend_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friend_profiles"
             referencedColumns: ["id"]
           },
           {
@@ -563,6 +591,13 @@ export type Database = {
             foreignKeyName: "positions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "friend_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "leaderboard_profiles"
             referencedColumns: ["id"]
           },
@@ -613,6 +648,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "price_alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friend_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "price_alerts_user_id_fkey"
             columns: ["user_id"]
@@ -845,6 +887,42 @@ export type Database = {
       }
     }
     Views: {
+      friend_profiles: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string | null
+          last_active_at: string | null
+          predictions_correct: number | null
+          predictions_total: number | null
+          rating_score: number | null
+          share_trades_with_friends: boolean | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id?: string | null
+          last_active_at?: string | null
+          predictions_correct?: number | null
+          predictions_total?: number | null
+          rating_score?: number | null
+          share_trades_with_friends?: boolean | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          display_name?: string | null
+          id?: string | null
+          last_active_at?: string | null
+          predictions_correct?: number | null
+          predictions_total?: number | null
+          rating_score?: number | null
+          share_trades_with_friends?: boolean | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       leaderboard_profiles: {
         Row: {
           avatar_url: string | null
