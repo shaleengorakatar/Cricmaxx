@@ -292,6 +292,44 @@ export type Database = {
           },
         ]
       }
+      kyc_access_log: {
+        Row: {
+          access_type: string
+          accessed_at: string
+          accessed_by: string
+          id: string
+          ip_address: string | null
+          kyc_submission_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          access_type: string
+          accessed_at?: string
+          accessed_by: string
+          id?: string
+          ip_address?: string | null
+          kyc_submission_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          access_type?: string
+          accessed_at?: string
+          accessed_by?: string
+          id?: string
+          ip_address?: string | null
+          kyc_submission_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_access_log_kyc_submission_id_fkey"
+            columns: ["kyc_submission_id"]
+            isOneToOne: false
+            referencedRelation: "kyc_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_submissions: {
         Row: {
           address: string
