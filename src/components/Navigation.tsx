@@ -45,11 +45,11 @@ const Navigation = () => {
               Markets
             </NavLink>
             <NavLink 
-              to="/upcoming-matches"
+              to="/rapidpred"
               className="text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
             >
-              Upcoming Matches
+              RapidPred
             </NavLink>
             {isAuthenticated && (
               <>
@@ -116,12 +116,12 @@ const Navigation = () => {
                     Markets
                   </NavLink>
                   <NavLink 
-                    to="/upcoming-matches"
+                    to="/rapidpred"
                     onClick={() => setMobileMenuOpen(false)}
                     className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
                     activeClassName="text-primary font-semibold"
                   >
-                    Upcoming Matches
+                    RapidPred
                   </NavLink>
                   {isAuthenticated && (
                     <>

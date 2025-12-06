@@ -18,7 +18,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import PasswordReset from "./pages/PasswordReset";
 import KYCVerification from "./pages/KYCVerification";
 import AccountSettings from "./pages/AccountSettings";
-import UpcomingMatches from "./pages/UpcomingMatches";
+import RapidPred from "./pages/RapidPred";
 import NotFound from "./pages/NotFound";
 import MobileHome from "./pages/mobile/MobileHome";
 import MobileMarkets from "./pages/mobile/MobileMarkets";
@@ -44,7 +44,7 @@ const App = () => (
           <Route path="/kyc-verification" element={<KYCVerification />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/markets" element={<Markets />} />
-          <Route path="/upcoming-matches" element={<UpcomingMatches />} />
+          <Route path="/rapidpred" element={<RapidPred />} />
           <Route path="/market/:id" element={<MarketDetail />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/invite/:token" element={<FriendInvite />} />
