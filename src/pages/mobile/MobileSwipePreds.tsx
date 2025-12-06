@@ -140,40 +140,40 @@ export default function MobileSwipePreds() {
 
     try {
       const price = side === "yes" ? currentMarket.yesPrice : currentMarket.noPrice;
-      const totalCost = stakeAmount * price;
 
-      const { error: positionError } = await supabase.from("positions").insert({
-        user_id: profile.id,
-        market_id: currentMarket.id,
-        side,
-        size: stakeAmount,
-        entry_price: price,
-        status: "open",
+      // Use order-book edge function for proper trading (positions count toward rating)
+      const response = await supabase.functions.invoke("order-book", {
+        body: {
+          action: "place",
+          marketId: currentMarket.id,
+          side,
+          orderType: "market",
+          quantity: stakeAmount,
+          price: price,
+        },
       });
 
-      if (positionError) throw positionError;
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to place order");
+      }
 
-      const { error: balanceError } = await supabase
-        .from("profiles")
-        .update({ balance: profile.balance - totalCost })
-        .eq("id", profile.id);
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
 
-      if (balanceError) throw balanceError;
-
-      await supabase.from("transactions").insert({
-        user_id: profile.id,
-        type: "trade",
-        amount: -totalCost,
-        balance_before: profile.balance,
-        balance_after: profile.balance - totalCost,
-        status: "completed",
-        metadata: { market_id: currentMarket.id, side, size: stakeAmount },
-      });
-
-      toast({
-        title: "🎉 Prediction placed!",
-        description: `${side.toUpperCase()} for $${stakeAmount}`,
-      });
+      const filledQty = response.data?.order?.filledQuantity || 0;
+      
+      if (filledQty > 0) {
+        toast({
+          title: "🎉 Prediction placed!",
+          description: `${side.toUpperCase()} - ${filledQty} shares`,
+        });
+      } else {
+        toast({
+          title: "Order placed",
+          description: `${side.toUpperCase()} order added to book`,
+        });
+      }
 
       setTimeout(() => {
         loadNextMarket();
