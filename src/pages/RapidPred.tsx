@@ -554,11 +554,11 @@ const RapidPred = () => {
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">Yes</p>
                     {isSimpleMode ? (
                       <>
-                        <p className="text-4xl font-black text-green-500">
-                          {Math.round((1 / currentMarket.yesPrice) * 10) / 10}x
+                        <p className="text-3xl font-black text-green-500">
+                          Win ${(stakeAmount + yesMaxWin).toFixed(2)}
                         </p>
-                        <p className="mt-2 text-sm text-green-500 font-semibold">
-                          Win ${yesMaxWin.toFixed(2)}
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {Math.round((1 / currentMarket.yesPrice) * 10) / 10}x odds
                         </p>
                       </>
                     ) : (
@@ -577,11 +577,11 @@ const RapidPred = () => {
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">No</p>
                     {isSimpleMode ? (
                       <>
-                        <p className="text-4xl font-black text-red-500">
-                          {Math.round((1 / currentMarket.noPrice) * 10) / 10}x
+                        <p className="text-3xl font-black text-red-500">
+                          Win ${(stakeAmount + noMaxWin).toFixed(2)}
                         </p>
-                        <p className="mt-2 text-sm text-green-500 font-semibold">
-                          Win ${noMaxWin.toFixed(2)}
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {Math.round((1 / currentMarket.noPrice) * 10) / 10}x odds
                         </p>
                       </>
                     ) : (
@@ -613,7 +613,6 @@ const RapidPred = () => {
                 {/* Stake indicator */}
                 <div className="text-center text-sm text-muted-foreground">
                   Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
-                  <span className="text-xs ml-2">(Instant fill from pool)</span>
                 </div>
 
                 {/* Action Buttons */}
