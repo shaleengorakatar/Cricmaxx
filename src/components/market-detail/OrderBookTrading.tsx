@@ -467,9 +467,18 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                 <span className="text-muted-foreground">You'll get approximately</span>
                 <span className="text-xl font-bold">{estimatedShares} shares</span>
               </div>
+              <div className="border-t border-border/50 my-2"></div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">If {side.toUpperCase()} wins:</span>
-                <span className="font-bold text-green-600">+${potentialProfit.toFixed(2)} profit</span>
+                <span className="text-muted-foreground">Total cost:</span>
+                <span className="font-medium">${parseFloat(investAmount).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total payout if {side.toUpperCase()} wins:</span>
+                <span className="font-bold text-foreground">${estimatedShares.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total profit:</span>
+                <span className="font-bold text-green-600">+${potentialProfit.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
@@ -533,13 +542,21 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total cost:</span>
-                <span className="font-bold text-lg">${advancedCost.toFixed(2)}</span>
+                <span className="font-medium">${advancedCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total payout if {side.toUpperCase()} wins:</span>
+                <span className="font-bold text-lg">${parseFloat(quantity).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">If {side.toUpperCase()} wins:</span>
+                <span className="text-muted-foreground">Total profit:</span>
                 <span className="font-medium text-green-600">
-                  +${(parseFloat(quantity) - advancedCost).toFixed(2)} profit
+                  +${(parseFloat(quantity) - advancedCost).toFixed(2)}
                 </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                <span className="font-medium text-red-600">-${advancedCost.toFixed(2)} loss</span>
               </div>
             </div>
           )}
