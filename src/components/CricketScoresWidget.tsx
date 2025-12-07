@@ -248,22 +248,22 @@ const CricketScoresWidget = () => {
                         {/* Teams */}
                         <div className="mb-3">
                           {team2 ? (
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-foreground">{team1}</span>
-                              <span className="text-muted-foreground text-sm">vs</span>
-                              <span className="font-semibold text-foreground">{team2}</span>
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                              <span className="font-semibold text-sm sm:text-base text-foreground">{team1}</span>
+                              <span className="text-muted-foreground text-xs sm:text-sm">vs</span>
+                              <span className="font-semibold text-sm sm:text-base text-foreground">{team2}</span>
                             </div>
                           ) : (
-                            <span className="font-semibold text-foreground">{team1}</span>
+                            <span className="font-semibold text-sm sm:text-base text-foreground line-clamp-2">{team1}</span>
                           )}
                           {matchDesc && (
-                            <p className="text-sm text-muted-foreground mt-1">{matchDesc}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">{matchDesc}</p>
                           )}
                         </div>
 
                         {/* Date and time */}
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4">
-                          <Calendar className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3">
+                          <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
                           <span>{formatMatchTime(match.dateTimeGMT)}</span>
                         </div>
 
@@ -272,18 +272,18 @@ const CricketScoresWidget = () => {
                           <Button
                             size="sm"
                             onClick={() => fetchLiveScore(match.id)}
-                            className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
+                            className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium text-xs sm:text-sm h-8 sm:h-9"
                           >
-                            <Activity className="h-4 w-4 mr-1.5" />
+                            <Activity className="h-3.5 w-3.5 mr-1" />
                             Live Score
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => fetchMatchInfo(match.id)}
-                            className="flex-1"
+                            className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
                           >
-                            Match Info
+                            Info
                           </Button>
                         </div>
                       </div>
