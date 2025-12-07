@@ -170,7 +170,7 @@ async function matchOrder(supabase: any, order: any) {
   // Get market info for fee calculation and pool data
   const { data: market } = await supabase
     .from('markets')
-    .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool, pool_enabled')
+    .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool, pool_enabled, yes_price, no_price')
     .eq('id', market_id)
     .single();
 
@@ -197,7 +197,7 @@ async function matchOrder(supabase: any, order: any) {
   const effectivePlatformFee = creatorIsAdmin ? platformFeePercent : 1;
   const effectiveCreatorFee = creatorIsAdmin ? 0 : Math.min(creatorFeePercent, 2);
   
-  // Find matching orders on the opposite side
+  // Find matching orders on the opposite side (prioritize pool-backed orders first)
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
   let matchQuery = supabase
@@ -226,7 +226,7 @@ async function matchOrder(supabase: any, order: any) {
   let filledQuantity = 0;
   const trades: any[] = [];
 
-  // First, try to match with existing user orders
+  // First, try to match with existing user orders (includes pool-backed limit orders)
   for (const matchOrder of matchingOrders || []) {
     if (remainingQuantity <= 0) break;
 
@@ -326,11 +326,12 @@ async function matchOrder(supabase: any, order: any) {
     totalFillValue += fillQuantity * tradePrice;
   }
 
-  // If still remaining quantity and pool is enabled, fill from the liquidity pool using CPMM
+  // If still remaining quantity and pool is enabled, fill from the liquidity pool
+  // This uses a hybrid model: fill from pool + create opposite limit order
   if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true) {
     console.log(`Filling ${remainingQuantity} from liquidity pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
     
-    const poolResult = await fillFromPool(
+    const poolResult = await fillFromPoolWithOrderBook(
       supabase, 
       market_id, 
       user_id, 
@@ -385,8 +386,8 @@ async function matchOrder(supabase: any, order: any) {
   };
 }
 
-// Fill order from liquidity pool using Constant Product Market Maker (CPMM)
-async function fillFromPool(
+// Hybrid AMM + Order Book: Fill from pool AND create opposite limit order
+async function fillFromPoolWithOrderBook(
   supabase: any,
   marketId: string,
   userId: string,
@@ -399,55 +400,15 @@ async function fillFromPool(
   creatorId: string | null,
   creatorIsAdmin: boolean
 ) {
-  let poolYes = Number(market.pool_yes_shares);
-  let poolNo = Number(market.pool_no_shares);
-  const k = poolYes * poolNo; // Constant product
+  // Get current market price for the side being bought
+  const currentPrice = side === 'yes' ? Number(market.yes_price) : Number(market.no_price);
+  const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
-  // Calculate how many shares user gets and at what price
-  // Buying YES = paying to get YES shares from pool (pool_yes decreases)
-  // Buying NO = paying to get NO shares from pool (pool_no decreases)
+  // Calculate cost at current price
+  const cost = quantity * currentPrice;
+  const avgPrice = currentPrice;
   
-  let sharesOut: number;
-  let cost: number;
-  let newPoolYes: number;
-  let newPoolNo: number;
-  
-  if (side === 'yes') {
-    // User wants YES shares
-    // They pay in terms of their balance, pool gives YES shares
-    // New pool: (poolYes - sharesOut) * (poolNo + cost) = k
-    // We solve for cost given sharesOut = quantity (or max available)
-    
-    const maxSharesOut = poolYes * 0.9; // Can't drain more than 90% of pool
-    sharesOut = Math.min(quantity, maxSharesOut);
-    
-    if (sharesOut <= 0) {
-      return { filled: 0, avgPrice: 0, trade: null };
-    }
-    
-    // (poolYes - sharesOut) * newPoolNo = k
-    // newPoolNo = k / (poolYes - sharesOut)
-    // cost = newPoolNo - poolNo
-    newPoolYes = poolYes - sharesOut;
-    newPoolNo = k / newPoolYes;
-    cost = newPoolNo - poolNo;
-  } else {
-    // User wants NO shares
-    const maxSharesOut = poolNo * 0.9;
-    sharesOut = Math.min(quantity, maxSharesOut);
-    
-    if (sharesOut <= 0) {
-      return { filled: 0, avgPrice: 0, trade: null };
-    }
-    
-    newPoolNo = poolNo - sharesOut;
-    newPoolYes = k / newPoolNo;
-    cost = newPoolYes - poolYes;
-  }
-  
-  const avgPrice = cost / sharesOut;
-  
-  console.log(`Pool fill: ${side} ${sharesOut} shares @ avg ${avgPrice.toFixed(4)}, cost: ${cost.toFixed(4)}`);
+  console.log(`Pool fill with order book: ${side} ${quantity} shares @ ${avgPrice.toFixed(4)}, cost: ${cost.toFixed(4)}`);
   
   // Calculate fees
   const totalFeePercent = platformFeePercent + creatorFeePercent;
@@ -458,12 +419,12 @@ async function fillFromPool(
   const { error: walletError } = await supabase.rpc('process_wallet_operation', {
     _user_id: userId,
     _operation: 'withdrawal',
-    _amount: Math.round(totalCost * 100) / 100, // Round to 2 decimals
+    _amount: Math.round(totalCost * 100) / 100,
     _metadata: { 
       type: 'pool_trade', 
       order_id: orderId, 
       side,
-      shares: sharesOut,
+      shares: quantity,
       price: avgPrice,
       fee: feeAmount
     }
@@ -485,7 +446,29 @@ async function fillFromPool(
     });
   }
   
-  // Update pool shares and market prices
+  // Update pool shares using CPMM logic to affect price
+  let poolYes = Number(market.pool_yes_shares);
+  let poolNo = Number(market.pool_no_shares);
+  const k = poolYes * poolNo;
+  
+  let newPoolYes: number;
+  let newPoolNo: number;
+  
+  if (side === 'yes') {
+    // Buying YES: pool gives YES shares, receives NO equivalent
+    const maxSharesOut = poolYes * 0.9;
+    const sharesOut = Math.min(quantity, maxSharesOut);
+    newPoolYes = poolYes - sharesOut;
+    newPoolNo = k / newPoolYes;
+  } else {
+    // Buying NO: pool gives NO shares, receives YES equivalent
+    const maxSharesOut = poolNo * 0.9;
+    const sharesOut = Math.min(quantity, maxSharesOut);
+    newPoolNo = poolNo - sharesOut;
+    newPoolYes = k / newPoolNo;
+  }
+  
+  // Calculate new prices based on pool ratio
   const newYesPrice = newPoolNo / (newPoolYes + newPoolNo);
   const newNoPrice = newPoolYes / (newPoolYes + newPoolNo);
   
@@ -502,13 +485,13 @@ async function fillFromPool(
       pool_no_shares: newPoolNo,
       yes_price: Math.max(0.01, Math.min(0.99, newYesPrice)),
       no_price: Math.max(0.01, Math.min(0.99, newNoPrice)),
-      volume: (currentMarket?.volume || 0) + sharesOut,
+      volume: (currentMarket?.volume || 0) + quantity,
       updated_at: new Date().toISOString()
     })
     .eq('id', marketId);
   
   // Create position for user
-  await createPosition(supabase, userId, marketId, side, sharesOut, avgPrice);
+  await createPosition(supabase, userId, marketId, side, quantity, avgPrice);
   
   // Create a synthetic trade record for the pool fill
   const { data: trade } = await supabase
@@ -516,19 +499,44 @@ async function fillFromPool(
     .insert({
       market_id: marketId,
       buy_order_id: orderId,
-      sell_order_id: orderId, // Self-reference for pool trades
+      sell_order_id: orderId,
       price: avgPrice,
-      quantity: sharesOut,
+      quantity: quantity,
       buyer_id: userId,
-      seller_id: userId, // Self-reference for pool trades
+      seller_id: userId,
       buyer_side: side
     })
     .select()
     .single();
   
+  // KEY FEATURE: Create a limit order on the OPPOSITE side at this price
+  // This allows the next person buying the opposite side to match with this order
+  // instead of going to the pool, effectively "replacing" the pool's position
+  const oppositePrice = 1 - avgPrice; // If YES was bought at 0.50, NO order at 0.50
+  
+  const { data: poolBackedOrder, error: poolOrderError } = await supabase
+    .from('orders')
+    .insert({
+      market_id: marketId,
+      user_id: userId, // The original buyer now has a sell order
+      side: oppositeSide,
+      order_type: 'limit',
+      price: oppositePrice,
+      quantity: quantity,
+      status: 'pending'
+    })
+    .select()
+    .single();
+  
+  if (poolOrderError) {
+    console.error('Failed to create pool-backed order:', poolOrderError);
+  } else {
+    console.log(`Created pool-backed limit order: ${oppositeSide} ${quantity} @ ${oppositePrice.toFixed(4)} (order: ${poolBackedOrder.id})`);
+  }
+  
   console.log(`Pool trade completed. New pool: YES=${newPoolYes.toFixed(2)}, NO=${newPoolNo.toFixed(2)}, Prices: YES=${newYesPrice.toFixed(4)}, NO=${newNoPrice.toFixed(4)}`);
   
-  return { filled: sharesOut, avgPrice, trade };
+  return { filled: quantity, avgPrice, trade };
 }
 
 async function createPosition(supabase: any, userId: string, marketId: string, side: string, size: number, entryPrice: number) {
@@ -539,7 +547,7 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
     .eq('market_id', marketId)
     .eq('side', side)
     .eq('status', 'open')
-    .single();
+    .maybeSingle();
 
   if (existing) {
     const newSize = existing.size + size;
