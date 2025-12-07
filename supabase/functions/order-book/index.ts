@@ -11,7 +11,17 @@ interface PlaceOrderRequest {
   side: 'yes' | 'no';
   orderType: 'market' | 'limit';
   quantity: number;
-  price?: number; // Required for limit orders
+  price?: number;
+}
+
+// Pool exposure tracking - orders created by pool fills that are waiting for counterparty
+interface PoolExposure {
+  orderId: string;
+  marketId: string;
+  side: string;
+  quantity: number;
+  price: number;
+  createdAt: Date;
 }
 
 serve(async (req) => {
@@ -46,7 +56,6 @@ serve(async (req) => {
     const url = new URL(req.url);
     const pathAction = url.pathname.split('/').pop();
     
-    // Support both URL path actions and body-based actions
     const body = req.method === 'POST' ? await req.json() : {};
     const action = body.action || pathAction;
 
@@ -57,6 +66,9 @@ serve(async (req) => {
     } else if (action === 'depth' && req.method === 'GET') {
       const marketId = url.searchParams.get('marketId');
       return await getMarketDepth(supabase, marketId);
+    } else if (action === 'position' && req.method === 'GET') {
+      const marketId = url.searchParams.get('marketId');
+      return await getUserPosition(supabase, user.id, marketId);
     }
 
     return new Response(JSON.stringify({ error: 'Invalid action' }), {
@@ -77,7 +89,6 @@ serve(async (req) => {
 async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequest) {
   const { marketId, side, orderType, quantity, price } = request;
 
-  // Validate inputs
   if (!marketId || !side || !orderType || !quantity || quantity <= 0) {
     return new Response(JSON.stringify({ error: 'Invalid order parameters' }), {
       status: 400,
@@ -106,7 +117,6 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     });
   }
 
-  // Calculate max cost (for limit orders, use limit price; for market, estimate)
   const maxCost = orderType === 'limit' ? quantity * price! : quantity * 0.99;
   
   if (profile.balance < maxCost) {
@@ -144,8 +154,13 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
   // Try to match the order
   const matchResult = await matchOrder(supabase, order);
 
-  // Update market best prices
+  // Update market best prices based on order book + pool
   await updateMarketPrices(supabase, marketId);
+
+  // Calculate position details for response
+  const fillPrice = matchResult.avgFillPrice || (side === 'yes' ? 0.5 : 0.5);
+  const maxWin = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * (1 - fillPrice) : 0;
+  const risk = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * fillPrice : 0;
 
   return new Response(JSON.stringify({
     success: true,
@@ -157,7 +172,16 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
       status: matchResult.finalStatus,
       filledQuantity: matchResult.filledQuantity,
       avgFillPrice: matchResult.avgFillPrice,
-      trades: matchResult.trades
+      trades: matchResult.trades,
+      // Position info for UI
+      position: {
+        side,
+        shares: matchResult.filledQuantity,
+        entryPrice: matchResult.avgFillPrice,
+        maxWin: maxWin,
+        risk: risk,
+        potentialPayout: matchResult.filledQuantity // $1 per share if correct
+      }
     }
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -167,7 +191,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 async function matchOrder(supabase: any, order: any) {
   const { id, market_id, user_id, side, order_type, price, quantity } = order;
   
-  // Get market info for fee calculation and pool data
+  // Get market info
   const { data: market } = await supabase
     .from('markets')
     .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool, pool_enabled, yes_price, no_price')
@@ -183,7 +207,6 @@ async function matchOrder(supabase: any, order: any) {
   const creatorFeePercent = market?.creator_fee_percent || 0;
   const creatorId = market?.created_by;
 
-  // Check if creator is an admin (admins don't get creator fees)
   let creatorIsAdmin = false;
   if (creatorId) {
     const { data: creatorRoles } = await supabase
@@ -193,13 +216,12 @@ async function matchOrder(supabase: any, order: any) {
     creatorIsAdmin = creatorRoles?.some((r: any) => r.role === 'admin') || false;
   }
 
-  // Calculate effective fees
   const effectivePlatformFee = creatorIsAdmin ? platformFeePercent : 1;
   const effectiveCreatorFee = creatorIsAdmin ? 0 : Math.min(creatorFeePercent, 2);
   
-  // Find matching orders on the opposite side (prioritize pool-backed orders first)
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
+  // First, look for matching orders (prioritize real counterparty orders)
   let matchQuery = supabase
     .from('orders')
     .select('*')
@@ -226,7 +248,7 @@ async function matchOrder(supabase: any, order: any) {
   let filledQuantity = 0;
   const trades: any[] = [];
 
-  // First, try to match with existing user orders (includes pool-backed limit orders)
+  // Match with existing orders first (includes pool-backed limit orders from other users)
   for (const matchOrder of matchingOrders || []) {
     if (remainingQuantity <= 0) break;
 
@@ -271,9 +293,11 @@ async function matchOrder(supabase: any, order: any) {
       })
       .eq('id', matchOrder.id);
 
+    // Create positions for both parties
     await createPosition(supabase, user_id, market_id, side, fillQuantity, tradePrice);
     await createPosition(supabase, matchOrder.user_id, market_id, oppositeSide, fillQuantity, 1 - tradePrice);
 
+    // Process payments
     const userCost = fillQuantity * tradePrice;
     const matchUserCost = fillQuantity * (1 - tradePrice);
     const tradeValue = fillQuantity;
@@ -307,6 +331,7 @@ async function matchOrder(supabase: any, order: any) {
       });
     }
 
+    // Update volume
     const { data: currentMarket } = await supabase
       .from('markets')
       .select('volume')
@@ -324,14 +349,15 @@ async function matchOrder(supabase: any, order: any) {
     remainingQuantity -= fillQuantity;
     filledQuantity += fillQuantity;
     totalFillValue += fillQuantity * tradePrice;
+    
+    console.log(`Matched with real order: ${fillQuantity} shares @ ${tradePrice.toFixed(4)}`);
   }
 
-  // If still remaining quantity and pool is enabled, fill from the liquidity pool
-  // This uses a hybrid model: fill from pool + create opposite limit order
+  // If remaining and pool enabled, use hybrid pool fill
   if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true) {
-    console.log(`Filling ${remainingQuantity} from liquidity pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
+    console.log(`Filling ${remainingQuantity} from pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
     
-    const poolResult = await fillFromPoolWithOrderBook(
+    const poolResult = await fillFromPoolHybrid(
       supabase, 
       market_id, 
       user_id, 
@@ -356,7 +382,7 @@ async function matchOrder(supabase: any, order: any) {
     }
   }
 
-  // Update original order status
+  // Update order status
   let finalStatus: string;
   if (filledQuantity >= quantity) {
     finalStatus = 'filled';
@@ -386,8 +412,15 @@ async function matchOrder(supabase: any, order: any) {
   };
 }
 
-// Hybrid AMM + Order Book: Fill from pool AND create opposite limit order
-async function fillFromPoolWithOrderBook(
+/**
+ * Hybrid Pool Fill with Order Book Integration
+ * 
+ * 1. Instantly fills user's order from pool at current price
+ * 2. Creates a limit order on opposite side for counterparty matching
+ * 3. When someone takes opposite side, they match with this order
+ * 4. Pool exposure tracked until matched
+ */
+async function fillFromPoolHybrid(
   supabase: any,
   marketId: string,
   userId: string,
@@ -400,22 +433,22 @@ async function fillFromPoolWithOrderBook(
   creatorId: string | null,
   creatorIsAdmin: boolean
 ) {
-  // Get current market price for the side being bought
+  // Use current market price for instant fill
   const currentPrice = side === 'yes' ? Number(market.yes_price) : Number(market.no_price);
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
-  // Calculate cost at current price
+  // Calculate cost
   const cost = quantity * currentPrice;
   const avgPrice = currentPrice;
   
-  console.log(`Pool fill with order book: ${side} ${quantity} shares @ ${avgPrice.toFixed(4)}, cost: ${cost.toFixed(4)}`);
+  console.log(`Hybrid pool fill: ${side} ${quantity} @ ${avgPrice.toFixed(4)}`);
   
   // Calculate fees
   const totalFeePercent = platformFeePercent + creatorFeePercent;
   const feeAmount = (cost * totalFeePercent) / 100;
   const totalCost = cost + feeAmount;
   
-  // Deduct from user balance
+  // Deduct from user
   const { error: walletError } = await supabase.rpc('process_wallet_operation', {
     _user_id: userId,
     _operation: 'withdrawal',
@@ -426,16 +459,17 @@ async function fillFromPoolWithOrderBook(
       side,
       shares: quantity,
       price: avgPrice,
-      fee: feeAmount
+      fee: feeAmount,
+      pool_backed: true
     }
   });
   
   if (walletError) {
-    console.error('Wallet operation error:', walletError);
+    console.error('Wallet error:', walletError);
     return { filled: 0, avgPrice: 0, trade: null };
   }
   
-  // Credit creator fee
+  // Creator fee
   if (creatorFeePercent > 0 && creatorId && !creatorIsAdmin) {
     const creatorFee = (cost * creatorFeePercent) / 100;
     await supabase.rpc('process_wallet_operation', {
@@ -446,7 +480,7 @@ async function fillFromPoolWithOrderBook(
     });
   }
   
-  // Update pool shares using CPMM logic to affect price
+  // Update pool with CPMM
   let poolYes = Number(market.pool_yes_shares);
   let poolNo = Number(market.pool_no_shares);
   const k = poolYes * poolNo;
@@ -455,20 +489,18 @@ async function fillFromPoolWithOrderBook(
   let newPoolNo: number;
   
   if (side === 'yes') {
-    // Buying YES: pool gives YES shares, receives NO equivalent
     const maxSharesOut = poolYes * 0.9;
     const sharesOut = Math.min(quantity, maxSharesOut);
     newPoolYes = poolYes - sharesOut;
     newPoolNo = k / newPoolYes;
   } else {
-    // Buying NO: pool gives NO shares, receives YES equivalent
     const maxSharesOut = poolNo * 0.9;
     const sharesOut = Math.min(quantity, maxSharesOut);
     newPoolNo = poolNo - sharesOut;
     newPoolYes = k / newPoolNo;
   }
   
-  // Calculate new prices based on pool ratio
+  // New prices from pool ratio
   const newYesPrice = newPoolNo / (newPoolYes + newPoolNo);
   const newNoPrice = newPoolYes / (newPoolYes + newPoolNo);
   
@@ -493,7 +525,7 @@ async function fillFromPoolWithOrderBook(
   // Create position for user
   await createPosition(supabase, userId, marketId, side, quantity, avgPrice);
   
-  // Create a synthetic trade record for the pool fill
+  // Create trade record
   const { data: trade } = await supabase
     .from('trades')
     .insert({
@@ -509,16 +541,15 @@ async function fillFromPoolWithOrderBook(
     .select()
     .single();
   
-  // KEY FEATURE: Create a limit order on the OPPOSITE side at this price
-  // This allows the next person buying the opposite side to match with this order
-  // instead of going to the pool, effectively "replacing" the pool's position
-  const oppositePrice = 1 - avgPrice; // If YES was bought at 0.50, NO order at 0.50
+  // KEY: Create opposite limit order for counterparty matching
+  // This order sits in book waiting for someone to take opposite side
+  const oppositePrice = Math.round((1 - avgPrice) * 100) / 100;
   
   const { data: poolBackedOrder, error: poolOrderError } = await supabase
     .from('orders')
     .insert({
       market_id: marketId,
-      user_id: userId, // The original buyer now has a sell order
+      user_id: userId,
       side: oppositeSide,
       order_type: 'limit',
       price: oppositePrice,
@@ -529,12 +560,12 @@ async function fillFromPoolWithOrderBook(
     .single();
   
   if (poolOrderError) {
-    console.error('Failed to create pool-backed order:', poolOrderError);
+    console.error('Pool-backed order error:', poolOrderError);
   } else {
-    console.log(`Created pool-backed limit order: ${oppositeSide} ${quantity} @ ${oppositePrice.toFixed(4)} (order: ${poolBackedOrder.id})`);
+    console.log(`Pool-backed order created: ${oppositeSide} ${quantity} @ ${oppositePrice} (ID: ${poolBackedOrder.id})`);
   }
   
-  console.log(`Pool trade completed. New pool: YES=${newPoolYes.toFixed(2)}, NO=${newPoolNo.toFixed(2)}, Prices: YES=${newYesPrice.toFixed(4)}, NO=${newNoPrice.toFixed(4)}`);
+  console.log(`Pool fill done. New prices: YES=${newYesPrice.toFixed(4)}, NO=${newNoPrice.toFixed(4)}`);
   
   return { filled: quantity, avgPrice, trade };
 }
@@ -576,7 +607,6 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
 }
 
 async function updateMarketPrices(supabase: any, marketId: string) {
-  // Get current pool state for pricing
   const { data: market } = await supabase
     .from('markets')
     .select('pool_yes_shares, pool_no_shares')
@@ -588,7 +618,6 @@ async function updateMarketPrices(supabase: any, marketId: string) {
     const poolNo = Number(market.pool_no_shares);
     const total = poolYes + poolNo;
     
-    // Price based on pool ratio
     const yesPrice = poolNo / total;
     const noPrice = poolYes / total;
     
@@ -639,6 +668,36 @@ async function cancelOrder(supabase: any, userId: string, request: { orderId: st
   });
 }
 
+async function getUserPosition(supabase: any, userId: string, marketId: string | null) {
+  if (!marketId) {
+    return new Response(JSON.stringify({ error: 'Market ID required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const { data: positions } = await supabase
+    .from('positions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('market_id', marketId)
+    .eq('status', 'open');
+
+  const { data: pendingOrders } = await supabase
+    .from('orders')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('market_id', marketId)
+    .in('status', ['pending', 'partial']);
+
+  return new Response(JSON.stringify({
+    positions: positions || [],
+    pendingOrders: pendingOrders || []
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 async function getMarketDepth(supabase: any, marketId: string | null) {
   if (!marketId) {
     return new Response(JSON.stringify({ error: 'Market ID required' }), {
@@ -647,7 +706,6 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
     });
   }
 
-  // Get limit orders for depth display
   const { data: yesOrders } = await supabase
     .from('orders')
     .select('price, quantity, filled_quantity')
@@ -664,7 +722,6 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
     .in('status', ['pending', 'partial'])
     .order('price', { ascending: false });
 
-  // Aggregate by price level
   const aggregateOrders = (orders: any[]) => {
     const levels: Record<number, number> = {};
     for (const order of orders || []) {
@@ -678,22 +735,31 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
       .sort((a, b) => b.price - a.price);
   };
 
-  // Get pool info for display
   const { data: market } = await supabase
     .from('markets')
     .select('pool_yes_shares, pool_no_shares, yes_price, no_price')
     .eq('id', marketId)
     .single();
 
+  // Calculate total pool exposure (unmatched pool-backed orders)
+  const yesDepth = aggregateOrders(yesOrders);
+  const noDepth = aggregateOrders(noOrders);
+  const totalYesLiquidity = yesDepth.reduce((sum, l) => sum + l.quantity, 0);
+  const totalNoLiquidity = noDepth.reduce((sum, l) => sum + l.quantity, 0);
+
   return new Response(JSON.stringify({
-    yes: aggregateOrders(yesOrders),
-    no: aggregateOrders(noOrders),
+    yes: yesDepth,
+    no: noDepth,
     pool: market ? {
       yesShares: market.pool_yes_shares,
       noShares: market.pool_no_shares,
       yesPrice: market.yes_price,
       noPrice: market.no_price
-    } : null
+    } : null,
+    liquidity: {
+      yes: totalYesLiquidity,
+      no: totalNoLiquidity
+    }
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
