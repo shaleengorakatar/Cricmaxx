@@ -17,7 +17,7 @@ import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-// Mock price history data
+// Generate price history from current price
 const generatePriceHistory = (yesPrice: number) => {
   const data = [];
   const now = new Date();
@@ -34,30 +34,6 @@ const generatePriceHistory = (yesPrice: number) => {
   return data;
 };
 
-// Mock order book data
-const generateOrderBook = () => {
-  const orders = [];
-  // Yes orders
-  for (let i = 0; i < 5; i++) {
-    orders.push({
-      id: `yes-${i}`,
-      side: "yes" as const,
-      price: 0.65 - (i * 0.01),
-      quantity: Math.floor(Math.random() * 500) + 50,
-    });
-  }
-  // No orders
-  for (let i = 0; i < 5; i++) {
-    orders.push({
-      id: `no-${i}`,
-      side: "no" as const,
-      price: 0.35 + (i * 0.01),
-      quantity: Math.floor(Math.random() * 500) + 50,
-    });
-  }
-  return orders;
-};
-
 const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,7 +41,6 @@ const MarketDetail = () => {
   const [market, setMarket] = useState<Market | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
-  const [orderBook, setOrderBook] = useState(generateOrderBook());
   
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
@@ -237,7 +212,7 @@ const MarketDetail = () => {
                     )}
                   </button>
                   <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                    <OrderBook orders={orderBook} />
+                    <OrderBook marketId={market.id} />
                   </div>
                 </Card>
               </div>
