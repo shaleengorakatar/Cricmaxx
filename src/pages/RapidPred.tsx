@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft, History, DollarSign, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTradingMode } from "@/hooks/useTradingMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Market } from "@/types/market";
@@ -29,6 +30,7 @@ interface SessionTrade {
 
 const RapidPred = () => {
   const { profile, isAuthenticated } = useAuth();
+  const { isSimpleMode } = useTradingMode();
   const navigate = useNavigate();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -546,27 +548,53 @@ const RapidPred = () => {
                   {currentMarket.question}
                 </h2>
 
-                {/* Odds Display with Position Info */}
+                {/* Odds Display - Simplified in Simple mode */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">Yes</p>
-                    <p className="text-4xl font-black text-green-500">
-                      {(currentMarket.yesPrice * 100).toFixed(0)}¢
-                    </p>
-                    <div className="mt-2 space-y-1 text-xs">
-                      <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.yesPrice).toFixed(2)}</p>
-                      <p className="text-green-500 font-semibold">Win: ${yesMaxWin.toFixed(2)}</p>
-                    </div>
+                    {isSimpleMode ? (
+                      <>
+                        <p className="text-4xl font-black text-green-500">
+                          {Math.round((1 / currentMarket.yesPrice) * 10) / 10}x
+                        </p>
+                        <p className="mt-2 text-sm text-green-500 font-semibold">
+                          Win ${yesMaxWin.toFixed(2)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-4xl font-black text-green-500">
+                          {(currentMarket.yesPrice * 100).toFixed(0)}¢
+                        </p>
+                        <div className="mt-2 space-y-1 text-xs">
+                          <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.yesPrice).toFixed(2)}</p>
+                          <p className="text-green-500 font-semibold">Win: ${yesMaxWin.toFixed(2)}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">No</p>
-                    <p className="text-4xl font-black text-red-500">
-                      {(currentMarket.noPrice * 100).toFixed(0)}¢
-                    </p>
-                    <div className="mt-2 space-y-1 text-xs">
-                      <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.noPrice).toFixed(2)}</p>
-                      <p className="text-green-500 font-semibold">Win: ${noMaxWin.toFixed(2)}</p>
-                    </div>
+                    {isSimpleMode ? (
+                      <>
+                        <p className="text-4xl font-black text-red-500">
+                          {Math.round((1 / currentMarket.noPrice) * 10) / 10}x
+                        </p>
+                        <p className="mt-2 text-sm text-green-500 font-semibold">
+                          Win ${noMaxWin.toFixed(2)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-4xl font-black text-red-500">
+                          {(currentMarket.noPrice * 100).toFixed(0)}¢
+                        </p>
+                        <div className="mt-2 space-y-1 text-xs">
+                          <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.noPrice).toFixed(2)}</p>
+                          <p className="text-green-500 font-semibold">Win: ${noMaxWin.toFixed(2)}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
