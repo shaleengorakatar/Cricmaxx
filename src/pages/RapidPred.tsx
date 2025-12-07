@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft, History } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft, History, DollarSign, Target } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -21,6 +21,9 @@ interface SessionTrade {
   side: "yes" | "no";
   amount: number;
   shares: number;
+  entryPrice: number;
+  maxWin: number;
+  risk: number;
   timestamp: Date;
 }
 
@@ -34,6 +37,7 @@ const RapidPred = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastTrade, setLastTrade] = useState<SessionTrade | null>(null);
   const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>(() => {
     const saved = localStorage.getItem("rapidpred_session_trades");
     if (saved) {
@@ -54,6 +58,14 @@ const RapidPred = () => {
     const savedStake = localStorage.getItem("rapidpred_stake");
     if (savedStake) setStakeAmount(Number(savedStake));
   }, []);
+
+  // Auto-hide last trade confirmation after 3 seconds
+  useEffect(() => {
+    if (lastTrade) {
+      const timer = setTimeout(() => setLastTrade(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [lastTrade]);
 
   const fetchMarkets = async () => {
     setLoading(true);
@@ -134,7 +146,6 @@ const RapidPred = () => {
 
       const price = side === "yes" ? currentMarket.yesPrice : currentMarket.noPrice;
 
-      // Use order-book edge function for proper trading
       const response = await supabase.functions.invoke("order-book", {
         body: {
           action: "place",
@@ -154,17 +165,29 @@ const RapidPred = () => {
         throw new Error(response.data.error);
       }
 
-      const filledQty = response.data?.order?.filledQuantity || 0;
+      const orderData = response.data?.order;
+      const filledQty = orderData?.filledQuantity || 0;
+      const fillPrice = orderData?.avgFillPrice || price;
+      const position = orderData?.position;
       
-      // Add to session history
+      // Calculate position details
+      const maxWin = position?.maxWin || (filledQty * (1 - fillPrice));
+      const risk = position?.risk || (filledQty * fillPrice);
+      
+      // Add to session history with position details
       const newTrade: SessionTrade = {
-        id: response.data?.order?.id || Date.now().toString(),
+        id: orderData?.id || Date.now().toString(),
         marketQuestion: currentMarket.question,
         side,
         amount: stakeAmount,
         shares: filledQty || stakeAmount,
+        entryPrice: fillPrice,
+        maxWin: maxWin,
+        risk: risk,
         timestamp: new Date(),
       };
+      
+      setLastTrade(newTrade);
       setSessionTrades(prev => {
         const updated = [newTrade, ...prev];
         localStorage.setItem("rapidpred_session_trades", JSON.stringify(updated));
@@ -174,10 +197,9 @@ const RapidPred = () => {
       if (filledQty > 0) {
         toast({
           title: "🎉 Prediction placed!",
-          description: `${side.toUpperCase()} - ${filledQty} shares filled`,
+          description: `${side.toUpperCase()} @ $${fillPrice.toFixed(2)} — Max win: $${maxWin.toFixed(2)}`,
         });
       } else {
-        // Order pending in book
         toast({
           title: "Order placed",
           description: `${side.toUpperCase()} order added to book`,
@@ -288,6 +310,10 @@ const RapidPred = () => {
 
   const tag = getMarketTag(currentMarket);
 
+  // Calculate potential outcomes for current market
+  const yesMaxWin = stakeAmount * (1 - currentMarket.yesPrice);
+  const noMaxWin = stakeAmount * (1 - currentMarket.noPrice);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
@@ -302,7 +328,7 @@ const RapidPred = () => {
                 RapidPred
               </h1>
               <p className="text-muted-foreground mt-1">
-                Quick predictions, fast wins
+                Quick predictions, instant fills
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -343,26 +369,39 @@ const RapidPred = () => {
                         {sessionTrades.map((trade) => (
                           <div
                             key={trade.id}
-                            className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+                            className="p-3 rounded-lg bg-muted/50 border border-border"
                           >
-                            <div className={`p-2 rounded-full ${trade.side === 'yes' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                              {trade.side === 'yes' ? (
-                                <CheckCircle className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <XCircle className="h-4 w-4 text-red-500" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium line-clamp-2">{trade.marketQuestion}</p>
-                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                <Badge variant={trade.side === 'yes' ? 'default' : 'secondary'} className="text-xs">
-                                  {trade.side.toUpperCase()}
-                                </Badge>
-                                <span>${trade.amount} • {trade.shares} shares</span>
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded-full ${trade.side === 'yes' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                                {trade.side === 'yes' ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                )}
                               </div>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {trade.timestamp.toLocaleTimeString()}
-                              </p>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium line-clamp-2">{trade.marketQuestion}</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant={trade.side === 'yes' ? 'default' : 'secondary'} className="text-xs">
+                                    {trade.side.toUpperCase()} @ ${trade.entryPrice?.toFixed(2) || '0.50'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Position Details */}
+                            <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-3 gap-2 text-xs">
+                              <div className="text-center">
+                                <span className="text-muted-foreground">Risk</span>
+                                <p className="font-medium text-red-500">${trade.risk?.toFixed(2) || trade.amount.toFixed(2)}</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-muted-foreground">Shares</span>
+                                <p className="font-medium">{trade.shares}</p>
+                              </div>
+                              <div className="text-center">
+                                <span className="text-muted-foreground">Max Win</span>
+                                <p className="font-medium text-green-500">${trade.maxWin?.toFixed(2) || (trade.shares - trade.amount).toFixed(2)}</p>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -370,14 +409,22 @@ const RapidPred = () => {
                     </ScrollArea>
                   )}
                   {sessionTrades.length > 0 && (
-                    <div className="pt-3 border-t border-border">
+                    <div className="pt-3 border-t border-border space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Total predictions:</span>
                         <span className="font-medium">{sessionTrades.length}</span>
                       </div>
-                      <div className="flex justify-between text-sm mt-1">
-                        <span className="text-muted-foreground">Total staked:</span>
-                        <span className="font-medium">${sessionTrades.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</span>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total at risk:</span>
+                        <span className="font-medium text-red-500">
+                          ${sessionTrades.reduce((sum, t) => sum + (t.risk || t.amount), 0).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Potential max win:</span>
+                        <span className="font-medium text-green-500">
+                          ${sessionTrades.reduce((sum, t) => sum + (t.maxWin || 0), 0).toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   )}
@@ -426,6 +473,43 @@ const RapidPred = () => {
             </div>
           </div>
 
+          {/* Last Trade Confirmation Popup */}
+          {lastTrade && (
+            <div className="max-w-2xl mx-auto mb-4 animate-in slide-in-from-top-2 duration-300">
+              <Card className={`border-2 ${lastTrade.side === 'yes' ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10'}`}>
+                <CardContent className="py-3 px-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {lastTrade.side === 'yes' ? (
+                        <CheckCircle className="h-6 w-6 text-green-500" />
+                      ) : (
+                        <XCircle className="h-6 w-6 text-red-500" />
+                      )}
+                      <div>
+                        <p className="font-semibold">
+                          {lastTrade.side.toUpperCase()} @ ${lastTrade.entryPrice.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-muted-foreground line-clamp-1">
+                          {lastTrade.marketQuestion}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-sm">
+                        <DollarSign className="h-4 w-4 text-red-500" />
+                        <span className="text-red-500 font-medium">Risk: ${lastTrade.risk.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Target className="h-4 w-4 text-green-500" />
+                        <span className="text-green-500 font-medium">Max win: ${lastTrade.maxWin.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Main Content */}
           <div className="max-w-2xl mx-auto">
             {/* Market Card */}
@@ -462,25 +546,27 @@ const RapidPred = () => {
                   {currentMarket.question}
                 </h2>
 
-                {/* Odds Display */}
+                {/* Odds Display with Position Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">Yes</p>
                     <p className="text-4xl font-black text-green-500">
                       {(currentMarket.yesPrice * 100).toFixed(0)}¢
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Win ${(stakeAmount / currentMarket.yesPrice).toFixed(2)}
-                    </p>
+                    <div className="mt-2 space-y-1 text-xs">
+                      <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.yesPrice).toFixed(2)}</p>
+                      <p className="text-green-500 font-semibold">Win: ${yesMaxWin.toFixed(2)}</p>
+                    </div>
                   </div>
                   <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
                     <p className="text-sm text-muted-foreground uppercase tracking-wide">No</p>
                     <p className="text-4xl font-black text-red-500">
                       {(currentMarket.noPrice * 100).toFixed(0)}¢
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Win ${(stakeAmount / currentMarket.noPrice).toFixed(2)}
-                    </p>
+                    <div className="mt-2 space-y-1 text-xs">
+                      <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.noPrice).toFixed(2)}</p>
+                      <p className="text-green-500 font-semibold">Win: ${noMaxWin.toFixed(2)}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -499,6 +585,7 @@ const RapidPred = () => {
                 {/* Stake indicator */}
                 <div className="text-center text-sm text-muted-foreground">
                   Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
+                  <span className="text-xs ml-2">(Instant fill from pool)</span>
                 </div>
 
                 {/* Action Buttons */}
