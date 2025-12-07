@@ -6,16 +6,19 @@ import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
+import SimpleTradingCard from "@/components/market-detail/SimpleTradingCard";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTradingMode } from "@/hooks/useTradingMode";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 // Generate price history from current price
 const generatePriceHistory = (yesPrice: number) => {
@@ -37,10 +40,13 @@ const generatePriceHistory = (yesPrice: number) => {
 const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { profile } = useAuth();
+  const { profile, isAuthenticated } = useAuth();
+  const { isSimpleMode, isProMode } = useTradingMode();
   const [market, setMarket] = useState<Market | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
+  const [isPlacingTrade, setIsPlacingTrade] = useState(false);
+  const [stakeAmount] = useState(10);
   
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
@@ -197,57 +203,70 @@ const MarketDetail = () => {
                 </Card>
               </div>
               
-              {/* Order Book - Collapsible on mobile */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                    {orderBookExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                    <OrderBook marketId={market.id} />
-                  </div>
-                </Card>
-              </div>
+              {/* Order Book - Pro mode only, collapsible on mobile */}
+              {isProMode && (
+                <div className="md:block">
+                  <Card className="overflow-hidden">
+                    <button
+                      onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                      className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                      {orderBookExpanded ? (
+                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                      )}
+                    </button>
+                    <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                      <OrderBook marketId={market.id} />
+                    </div>
+                  </Card>
+                </div>
+              )}
             </div>
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              <Tabs defaultValue="trade" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="trade">Trade</TabsTrigger>
-                  <TabsTrigger value="calculator">Calculator</TabsTrigger>
-                  <TabsTrigger value="alerts">Alerts</TabsTrigger>
-                </TabsList>
-                <TabsContent value="trade" className="mt-4">
-                  <OrderBookTrading
-                    marketId={market.id}
-                    yesPrice={market.yesPrice}
-                    noPrice={market.noPrice}
-                    userBalance={profile?.balance || 0}
-                  />
-                </TabsContent>
-                <TabsContent value="calculator" className="mt-4">
-                  <MarketCalculator
-                    yesPrice={market.yesPrice}
-                    noPrice={market.noPrice}
-                  />
-                </TabsContent>
-                <TabsContent value="alerts" className="mt-4">
-                  <PriceAlerts
-                    marketId={market.id}
-                    currentYesPrice={market.yesPrice}
-                    currentNoPrice={market.noPrice}
-                  />
-                </TabsContent>
-              </Tabs>
+              {/* Simple Mode: Simplified Trading */}
+              {isSimpleMode ? (
+                <SimpleTradingCard
+                  marketId={market.id}
+                  yesPrice={market.yesPrice}
+                  noPrice={market.noPrice}
+                  userBalance={profile?.balance || 0}
+                />
+              ) : (
+                /* Pro Mode: Full Trading Interface */
+                <Tabs defaultValue="trade" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="trade">Trade</TabsTrigger>
+                    <TabsTrigger value="calculator">Calculator</TabsTrigger>
+                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="trade" className="mt-4">
+                    <OrderBookTrading
+                      marketId={market.id}
+                      yesPrice={market.yesPrice}
+                      noPrice={market.noPrice}
+                      userBalance={profile?.balance || 0}
+                    />
+                  </TabsContent>
+                  <TabsContent value="calculator" className="mt-4">
+                    <MarketCalculator
+                      yesPrice={market.yesPrice}
+                      noPrice={market.noPrice}
+                    />
+                  </TabsContent>
+                  <TabsContent value="alerts" className="mt-4">
+                    <PriceAlerts
+                      marketId={market.id}
+                      currentYesPrice={market.yesPrice}
+                      currentNoPrice={market.noPrice}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
 
               {/* Market Stats - Collapsible on mobile */}
               <Card className="overflow-hidden">
