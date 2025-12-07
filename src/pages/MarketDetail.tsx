@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useTradingMode } from "@/hooks/useTradingMode";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -41,7 +41,7 @@ const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, isAuthenticated } = useAuth();
-  const { isProMode } = useTradingMode();
+  
   const [market, setMarket] = useState<Market | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
@@ -203,27 +203,25 @@ const MarketDetail = () => {
                 </Card>
               </div>
               
-              {/* Order Book - Pro mode only, collapsible on mobile */}
-              {isProMode && (
-                <div className="md:block">
-                  <Card className="overflow-hidden">
-                    <button
-                      onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                      className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                    >
-                      <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                      {orderBookExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </button>
-                    <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                      <OrderBook marketId={market.id} />
-                    </div>
-                  </Card>
-                </div>
-              )}
+              {/* Order Book - collapsible on mobile */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                    {orderBookExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                    <OrderBook marketId={market.id} />
+                  </div>
+                </Card>
+              </div>
             </div>
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
