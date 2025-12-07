@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +21,48 @@ const KYCVerification = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
-    dateOfBirth: "",
     address: "",
     idDocument: null as File | null
   });
+  const [dobDay, setDobDay] = useState("");
+  const [dobMonth, setDobMonth] = useState("");
+  const [dobYear, setDobYear] = useState("");
+  
+  // Generate year options (18 years ago to 100 years ago)
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const arr = [];
+    for (let y = currentYear - 18; y >= currentYear - 100; y--) {
+      arr.push(y);
+    }
+    return arr;
+  }, [currentYear]);
+  
+  const months = [
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+  
+  // Generate days based on selected month/year
+  const days = useMemo(() => {
+    const daysInMonth = dobMonth && dobYear 
+      ? new Date(parseInt(dobYear), parseInt(dobMonth), 0).getDate()
+      : 31;
+    return Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
+  }, [dobMonth, dobYear]);
+  
+  // Combine to date string
+  const dateOfBirth = dobYear && dobMonth && dobDay ? `${dobYear}-${dobMonth}-${dobDay}` : "";
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -38,7 +77,17 @@ const KYCVerification = () => {
     e.preventDefault();
     
     try {
-      const validated = kycSchema.parse(formData);
+      // Validate date of birth is complete
+      if (!dateOfBirth) {
+        toast({
+          title: "Validation error",
+          description: "Please select your complete date of birth",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const validated = kycSchema.parse({ ...formData, dateOfBirth });
       setLoading(true);
 
       if (!user) {
@@ -56,7 +105,7 @@ const KYCVerification = () => {
         .insert({
           user_id: user.id,
           full_name: validated.fullName,
-          date_of_birth: validated.dateOfBirth,
+          date_of_birth: dateOfBirth,
           address: validated.address,
           status: 'pending'
         });
@@ -130,16 +179,39 @@ const KYCVerification = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dateOfBirth" className="text-sm md:text-base">Date of Birth</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={formData.dateOfBirth}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                max={new Date(Date.now() - 567648000000).toISOString().split('T')[0]} // 18 years ago
-                className="h-12 text-base"
-                required
-              />
+              <Label className="text-sm md:text-base">Date of Birth</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={dobMonth} onValueChange={setDobMonth}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {months.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={dobDay} onValueChange={setDobDay}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Day" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {days.map((d) => (
+                      <SelectItem key={d} value={d}>{parseInt(d)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={dobYear} onValueChange={setDobYear}>
+                  <SelectTrigger className="h-12">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {years.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <p className="text-xs md:text-sm text-muted-foreground">
                 You must be 18 years or older to use Shariz
               </p>
