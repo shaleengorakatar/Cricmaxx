@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Droplets, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Droplets, Loader2, CheckCircle, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +24,7 @@ interface MarketForSeeding {
   yes_price: number;
   no_price: number;
   volume: number;
+  pool_enabled: boolean;
 }
 
 const PRICE_LEVELS = [
@@ -49,12 +51,38 @@ const LiquiditySeedingPanel = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('markets')
-        .select('id, question, status, yes_price, no_price, volume')
+        .select('id, question, status, yes_price, no_price, volume, pool_enabled')
         .in('status', ['approved', 'open'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as MarketForSeeding[];
+    },
+  });
+
+  const togglePoolMutation = useMutation({
+    mutationFn: async ({ marketId, enabled }: { marketId: string; enabled: boolean }) => {
+      const { error } = await supabase
+        .from('markets')
+        .update({ pool_enabled: enabled })
+        .eq('id', marketId);
+      
+      if (error) throw error;
+      return { marketId, enabled };
+    },
+    onSuccess: ({ enabled }) => {
+      queryClient.invalidateQueries({ queryKey: ['markets-for-seeding'] });
+      toast({
+        title: enabled ? "Pool Enabled" : "Pool Disabled",
+        description: `Liquidity pool has been ${enabled ? 'enabled' : 'disabled'} for this market`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update pool status",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -209,6 +237,19 @@ const LiquiditySeedingPanel = () => {
 
           {selectedMarketData && (
             <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Liquidity Pool:</span>
+                <div className="flex items-center gap-2">
+                  <span className={`font-medium ${selectedMarketData.pool_enabled ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {selectedMarketData.pool_enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                  <Switch
+                    checked={selectedMarketData.pool_enabled}
+                    onCheckedChange={(checked) => togglePoolMutation.mutate({ marketId: selectedMarket, enabled: checked })}
+                    disabled={togglePoolMutation.isPending}
+                  />
+                </div>
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Current YES Price:</span>
                 <span className="font-medium text-green-600">${Number(selectedMarketData.yes_price).toFixed(2)}</span>
