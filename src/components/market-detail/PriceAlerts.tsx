@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, Trash2, Plus } from "lucide-react";
+import { Bell, Trash2, Plus, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ interface PriceAlert {
   condition: string;
   triggered: boolean;
   created_at: string;
+  triggered_at: string | null;
 }
 
 interface PriceAlertsProps {
@@ -28,6 +29,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
   
   // Form state
   const [side, setSide] = useState<"yes" | "no">("yes");
@@ -36,11 +38,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
   
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchAlerts();
-  }, [marketId]);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -59,7 +57,48 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
     } finally {
       setLoading(false);
     }
-  };
+  }, [marketId]);
+
+  // Check alerts against current prices
+  const checkAlerts = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('price-alerts-checker');
+      
+      if (error) {
+        console.error('Error checking alerts:', error);
+        return;
+      }
+      
+      setLastChecked(new Date());
+      
+      // If any alerts were triggered, show toast and refresh
+      if (data?.triggered > 0) {
+        toast({
+          title: "🔔 Price Alert Triggered!",
+          description: `${data.triggered} alert(s) have been triggered`,
+        });
+        fetchAlerts();
+      }
+    } catch (error) {
+      console.error('Error invoking price-alerts-checker:', error);
+    }
+  }, [fetchAlerts, toast]);
+
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  // Poll for alert checks every 30 seconds
+  useEffect(() => {
+    // Initial check
+    checkAlerts();
+    
+    const interval = setInterval(() => {
+      checkAlerts();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [checkAlerts]);
 
   const createAlert = async () => {
     try {
@@ -146,6 +185,12 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Price Alerts</h3>
+          {lastChecked && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <CheckCircle className="h-3 w-3 text-green-500" />
+              Auto-checking
+            </span>
+          )}
         </div>
         <Button
           size="sm"
