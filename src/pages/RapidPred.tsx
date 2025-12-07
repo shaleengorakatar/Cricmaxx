@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft, History } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +13,16 @@ import { Market } from "@/types/market";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface SessionTrade {
+  id: string;
+  marketQuestion: string;
+  side: "yes" | "no";
+  amount: number;
+  shares: number;
+  timestamp: Date;
+}
 
 const RapidPred = () => {
   const { profile, isAuthenticated } = useAuth();
@@ -22,7 +32,9 @@ const RapidPred = () => {
   const [stakeAmount, setStakeAmount] = useState(5);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>([]);
 
   const currentMarket = markets[currentIndex];
 
@@ -132,6 +144,17 @@ const RapidPred = () => {
       }
 
       const filledQty = response.data?.order?.filledQuantity || 0;
+      
+      // Add to session history
+      const newTrade: SessionTrade = {
+        id: response.data?.order?.id || Date.now().toString(),
+        marketQuestion: currentMarket.question,
+        side,
+        amount: stakeAmount,
+        shares: filledQty || stakeAmount,
+        timestamp: new Date(),
+      };
+      setSessionTrades(prev => [newTrade, ...prev]);
       
       if (filledQty > 0) {
         toast({
@@ -267,12 +290,86 @@ const RapidPred = () => {
                 Quick predictions, fast wins
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {isAuthenticated && (
                 <Badge variant="outline" className="text-sm py-1 px-3">
                   Balance: ${profile?.balance.toFixed(2) || "0.00"}
                 </Badge>
               )}
+              
+              {/* History Button */}
+              <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="relative">
+                    <History className="h-5 w-5" />
+                    {sessionTrades.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                        {sessionTrades.length}
+                      </span>
+                    )}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <History className="h-5 w-5" />
+                      Session History
+                    </DialogTitle>
+                  </DialogHeader>
+                  {sessionTrades.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p>No predictions yet this session</p>
+                      <p className="text-sm">Start swiping to make predictions!</p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="max-h-80">
+                      <div className="space-y-3 pr-4">
+                        {sessionTrades.map((trade) => (
+                          <div
+                            key={trade.id}
+                            className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border"
+                          >
+                            <div className={`p-2 rounded-full ${trade.side === 'yes' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                              {trade.side === 'yes' ? (
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <XCircle className="h-4 w-4 text-red-500" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium line-clamp-2">{trade.marketQuestion}</p>
+                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                <Badge variant={trade.side === 'yes' ? 'default' : 'secondary'} className="text-xs">
+                                  {trade.side.toUpperCase()}
+                                </Badge>
+                                <span>${trade.amount} • {trade.shares} shares</span>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {trade.timestamp.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                  {sessionTrades.length > 0 && (
+                    <div className="pt-3 border-t border-border">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total predictions:</span>
+                        <span className="font-medium">{sessionTrades.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm mt-1">
+                        <span className="text-muted-foreground">Total staked:</span>
+                        <span className="font-medium">${sessionTrades.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </DialogContent>
+              </Dialog>
+
+              {/* Settings Button */}
               <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="icon">
