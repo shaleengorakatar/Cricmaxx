@@ -34,7 +34,18 @@ const RapidPred = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>([]);
+  const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>(() => {
+    const saved = localStorage.getItem("rapidpred_session_trades");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((t: any) => ({ ...t, timestamp: new Date(t.timestamp) }));
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
 
   const currentMarket = markets[currentIndex];
 
@@ -154,7 +165,11 @@ const RapidPred = () => {
         shares: filledQty || stakeAmount,
         timestamp: new Date(),
       };
-      setSessionTrades(prev => [newTrade, ...prev]);
+      setSessionTrades(prev => {
+        const updated = [newTrade, ...prev];
+        localStorage.setItem("rapidpred_session_trades", JSON.stringify(updated));
+        return updated;
+      });
       
       if (filledQty > 0) {
         toast({
