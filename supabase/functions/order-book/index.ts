@@ -154,7 +154,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
       side: order.side,
       quantity: order.quantity,
       price: order.price,
-      status: order.status,
+      status: matchResult.finalStatus,
       filledQuantity: matchResult.filledQuantity,
       avgFillPrice: matchResult.avgFillPrice,
       trades: matchResult.trades
@@ -167,12 +167,17 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 async function matchOrder(supabase: any, order: any) {
   const { id, market_id, user_id, side, order_type, price, quantity } = order;
   
-  // Get market info for fee calculation
+  // Get market info for fee calculation and pool data
   const { data: market } = await supabase
     .from('markets')
-    .select('created_by, platform_fee_percent, creator_fee_percent')
+    .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool')
     .eq('id', market_id)
     .single();
+
+  if (!market) {
+    console.error('Market not found:', market_id);
+    return { filledQuantity: 0, avgFillPrice: null, trades: [], finalStatus: 'cancelled' };
+  }
 
   const platformFeePercent = market?.platform_fee_percent || 3;
   const creatorFeePercent = market?.creator_fee_percent || 0;
@@ -189,39 +194,31 @@ async function matchOrder(supabase: any, order: any) {
   }
 
   // Calculate effective fees
-  // If creator is admin: all fees go to platform
-  // If creator is regular creator: platform gets 1%, creator gets 2%
   const effectivePlatformFee = creatorIsAdmin ? platformFeePercent : 1;
   const effectiveCreatorFee = creatorIsAdmin ? 0 : Math.min(creatorFeePercent, 2);
   
   // Find matching orders on the opposite side
-  // YES buy matches with NO buy (they complement each other to $1)
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
-  // For limit orders: match if opposite price >= (1 - our price)
-  // For market orders: match any available
   let matchQuery = supabase
     .from('orders')
     .select('*')
     .eq('market_id', market_id)
     .eq('side', oppositeSide)
     .in('status', ['pending', 'partial'])
-    .neq('user_id', user_id); // Can't match with self
+    .neq('user_id', user_id);
 
   if (order_type === 'limit') {
-    // Opposite side price must be >= (1 - our price) for a valid match
     const minOppositePrice = 1 - price;
     matchQuery = matchQuery.gte('price', minOppositePrice);
   }
 
-  // Order by best price first (highest for opposite side), then by time
   matchQuery = matchQuery.order('price', { ascending: false }).order('created_at', { ascending: true });
 
   const { data: matchingOrders, error: matchError } = await matchQuery;
 
   if (matchError) {
     console.error('Match query error:', matchError);
-    return { filledQuantity: 0, avgFillPrice: null, trades: [] };
   }
 
   let remainingQuantity = quantity;
@@ -229,18 +226,17 @@ async function matchOrder(supabase: any, order: any) {
   let filledQuantity = 0;
   const trades: any[] = [];
 
+  // First, try to match with existing user orders
   for (const matchOrder of matchingOrders || []) {
     if (remainingQuantity <= 0) break;
 
     const availableQuantity = matchOrder.quantity - matchOrder.filled_quantity;
     const fillQuantity = Math.min(remainingQuantity, availableQuantity);
     
-    // Trade price is the average of both orders' prices (or match order's price for market orders)
     const tradePrice = order_type === 'market' 
       ? matchOrder.price 
       : (price + (1 - matchOrder.price)) / 2;
 
-    // Execute the trade
     const { data: trade, error: tradeError } = await supabase
       .from('trades')
       .insert({
@@ -263,7 +259,6 @@ async function matchOrder(supabase: any, order: any) {
 
     trades.push(trade);
 
-    // Update matched order
     const newMatchedFilled = matchOrder.filled_quantity + fillQuantity;
     const matchedStatus = newMatchedFilled >= matchOrder.quantity ? 'filled' : 'partial';
     
@@ -276,22 +271,16 @@ async function matchOrder(supabase: any, order: any) {
       })
       .eq('id', matchOrder.id);
 
-    // Create positions for both parties
     await createPosition(supabase, user_id, market_id, side, fillQuantity, tradePrice);
     await createPosition(supabase, matchOrder.user_id, market_id, oppositeSide, fillQuantity, 1 - tradePrice);
 
-    // Calculate costs and fees
     const userCost = fillQuantity * tradePrice;
     const matchUserCost = fillQuantity * (1 - tradePrice);
-    const tradeValue = fillQuantity; // Total trade value for fee calculation
+    const tradeValue = fillQuantity;
     
-    // Calculate fees based on trade value
     const platformFeeAmount = (tradeValue * effectivePlatformFee) / 100;
     const creatorFeeAmount = (tradeValue * effectiveCreatorFee) / 100;
     
-    console.log(`Trade fees - Platform: $${platformFeeAmount.toFixed(4)}, Creator: $${creatorFeeAmount.toFixed(4)}`);
-
-    // Deduct costs from both users (including their share of fees)
     const userFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
     const matchUserFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
 
@@ -299,42 +288,25 @@ async function matchOrder(supabase: any, order: any) {
       _user_id: user_id,
       _operation: 'withdrawal',
       _amount: userCost + userFeeShare,
-      _metadata: { 
-        type: 'trade', 
-        order_id: id, 
-        trade_id: trade.id,
-        fee_paid: userFeeShare
-      }
+      _metadata: { type: 'trade', order_id: id, trade_id: trade.id, fee_paid: userFeeShare }
     });
 
     await supabase.rpc('process_wallet_operation', {
       _user_id: matchOrder.user_id,
       _operation: 'withdrawal',
       _amount: matchUserCost + matchUserFeeShare,
-      _metadata: { 
-        type: 'trade', 
-        order_id: matchOrder.id, 
-        trade_id: trade.id,
-        fee_paid: matchUserFeeShare
-      }
+      _metadata: { type: 'trade', order_id: matchOrder.id, trade_id: trade.id, fee_paid: matchUserFeeShare }
     });
 
-    // Credit creator fee to creator (if not admin)
     if (creatorFeeAmount > 0 && creatorId && !creatorIsAdmin) {
       await supabase.rpc('process_wallet_operation', {
         _user_id: creatorId,
         _operation: 'deposit',
         _amount: creatorFeeAmount,
-        _metadata: { 
-          type: 'creator_fee', 
-          market_id, 
-          trade_id: trade.id 
-        }
+        _metadata: { type: 'creator_fee', market_id, trade_id: trade.id }
       });
-      console.log(`Credited $${creatorFeeAmount.toFixed(4)} creator fee to ${creatorId}`);
     }
 
-    // Update market volume
     const { data: currentMarket } = await supabase
       .from('markets')
       .select('volume')
@@ -354,38 +326,212 @@ async function matchOrder(supabase: any, order: any) {
     totalFillValue += fillQuantity * tradePrice;
   }
 
+  // If still remaining quantity, fill from the liquidity pool using CPMM
+  if (remainingQuantity > 0 && market.liquidity_pool > 0) {
+    console.log(`Filling ${remainingQuantity} from liquidity pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
+    
+    const poolResult = await fillFromPool(
+      supabase, 
+      market_id, 
+      user_id, 
+      id, 
+      side, 
+      remainingQuantity, 
+      market,
+      effectivePlatformFee,
+      effectiveCreatorFee,
+      creatorId,
+      creatorIsAdmin
+    );
+    
+    if (poolResult.filled > 0) {
+      filledQuantity += poolResult.filled;
+      totalFillValue += poolResult.filled * poolResult.avgPrice;
+      remainingQuantity -= poolResult.filled;
+      
+      if (poolResult.trade) {
+        trades.push(poolResult.trade);
+      }
+    }
+  }
+
   // Update original order status
-  const newStatus = filledQuantity >= quantity ? 'filled' 
-    : filledQuantity > 0 ? 'partial' 
-    : order_type === 'limit' ? 'pending' : 'cancelled';
+  let finalStatus: string;
+  if (filledQuantity >= quantity) {
+    finalStatus = 'filled';
+  } else if (filledQuantity > 0) {
+    finalStatus = 'partial';
+  } else if (order_type === 'limit') {
+    finalStatus = 'pending';
+  } else {
+    finalStatus = 'cancelled';
+  }
 
   await supabase
     .from('orders')
     .update({ 
       filled_quantity: filledQuantity,
       avg_fill_price: filledQuantity > 0 ? totalFillValue / filledQuantity : null,
-      status: newStatus,
+      status: finalStatus,
       updated_at: new Date().toISOString()
     })
     .eq('id', id);
 
-  // For market orders that didn't fully fill, cancel remaining
-  if (order_type === 'market' && filledQuantity < quantity) {
-    await supabase
-      .from('orders')
-      .update({ status: filledQuantity > 0 ? 'partial' : 'cancelled' })
-      .eq('id', id);
-  }
-
   return {
     filledQuantity,
     avgFillPrice: filledQuantity > 0 ? totalFillValue / filledQuantity : null,
-    trades
+    trades,
+    finalStatus
   };
 }
 
+// Fill order from liquidity pool using Constant Product Market Maker (CPMM)
+async function fillFromPool(
+  supabase: any,
+  marketId: string,
+  userId: string,
+  orderId: string,
+  side: 'yes' | 'no',
+  quantity: number,
+  market: any,
+  platformFeePercent: number,
+  creatorFeePercent: number,
+  creatorId: string | null,
+  creatorIsAdmin: boolean
+) {
+  let poolYes = Number(market.pool_yes_shares);
+  let poolNo = Number(market.pool_no_shares);
+  const k = poolYes * poolNo; // Constant product
+  
+  // Calculate how many shares user gets and at what price
+  // Buying YES = paying to get YES shares from pool (pool_yes decreases)
+  // Buying NO = paying to get NO shares from pool (pool_no decreases)
+  
+  let sharesOut: number;
+  let cost: number;
+  let newPoolYes: number;
+  let newPoolNo: number;
+  
+  if (side === 'yes') {
+    // User wants YES shares
+    // They pay in terms of their balance, pool gives YES shares
+    // New pool: (poolYes - sharesOut) * (poolNo + cost) = k
+    // We solve for cost given sharesOut = quantity (or max available)
+    
+    const maxSharesOut = poolYes * 0.9; // Can't drain more than 90% of pool
+    sharesOut = Math.min(quantity, maxSharesOut);
+    
+    if (sharesOut <= 0) {
+      return { filled: 0, avgPrice: 0, trade: null };
+    }
+    
+    // (poolYes - sharesOut) * newPoolNo = k
+    // newPoolNo = k / (poolYes - sharesOut)
+    // cost = newPoolNo - poolNo
+    newPoolYes = poolYes - sharesOut;
+    newPoolNo = k / newPoolYes;
+    cost = newPoolNo - poolNo;
+  } else {
+    // User wants NO shares
+    const maxSharesOut = poolNo * 0.9;
+    sharesOut = Math.min(quantity, maxSharesOut);
+    
+    if (sharesOut <= 0) {
+      return { filled: 0, avgPrice: 0, trade: null };
+    }
+    
+    newPoolNo = poolNo - sharesOut;
+    newPoolYes = k / newPoolNo;
+    cost = newPoolYes - poolYes;
+  }
+  
+  const avgPrice = cost / sharesOut;
+  
+  console.log(`Pool fill: ${side} ${sharesOut} shares @ avg ${avgPrice.toFixed(4)}, cost: ${cost.toFixed(4)}`);
+  
+  // Calculate fees
+  const totalFeePercent = platformFeePercent + creatorFeePercent;
+  const feeAmount = (cost * totalFeePercent) / 100;
+  const totalCost = cost + feeAmount;
+  
+  // Deduct from user balance
+  const { error: walletError } = await supabase.rpc('process_wallet_operation', {
+    _user_id: userId,
+    _operation: 'withdrawal',
+    _amount: Math.round(totalCost * 100) / 100, // Round to 2 decimals
+    _metadata: { 
+      type: 'pool_trade', 
+      order_id: orderId, 
+      side,
+      shares: sharesOut,
+      price: avgPrice,
+      fee: feeAmount
+    }
+  });
+  
+  if (walletError) {
+    console.error('Wallet operation error:', walletError);
+    return { filled: 0, avgPrice: 0, trade: null };
+  }
+  
+  // Credit creator fee
+  if (creatorFeePercent > 0 && creatorId && !creatorIsAdmin) {
+    const creatorFee = (cost * creatorFeePercent) / 100;
+    await supabase.rpc('process_wallet_operation', {
+      _user_id: creatorId,
+      _operation: 'deposit',
+      _amount: Math.round(creatorFee * 100) / 100,
+      _metadata: { type: 'creator_fee', market_id: marketId }
+    });
+  }
+  
+  // Update pool shares and market prices
+  const newYesPrice = newPoolNo / (newPoolYes + newPoolNo);
+  const newNoPrice = newPoolYes / (newPoolYes + newPoolNo);
+  
+  const { data: currentMarket } = await supabase
+    .from('markets')
+    .select('volume')
+    .eq('id', marketId)
+    .single();
+  
+  await supabase
+    .from('markets')
+    .update({
+      pool_yes_shares: newPoolYes,
+      pool_no_shares: newPoolNo,
+      yes_price: Math.max(0.01, Math.min(0.99, newYesPrice)),
+      no_price: Math.max(0.01, Math.min(0.99, newNoPrice)),
+      volume: (currentMarket?.volume || 0) + sharesOut,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', marketId);
+  
+  // Create position for user
+  await createPosition(supabase, userId, marketId, side, sharesOut, avgPrice);
+  
+  // Create a synthetic trade record for the pool fill
+  const { data: trade } = await supabase
+    .from('trades')
+    .insert({
+      market_id: marketId,
+      buy_order_id: orderId,
+      sell_order_id: orderId, // Self-reference for pool trades
+      price: avgPrice,
+      quantity: sharesOut,
+      buyer_id: userId,
+      seller_id: userId, // Self-reference for pool trades
+      buyer_side: side
+    })
+    .select()
+    .single();
+  
+  console.log(`Pool trade completed. New pool: YES=${newPoolYes.toFixed(2)}, NO=${newPoolNo.toFixed(2)}, Prices: YES=${newYesPrice.toFixed(4)}, NO=${newNoPrice.toFixed(4)}`);
+  
+  return { filled: sharesOut, avgPrice, trade };
+}
+
 async function createPosition(supabase: any, userId: string, marketId: string, side: string, size: number, entryPrice: number) {
-  // Check if user already has a position
   const { data: existing } = await supabase
     .from('positions')
     .select('*')
@@ -396,7 +542,6 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
     .single();
 
   if (existing) {
-    // Update existing position with weighted average price
     const newSize = existing.size + size;
     const newAvgPrice = (existing.size * existing.entry_price + size * entryPrice) / newSize;
     
@@ -409,7 +554,6 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
       })
       .eq('id', existing.id);
   } else {
-    // Create new position
     await supabase
       .from('positions')
       .insert({
@@ -424,40 +568,31 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
 }
 
 async function updateMarketPrices(supabase: any, marketId: string) {
-  // Get best YES bid
-  const { data: yesBids } = await supabase
-    .from('orders')
-    .select('price')
-    .eq('market_id', marketId)
-    .eq('side', 'yes')
-    .in('status', ['pending', 'partial'])
-    .order('price', { ascending: false })
-    .limit(1);
-
-  // Get best NO bid  
-  const { data: noBids } = await supabase
-    .from('orders')
-    .select('price')
-    .eq('market_id', marketId)
-    .eq('side', 'no')
-    .in('status', ['pending', 'partial'])
-    .order('price', { ascending: false })
-    .limit(1);
-
-  const bestYesBid = yesBids?.[0]?.price || 0.5;
-  const bestNoBid = noBids?.[0]?.price || 0.5;
-
-  // Market price is midpoint of best bids converted to probability
-  const yesPrice = bestYesBid > 0 ? bestYesBid : (1 - bestNoBid);
-
-  await supabase
+  // Get current pool state for pricing
+  const { data: market } = await supabase
     .from('markets')
-    .update({
-      yes_price: Math.max(0.01, Math.min(0.99, yesPrice)),
-      no_price: Math.max(0.01, Math.min(0.99, 1 - yesPrice)),
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', marketId);
+    .select('pool_yes_shares, pool_no_shares')
+    .eq('id', marketId)
+    .single();
+
+  if (market) {
+    const poolYes = Number(market.pool_yes_shares);
+    const poolNo = Number(market.pool_no_shares);
+    const total = poolYes + poolNo;
+    
+    // Price based on pool ratio
+    const yesPrice = poolNo / total;
+    const noPrice = poolYes / total;
+    
+    await supabase
+      .from('markets')
+      .update({
+        yes_price: Math.max(0.01, Math.min(0.99, yesPrice)),
+        no_price: Math.max(0.01, Math.min(0.99, noPrice)),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', marketId);
+  }
 }
 
 async function cancelOrder(supabase: any, userId: string, request: { orderId: string }) {
@@ -489,7 +624,6 @@ async function cancelOrder(supabase: any, userId: string, request: { orderId: st
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', orderId);
 
-  // Update market prices
   await updateMarketPrices(supabase, order.market_id);
 
   return new Response(JSON.stringify({ success: true, orderId }), {
@@ -505,7 +639,7 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
     });
   }
 
-  // Get YES orders
+  // Get limit orders for depth display
   const { data: yesOrders } = await supabase
     .from('orders')
     .select('price, quantity, filled_quantity')
@@ -514,7 +648,6 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
     .in('status', ['pending', 'partial'])
     .order('price', { ascending: false });
 
-  // Get NO orders
   const { data: noOrders } = await supabase
     .from('orders')
     .select('price, quantity, filled_quantity')
@@ -525,20 +658,34 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
 
   // Aggregate by price level
   const aggregateOrders = (orders: any[]) => {
-    const levels: Record<string, number> = {};
+    const levels: Record<number, number> = {};
     for (const order of orders || []) {
       const remaining = order.quantity - order.filled_quantity;
-      const priceKey = order.price.toFixed(2);
-      levels[priceKey] = (levels[priceKey] || 0) + remaining;
+      if (remaining > 0 && order.price) {
+        levels[order.price] = (levels[order.price] || 0) + remaining;
+      }
     }
     return Object.entries(levels)
       .map(([price, quantity]) => ({ price: parseFloat(price), quantity }))
       .sort((a, b) => b.price - a.price);
   };
 
+  // Get pool info for display
+  const { data: market } = await supabase
+    .from('markets')
+    .select('pool_yes_shares, pool_no_shares, yes_price, no_price')
+    .eq('id', marketId)
+    .single();
+
   return new Response(JSON.stringify({
-    yes: aggregateOrders(yesOrders || []),
-    no: aggregateOrders(noOrders || [])
+    yes: aggregateOrders(yesOrders),
+    no: aggregateOrders(noOrders),
+    pool: market ? {
+      yesShares: market.pool_yes_shares,
+      noShares: market.pool_no_shares,
+      yesPrice: market.yes_price,
+      noPrice: market.no_price
+    } : null
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
