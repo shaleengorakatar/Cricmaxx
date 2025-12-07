@@ -170,7 +170,7 @@ async function matchOrder(supabase: any, order: any) {
   // Get market info for fee calculation and pool data
   const { data: market } = await supabase
     .from('markets')
-    .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool')
+    .select('created_by, platform_fee_percent, creator_fee_percent, pool_yes_shares, pool_no_shares, liquidity_pool, pool_enabled')
     .eq('id', market_id)
     .single();
 
@@ -326,8 +326,8 @@ async function matchOrder(supabase: any, order: any) {
     totalFillValue += fillQuantity * tradePrice;
   }
 
-  // If still remaining quantity, fill from the liquidity pool using CPMM
-  if (remainingQuantity > 0 && market.liquidity_pool > 0) {
+  // If still remaining quantity and pool is enabled, fill from the liquidity pool using CPMM
+  if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true) {
     console.log(`Filling ${remainingQuantity} from liquidity pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
     
     const poolResult = await fillFromPool(

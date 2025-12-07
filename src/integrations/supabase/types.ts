@@ -463,6 +463,7 @@ export type Database = {
           no_price: number
           outcome: string | null
           platform_fee_percent: number
+          pool_enabled: boolean
           pool_no_shares: number
           pool_yes_shares: number
           question: string
@@ -486,6 +487,7 @@ export type Database = {
           no_price?: number
           outcome?: string | null
           platform_fee_percent?: number
+          pool_enabled?: boolean
           pool_no_shares?: number
           pool_yes_shares?: number
           question: string
@@ -509,6 +511,7 @@ export type Database = {
           no_price?: number
           outcome?: string | null
           platform_fee_percent?: number
+          pool_enabled?: boolean
           pool_no_shares?: number
           pool_yes_shares?: number
           question?: string
