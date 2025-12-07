@@ -6,7 +6,7 @@ import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
-import SimpleTradingCard from "@/components/market-detail/SimpleTradingCard";
+
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
@@ -41,7 +41,7 @@ const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, isAuthenticated } = useAuth();
-  const { isSimpleMode, isProMode } = useTradingMode();
+  const { isProMode } = useTradingMode();
   const [market, setMarket] = useState<Market | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
@@ -228,45 +228,34 @@ const MarketDetail = () => {
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {/* Simple Mode: Simplified Trading */}
-              {isSimpleMode ? (
-                <SimpleTradingCard
-                  marketId={market.id}
-                  yesPrice={market.yesPrice}
-                  noPrice={market.noPrice}
-                  userBalance={profile?.balance || 0}
-                />
-              ) : (
-                /* Pro Mode: Full Trading Interface */
-                <Tabs defaultValue="trade" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="trade">Trade</TabsTrigger>
-                    <TabsTrigger value="calculator">Calculator</TabsTrigger>
-                    <TabsTrigger value="alerts">Alerts</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="trade" className="mt-4">
-                    <OrderBookTrading
-                      marketId={market.id}
-                      yesPrice={market.yesPrice}
-                      noPrice={market.noPrice}
-                      userBalance={profile?.balance || 0}
-                    />
-                  </TabsContent>
-                  <TabsContent value="calculator" className="mt-4">
-                    <MarketCalculator
-                      yesPrice={market.yesPrice}
-                      noPrice={market.noPrice}
-                    />
-                  </TabsContent>
-                  <TabsContent value="alerts" className="mt-4">
-                    <PriceAlerts
-                      marketId={market.id}
-                      currentYesPrice={market.yesPrice}
-                      currentNoPrice={market.noPrice}
-                    />
-                  </TabsContent>
-                </Tabs>
-              )}
+              <Tabs defaultValue="trade" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="trade">Trade</TabsTrigger>
+                  <TabsTrigger value="calculator">Calculator</TabsTrigger>
+                  <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                </TabsList>
+                <TabsContent value="trade" className="mt-4">
+                  <OrderBookTrading
+                    marketId={market.id}
+                    yesPrice={market.yesPrice}
+                    noPrice={market.noPrice}
+                    userBalance={profile?.balance || 0}
+                  />
+                </TabsContent>
+                <TabsContent value="calculator" className="mt-4">
+                  <MarketCalculator
+                    yesPrice={market.yesPrice}
+                    noPrice={market.noPrice}
+                  />
+                </TabsContent>
+                <TabsContent value="alerts" className="mt-4">
+                  <PriceAlerts
+                    marketId={market.id}
+                    currentYesPrice={market.yesPrice}
+                    currentNoPrice={market.noPrice}
+                  />
+                </TabsContent>
+              </Tabs>
 
               {/* Market Stats - Collapsible on mobile */}
               <Card className="overflow-hidden">
