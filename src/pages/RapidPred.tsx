@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -164,6 +164,14 @@ const RapidPred = () => {
       setCurrentIndex(currentIndex + 1);
     } else {
       setCurrentIndex(0);
+    }
+  };
+
+  const loadPrevMarket = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    } else {
+      setCurrentIndex(markets.length - 1);
     }
   };
 
@@ -382,7 +390,18 @@ const RapidPred = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-center gap-6">
+                <div className="flex items-center justify-center gap-4">
+                  {/* Previous Button */}
+                  <Button
+                    onClick={loadPrevMarket}
+                    disabled={isPlacingTrade}
+                    variant="outline"
+                    size="lg"
+                    className="h-12 w-12 rounded-full border-2 border-muted-foreground/30"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+
                   {/* NO Button */}
                   <Button
                     onClick={() => handleTrade("no")}
