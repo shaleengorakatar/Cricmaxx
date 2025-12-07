@@ -280,10 +280,15 @@ const RapidPred = () => {
     );
   }
 
-  const yesProfit = stakeAmount * (1 - currentMarket.yesPrice);
-  const noProfit = stakeAmount * (1 - currentMarket.noPrice);
-  const yesTotal = stakeAmount + yesProfit;
-  const noTotal = stakeAmount + noProfit;
+  // Correct payout calculation: shares = stake / price, payout = shares * $1
+  const yesShares = stakeAmount / currentMarket.yesPrice;
+  const noShares = stakeAmount / currentMarket.noPrice;
+  const yesTotal = yesShares; // Each share pays $1 if correct
+  const noTotal = noShares;
+  const yesProfit = yesTotal - stakeAmount;
+  const noProfit = noTotal - stakeAmount;
+  const yesOdds = 1 / currentMarket.yesPrice;
+  const noOdds = 1 / currentMarket.noPrice;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -429,12 +434,13 @@ const RapidPred = () => {
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 ) : (
                   <>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <CheckCircle className="h-6 w-6" />
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <CheckCircle className="h-5 w-5" />
                       <span className="text-lg font-bold">YES</span>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-black">Get ${yesTotal.toFixed(2)}</p>
+                      <p className="text-xs opacity-80 mt-0.5">{yesOdds.toFixed(1)}x odds</p>
                       <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
                     </div>
                   </>
@@ -451,12 +457,13 @@ const RapidPred = () => {
                   <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 ) : (
                   <>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <XCircle className="h-6 w-6" />
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <XCircle className="h-5 w-5" />
                       <span className="text-lg font-bold">NO</span>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-black">Get ${noTotal.toFixed(2)}</p>
+                      <p className="text-xs opacity-80 mt-0.5">{noOdds.toFixed(1)}x odds</p>
                       <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
                     </div>
                   </>
@@ -483,11 +490,11 @@ const RapidPred = () => {
                   </div>
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">Yes odds</span>
-                    <span className="font-medium">{(1 / currentMarket.yesPrice).toFixed(2)}x</span>
+                    <span className="font-medium">{yesOdds.toFixed(2)}x</span>
                   </div>
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">No odds</span>
-                    <span className="font-medium">{(1 / currentMarket.noPrice).toFixed(2)}x</span>
+                    <span className="font-medium">{noOdds.toFixed(2)}x</span>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
