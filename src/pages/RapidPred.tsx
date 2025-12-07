@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, Loader2, ChevronLeft, History, DollarSign, Target } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Loader2, ChevronLeft, History, Info, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useTradingMode } from "@/hooks/useTradingMode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Market } from "@/types/market";
@@ -15,6 +12,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface SessionTrade {
   id: string;
@@ -28,18 +26,20 @@ interface SessionTrade {
   timestamp: Date;
 }
 
+const STAKE_OPTIONS = [5, 10, 25, 50];
+
 const RapidPred = () => {
   const { profile, isAuthenticated } = useAuth();
-  const { isSimpleMode } = useTradingMode();
   const navigate = useNavigate();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [stakeAmount, setStakeAmount] = useState(5);
+  const [stakeAmount, setStakeAmount] = useState(10);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastTrade, setLastTrade] = useState<SessionTrade | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [animateTrade, setAnimateTrade] = useState<"yes" | "no" | null>(null);
   const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>(() => {
     const saved = localStorage.getItem("rapidpred_session_trades");
     if (saved) {
@@ -61,13 +61,19 @@ const RapidPred = () => {
     if (savedStake) setStakeAmount(Number(savedStake));
   }, []);
 
-  // Auto-hide last trade confirmation after 3 seconds
   useEffect(() => {
     if (lastTrade) {
-      const timer = setTimeout(() => setLastTrade(null), 4000);
+      const timer = setTimeout(() => setLastTrade(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [lastTrade]);
+
+  useEffect(() => {
+    if (animateTrade) {
+      const timer = setTimeout(() => setAnimateTrade(null), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [animateTrade]);
 
   const fetchMarkets = async () => {
     setLoading(true);
@@ -128,7 +134,7 @@ const RapidPred = () => {
     }
 
     if (!currentMarket) return;
-    
+
     if (profile.balance < stakeAmount) {
       toast({
         title: "Insufficient Balance",
@@ -138,6 +144,7 @@ const RapidPred = () => {
       return;
     }
 
+    setAnimateTrade(side);
     setIsPlacingTrade(true);
 
     try {
@@ -171,12 +178,10 @@ const RapidPred = () => {
       const filledQty = orderData?.filledQuantity || 0;
       const fillPrice = orderData?.avgFillPrice || price;
       const position = orderData?.position;
-      
-      // Calculate position details
-      const maxWin = position?.maxWin || (filledQty * (1 - fillPrice));
-      const risk = position?.risk || (filledQty * fillPrice);
-      
-      // Add to session history with position details
+
+      const maxWin = position?.maxWin || filledQty * (1 - fillPrice);
+      const risk = position?.risk || filledQty * fillPrice;
+
       const newTrade: SessionTrade = {
         id: orderData?.id || Date.now().toString(),
         marketQuestion: currentMarket.question,
@@ -188,23 +193,18 @@ const RapidPred = () => {
         risk: risk,
         timestamp: new Date(),
       };
-      
+
       setLastTrade(newTrade);
-      setSessionTrades(prev => {
+      setSessionTrades((prev) => {
         const updated = [newTrade, ...prev];
         localStorage.setItem("rapidpred_session_trades", JSON.stringify(updated));
         return updated;
       });
-      
+
       if (filledQty > 0) {
         toast({
           title: "🎉 Prediction placed!",
-          description: `${side.toUpperCase()} @ $${fillPrice.toFixed(2)} — Max win: $${maxWin.toFixed(2)}`,
-        });
-      } else {
-        toast({
-          title: "Order placed",
-          description: `${side.toUpperCase()} order added to book`,
+          description: `${side.toUpperCase()} — Potential win: $${maxWin.toFixed(2)}`,
         });
       }
 
@@ -237,39 +237,11 @@ const RapidPred = () => {
     }
   };
 
-  const handleSkip = () => {
-    loadNextMarket();
-  };
+  const handleSkip = () => loadNextMarket();
 
-  const saveStakePreference = (value: number) => {
+  const selectStake = (value: number) => {
     setStakeAmount(value);
     localStorage.setItem("rapidpred_stake", value.toString());
-    setSettingsOpen(false);
-    toast({
-      title: "Saved",
-      description: `Quick predict amount set to $${value}`,
-    });
-  };
-
-  const getMarketTag = (market: Market) => {
-    if (!market) return null;
-    const hoursUntilExpiry = (new Date(market.expiryTime).getTime() - Date.now()) / (1000 * 60 * 60);
-    
-    if (hoursUntilExpiry < 6) return { label: "Expiring Soon", icon: Flame, color: "bg-red-500" };
-    if (market.volume > 10000) return { label: "Trending", icon: TrendingUp, color: "bg-accent" };
-    return { label: "Hot", icon: Zap, color: "bg-orange-500" };
-  };
-
-  const getCategoryIcon = (category: string) => {
-    const icons: Record<string, string> = {
-      Cricket: "🏏",
-      Politics: "🏛️",
-      Finance: "💰",
-      Technology: "💻",
-      Sports: "⚽",
-      Entertainment: "🎬",
-    };
-    return icons[category] || "📊";
   };
 
   if (loading) {
@@ -291,18 +263,16 @@ const RapidPred = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
-          <Card className="max-w-md mx-4">
-            <CardContent className="pt-6 text-center space-y-4">
-              <Zap className="h-16 w-16 mx-auto text-muted-foreground" />
-              <h2 className="text-xl font-bold">No Markets Available</h2>
-              <p className="text-muted-foreground">
-                Check back soon for new prediction markets!
-              </p>
-              <Button onClick={fetchMarkets} className="bg-accent text-accent-foreground">
-                Refresh
-              </Button>
-            </CardContent>
+        <main className="flex-1 pt-24 pb-16 flex items-center justify-center px-4">
+          <Card className="max-w-md w-full p-8 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-bold">No Markets Available</h2>
+            <p className="text-muted-foreground">Check back soon for new prediction markets!</p>
+            <Button onClick={fetchMarkets} className="bg-accent text-accent-foreground">
+              Refresh
+            </Button>
           </Card>
         </main>
         <Footer />
@@ -310,43 +280,35 @@ const RapidPred = () => {
     );
   }
 
-  const tag = getMarketTag(currentMarket);
-
-  // Calculate potential outcomes for current market
-  const yesMaxWin = stakeAmount * (1 - currentMarket.yesPrice);
-  const noMaxWin = stakeAmount * (1 - currentMarket.noPrice);
+  const yesProfit = stakeAmount * (1 - currentMarket.yesPrice);
+  const noProfit = stakeAmount * (1 - currentMarket.noPrice);
+  const yesTotal = stakeAmount + yesProfit;
+  const noTotal = stakeAmount + noProfit;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
-      
-      <main className="flex-1 pt-24 pb-16">
-        <div className="container mx-auto px-4">
+
+      <main className="flex-1 pt-20 pb-8 px-4">
+        <div className="max-w-lg mx-auto space-y-4">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Zap className="h-8 w-8 text-accent" />
-                RapidPred
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Quick predictions, instant fills
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">⚡</span>
+              <span className="font-bold text-lg">Quick Predict</span>
             </div>
             <div className="flex items-center gap-2">
               {isAuthenticated && (
-                <Badge variant="outline" className="text-sm py-1 px-3">
-                  Balance: ${profile?.balance.toFixed(2) || "0.00"}
+                <Badge variant="secondary" className="text-sm py-1.5 px-3">
+                  ${profile?.balance.toFixed(2) || "0.00"}
                 </Badge>
               )}
-              
-              {/* History Button */}
               <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="relative">
+                  <Button variant="ghost" size="icon" className="relative">
                     <History className="h-5 w-5" />
                     {sessionTrades.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
                         {sessionTrades.length}
                       </span>
                     )}
@@ -354,28 +316,20 @@ const RapidPred = () => {
                 </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <History className="h-5 w-5" />
-                      Session History
-                    </DialogTitle>
+                    <DialogTitle>Session History</DialogTitle>
                   </DialogHeader>
                   {sessionTrades.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                      <History className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>No predictions yet this session</p>
-                      <p className="text-sm">Start swiping to make predictions!</p>
+                      <p>No predictions yet</p>
                     </div>
                   ) : (
                     <ScrollArea className="max-h-80">
-                      <div className="space-y-3 pr-4">
+                      <div className="space-y-2 pr-4">
                         {sessionTrades.map((trade) => (
-                          <div
-                            key={trade.id}
-                            className="p-3 rounded-lg bg-muted/50 border border-border"
-                          >
+                          <div key={trade.id} className="p-3 rounded-xl bg-muted/50 border border-border">
                             <div className="flex items-start gap-3">
-                              <div className={`p-2 rounded-full ${trade.side === 'yes' ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                                {trade.side === 'yes' ? (
+                              <div className={`p-2 rounded-full ${trade.side === "yes" ? "bg-green-500/20" : "bg-red-500/20"}`}>
+                                {trade.side === "yes" ? (
                                   <CheckCircle className="h-4 w-4 text-green-500" />
                                 ) : (
                                   <XCircle className="h-4 w-4 text-red-500" />
@@ -383,26 +337,10 @@ const RapidPred = () => {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium line-clamp-2">{trade.marketQuestion}</p>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge variant={trade.side === 'yes' ? 'default' : 'secondary'} className="text-xs">
-                                    {trade.side.toUpperCase()} @ ${trade.entryPrice?.toFixed(2) || '0.50'}
-                                  </Badge>
+                                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                                  <span>Risk: ${trade.risk?.toFixed(2)}</span>
+                                  <span className="text-green-500">Win: ${trade.maxWin?.toFixed(2)}</span>
                                 </div>
-                              </div>
-                            </div>
-                            {/* Position Details */}
-                            <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-3 gap-2 text-xs">
-                              <div className="text-center">
-                                <span className="text-muted-foreground">Risk</span>
-                                <p className="font-medium text-red-500">${trade.risk?.toFixed(2) || trade.amount.toFixed(2)}</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-muted-foreground">Shares</span>
-                                <p className="font-medium">{trade.shares}</p>
-                              </div>
-                              <div className="text-center">
-                                <span className="text-muted-foreground">Max Win</span>
-                                <p className="font-medium text-green-500">${trade.maxWin?.toFixed(2) || (trade.shares - trade.amount).toFixed(2)}</p>
                               </div>
                             </div>
                           </div>
@@ -410,283 +348,180 @@ const RapidPred = () => {
                       </div>
                     </ScrollArea>
                   )}
-                  {sessionTrades.length > 0 && (
-                    <div className="pt-3 border-t border-border space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total predictions:</span>
-                        <span className="font-medium">{sessionTrades.length}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Total at risk:</span>
-                        <span className="font-medium text-red-500">
-                          ${sessionTrades.reduce((sum, t) => sum + (t.risk || t.amount), 0).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Potential max win:</span>
-                        <span className="font-medium text-green-500">
-                          ${sessionTrades.reduce((sum, t) => sum + (t.maxWin || 0), 0).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
-
-              {/* Settings Button */}
-              <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Quick Predict Settings</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <Label>Stake Amount: ${stakeAmount}</Label>
-                    <Slider
-                      value={[stakeAmount]}
-                      onValueChange={(v) => setStakeAmount(v[0])}
-                      min={1}
-                      max={100}
-                      step={1}
-                      className="w-full"
-                    />
-                    <div className="flex gap-2 flex-wrap">
-                      {[5, 10, 25, 50, 100].map((amount) => (
-                        <Button
-                          key={amount}
-                          variant={stakeAmount === amount ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setStakeAmount(amount)}
-                        >
-                          ${amount}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button onClick={() => saveStakePreference(stakeAmount)} className="w-full">
-                      Save Preference
-                    </Button>
-                  </div>
                 </DialogContent>
               </Dialog>
             </div>
           </div>
 
-          {/* Last Trade Confirmation Popup */}
+          {/* Last Trade Confirmation */}
           {lastTrade && (
-            <div className="max-w-2xl mx-auto mb-4 animate-in slide-in-from-top-2 duration-300">
-              <Card className={`border-2 ${lastTrade.side === 'yes' ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10'}`}>
-                <CardContent className="py-3 px-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {lastTrade.side === 'yes' ? (
-                        <CheckCircle className="h-6 w-6 text-green-500" />
-                      ) : (
-                        <XCircle className="h-6 w-6 text-red-500" />
-                      )}
-                      <div>
-                        <p className="font-semibold">
-                          {lastTrade.side.toUpperCase()} @ ${lastTrade.entryPrice.toFixed(2)}
-                        </p>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {lastTrade.marketQuestion}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-sm">
-                        <DollarSign className="h-4 w-4 text-red-500" />
-                        <span className="text-red-500 font-medium">Risk: ${lastTrade.risk.toFixed(2)}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Target className="h-4 w-4 text-green-500" />
-                        <span className="text-green-500 font-medium">Max win: ${lastTrade.maxWin.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div
+              className={`p-3 rounded-xl border-2 animate-in slide-in-from-top-2 duration-300 ${
+                lastTrade.side === "yes" ? "border-green-500 bg-green-500/10" : "border-red-500 bg-red-500/10"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                {lastTrade.side === "yes" ? (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-red-500" />
+                )}
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Prediction placed!</p>
+                  <p className="text-xs text-muted-foreground">Potential win: ${lastTrade.maxWin.toFixed(2)}</p>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Main Content */}
-          <div className="max-w-2xl mx-auto">
-            {/* Market Card */}
-            <Card className="overflow-hidden rounded-2xl shadow-xl border border-border bg-card">
-              {/* Image or gradient header */}
-              <div className="relative h-48 bg-gradient-to-br from-accent/10 via-primary/5 to-secondary/10">
-                {currentMarket.imageUrl ? (
-                  <img
-                    src={currentMarket.imageUrl}
-                    alt={currentMarket.question}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-8xl">{getCategoryIcon(currentMarket.category)}</span>
-                  </div>
-                )}
-                
-                {/* Tags */}
-                <div className="absolute top-4 left-4">
-                  <Badge className={`${tag?.color} text-white text-sm font-medium`}>
-                    {tag?.icon && <tag.icon className="h-4 w-4 mr-1" />}
-                    {tag?.label}
-                  </Badge>
-                </div>
-                <Badge variant="secondary" className="absolute top-4 right-4 bg-background/80">
+          {/* Main Prediction Card */}
+          <Card
+            className={`overflow-hidden rounded-3xl shadow-custom-xl border-2 transition-all duration-300 ${
+              animateTrade === "yes"
+                ? "border-green-500 scale-[0.98]"
+                : animateTrade === "no"
+                ? "border-red-500 scale-[0.98]"
+                : "border-border"
+            }`}
+          >
+            {/* Question */}
+            <div className="p-6 pb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="secondary" className="text-xs">
                   {currentMarket.category}
                 </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {currentIndex + 1}/{markets.length}
+                </span>
               </div>
+              <h2 className="text-xl sm:text-2xl font-bold leading-tight text-center">{currentMarket.question}</h2>
+            </div>
 
-              {/* Content */}
-              <CardContent className="p-6 space-y-6">
-                <h2 className="text-2xl font-bold leading-snug">
-                  {currentMarket.question}
-                </h2>
-
-                {/* Odds Display - Simplified in Simple mode */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-                    <p className="text-sm text-muted-foreground uppercase tracking-wide">Yes</p>
-                    {isSimpleMode ? (
-                      <>
-                        <p className="text-3xl font-black text-green-500">
-                          Win ${(stakeAmount + yesMaxWin).toFixed(2)}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {Math.round((1 / currentMarket.yesPrice) * 10) / 10}x odds
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-4xl font-black text-green-500">
-                          {(currentMarket.yesPrice * 100).toFixed(0)}¢
-                        </p>
-                        <div className="mt-2 space-y-1 text-xs">
-                          <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.yesPrice).toFixed(2)}</p>
-                          <p className="text-green-500 font-semibold">Win: ${yesMaxWin.toFixed(2)}</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
-                    <p className="text-sm text-muted-foreground uppercase tracking-wide">No</p>
-                    {isSimpleMode ? (
-                      <>
-                        <p className="text-3xl font-black text-red-500">
-                          Win ${(stakeAmount + noMaxWin).toFixed(2)}
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {Math.round((1 / currentMarket.noPrice) * 10) / 10}x odds
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-4xl font-black text-red-500">
-                          {(currentMarket.noPrice * 100).toFixed(0)}¢
-                        </p>
-                        <div className="mt-2 space-y-1 text-xs">
-                          <p className="text-red-500">Risk: ${(stakeAmount * currentMarket.noPrice).toFixed(2)}</p>
-                          <p className="text-green-500 font-semibold">Win: ${noMaxWin.toFixed(2)}</p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Meta info */}
-                <div className="flex items-center justify-between text-sm text-muted-foreground border-t border-border pt-4">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Volume: ${currentMarket.volume.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <span>Expires: {new Date(currentMarket.expiryTime).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                {/* Stake indicator */}
-                <div className="text-center text-sm text-muted-foreground">
-                  Stake: <span className="font-semibold text-foreground">${stakeAmount}</span>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-center gap-4">
-                  {/* Previous Button */}
-                  <Button
-                    onClick={loadPrevMarket}
-                    disabled={isPlacingTrade}
-                    variant="outline"
-                    size="lg"
-                    className="h-12 w-12 rounded-full border-2 border-muted-foreground/30"
+            {/* Stake Selector */}
+            <div className="px-6 pb-4">
+              <p className="text-xs text-muted-foreground text-center mb-3">Stake Amount</p>
+              <div className="flex justify-center gap-2">
+                {STAKE_OPTIONS.map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => selectStake(amount)}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 ${
+                      stakeAmount === amount
+                        ? "bg-accent text-accent-foreground shadow-md scale-105"
+                        : "bg-muted hover:bg-muted/80 text-foreground"
+                    }`}
                   >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
+                    ${amount}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  {/* NO Button */}
-                  <Button
-                    onClick={() => handleTrade("no")}
-                    disabled={isPlacingTrade}
-                    size="lg"
-                    className="h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/25 transition-transform active:scale-95"
-                  >
-                    {isPlacingTrade ? (
-                      <Loader2 className="h-7 w-7 animate-spin" />
-                    ) : (
-                      <XCircle className="h-8 w-8" />
-                    )}
-                  </Button>
-
-                  {/* Skip Button */}
-                  <Button
-                    onClick={handleSkip}
-                    disabled={isPlacingTrade}
-                    variant="outline"
-                    size="lg"
-                    className="h-12 w-12 rounded-full border-2 border-muted-foreground/30"
-                  >
-                    <SkipForward className="h-6 w-6" />
-                  </Button>
-
-                  {/* YES Button */}
-                  <Button
-                    onClick={() => handleTrade("yes")}
-                    disabled={isPlacingTrade}
-                    size="lg"
-                    className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/25 transition-transform active:scale-95"
-                  >
-                    {isPlacingTrade ? (
-                      <Loader2 className="h-7 w-7 animate-spin" />
-                    ) : (
-                      <CheckCircle className="h-8 w-8" />
-                    )}
-                  </Button>
-                </div>
-
-                {/* Card counter */}
-                <div className="text-center">
-                  <span className="text-sm text-muted-foreground">
-                    {currentIndex + 1} / {markets.length} markets
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* View full market link */}
-            <div className="text-center mt-4">
-              <Button
-                variant="link"
-                onClick={() => navigate(`/market/${currentMarket.id}`)}
-                className="text-muted-foreground hover:text-foreground"
+            {/* YES / NO Buttons */}
+            <div className="p-6 pt-2 grid grid-cols-2 gap-4">
+              {/* YES Button */}
+              <button
+                onClick={() => handleTrade("yes")}
+                disabled={isPlacingTrade}
+                className="group relative p-5 rounded-2xl bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg shadow-green-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-green-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                View full market details →
+                {isPlacingTrade && animateTrade === "yes" ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <CheckCircle className="h-6 w-6" />
+                      <span className="text-lg font-bold">YES</span>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-black">Get ${yesTotal.toFixed(2)}</p>
+                      <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
+                    </div>
+                  </>
+                )}
+              </button>
+
+              {/* NO Button */}
+              <button
+                onClick={() => handleTrade("no")}
+                disabled={isPlacingTrade}
+                className="group relative p-5 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 transition-all duration-200 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPlacingTrade && animateTrade === "no" ? (
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                      <XCircle className="h-6 w-6" />
+                      <span className="text-lg font-bold">NO</span>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-black">Get ${noTotal.toFixed(2)}</p>
+                      <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
+                    </div>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Info Toggle */}
+            <div className="px-6 pb-4">
+              <Collapsible open={showDetails} onOpenChange={setShowDetails}>
+                <CollapsibleTrigger className="flex items-center justify-center gap-2 w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Info className="h-4 w-4" />
+                  <span>Market details</span>
+                  <ChevronRight className={`h-4 w-4 transition-transform ${showDetails ? "rotate-90" : ""}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-2 text-sm animate-in slide-in-from-top-2">
+                  <div className="flex justify-between p-3 rounded-xl bg-muted/50">
+                    <span className="text-muted-foreground">Volume</span>
+                    <span className="font-medium">${currentMarket.volume.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between p-3 rounded-xl bg-muted/50">
+                    <span className="text-muted-foreground">Expires</span>
+                    <span className="font-medium">{new Date(currentMarket.expiryTime).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between p-3 rounded-xl bg-muted/50">
+                    <span className="text-muted-foreground">Yes odds</span>
+                    <span className="font-medium">{(1 / currentMarket.yesPrice).toFixed(2)}x</span>
+                  </div>
+                  <div className="flex justify-between p-3 rounded-xl bg-muted/50">
+                    <span className="text-muted-foreground">No odds</span>
+                    <span className="font-medium">{(1 / currentMarket.noPrice).toFixed(2)}x</span>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+
+            {/* Navigation */}
+            <div className="px-6 pb-6 flex items-center justify-center gap-4">
+              <Button onClick={loadPrevMarket} disabled={isPlacingTrade} variant="ghost" size="icon" className="h-12 w-12 rounded-full">
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                onClick={handleSkip}
+                disabled={isPlacingTrade}
+                variant="outline"
+                className="px-6 rounded-full border-2"
+              >
+                <SkipForward className="h-4 w-4 mr-2" />
+                Skip
+              </Button>
+              <Button onClick={loadNextMarket} disabled={isPlacingTrade} variant="ghost" size="icon" className="h-12 w-12 rounded-full">
+                <ChevronRight className="h-5 w-5" />
               </Button>
             </div>
+          </Card>
+
+          {/* View full market link */}
+          <div className="text-center">
+            <Button
+              variant="link"
+              onClick={() => navigate(`/market/${currentMarket.id}`)}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              View full market details →
+            </Button>
           </div>
         </div>
       </main>
