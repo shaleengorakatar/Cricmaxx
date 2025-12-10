@@ -20,33 +20,33 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-2">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-8">
+          <Link to="/" className="flex items-center shrink-0">
             <div className="text-2xl font-bold text-primary">
               Shariz
             </div>
           </Link>
           
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-5 flex-1">
             <NavLink 
               to="/" 
-              className="text-foreground hover:text-primary transition-colors"
+              className="text-sm text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
             >
               Home
             </NavLink>
             <NavLink 
               to="/markets"
-              className="text-foreground hover:text-primary transition-colors"
+              className="text-sm text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
             >
               Markets
             </NavLink>
             <NavLink 
               to="/rapidpred"
-              className="text-foreground hover:text-primary transition-colors"
+              className="text-sm text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
             >
               RapidPred
@@ -55,14 +55,14 @@ const Navigation = () => {
               <>
                 <NavLink 
                   to="/friends"
-                  className="text-foreground hover:text-primary transition-colors"
+                  className="text-sm text-foreground hover:text-primary transition-colors"
                   activeClassName="text-primary font-semibold"
                 >
                   Friends
                 </NavLink>
                 <NavLink 
                   to="/dashboard"
-                  className="text-foreground hover:text-primary transition-colors"
+                  className="text-sm text-foreground hover:text-primary transition-colors"
                   activeClassName="text-primary font-semibold"
                 >
                   Dashboard
@@ -72,7 +72,7 @@ const Navigation = () => {
             {isAuthenticated && isCreator && (
               <NavLink 
                 to="/creator"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-sm text-foreground hover:text-primary transition-colors"
                 activeClassName="text-primary font-semibold"
               >
                 Creator
@@ -81,7 +81,7 @@ const Navigation = () => {
             {isAuthenticated && isAdmin && (
               <NavLink 
                 to="/admin"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-sm text-foreground hover:text-primary transition-colors"
                 activeClassName="text-primary font-semibold"
               >
                 Admin
@@ -89,21 +89,20 @@ const Navigation = () => {
             )}
           </nav>
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 lg:gap-3">
             {/* Balance Display - Mobile */}
             {isAuthenticated && profile && (
-              <div className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
-                <Wallet className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-semibold text-primary">
-                  {profile.balance?.toLocaleString() ?? 0}
+              <div className="flex lg:hidden items-center gap-1 px-2 py-1 bg-accent/10 rounded-md">
+                <span className="text-xs font-bold text-accent">
+                  ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                 </span>
               </div>
             )}
 
             {/* Mobile Menu Toggle */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="md:hidden">
-                <Button variant="ghost" size="icon" className="md:hidden">
+              <SheetTrigger asChild className="lg:hidden">
+                <Button variant="ghost" size="icon" className="lg:hidden">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
@@ -248,23 +247,22 @@ const Navigation = () => {
             </Sheet>
 
             {/* Desktop User Menu/Auth Buttons */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-3">
             {isAuthenticated && profile ? (
               <>
                 {/* Balance Display - Desktop */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
-                  <Wallet className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-primary">
-                    {profile.balance?.toLocaleString() ?? 0}
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg">
+                  <span className="text-sm font-bold text-accent">
+                    ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                   </span>
                 </div>
 
                 {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2">
-                      <User className="w-4 h-4" />
-                      <span className="hidden md:inline">{profile.name}</span>
+                    <Button variant="outline" size="sm" className="gap-2 max-w-[140px]">
+                      <User className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{profile.name?.split(' ')[0]}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
