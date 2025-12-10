@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const signUpSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  username: z.string().trim().min(3, "Username must be at least 3 characters").max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().trim().email("Invalid email address").max(255),
   password: z.string().min(8, "Password must be at least 8 characters").max(100),
   accountType: z.enum(['trader', 'creator'])
@@ -36,6 +38,7 @@ const Auth = () => {
   // Sign up form
   const [signUpData, setSignUpData] = useState({
     name: "",
+    username: "",
     email: "",
     password: "",
     accountType: "trader" as 'trader' | 'creator'
@@ -50,12 +53,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && profile) {
-      // Check if KYC is required
-      if (!profile.kyc_verified) {
-        navigate('/kyc-verification');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
   }, [isAuthenticated, profile, navigate]);
 
@@ -65,6 +63,23 @@ const Auth = () => {
     try {
       const validated = signUpSchema.parse(signUpData);
       setLoading(true);
+
+      // Check if username is already taken
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', validated.username.toLowerCase())
+        .single();
+
+      if (existingUser) {
+        toast({
+          title: "Username taken",
+          description: "This username is already in use. Please choose another.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
 
       const { data, error } = await signUp(
         validated.email,
@@ -91,11 +106,16 @@ const Auth = () => {
       }
 
       if (data.user) {
+        // Update profile with username
+        await supabase
+          .from('profiles')
+          .update({ username: validated.username.toLowerCase() })
+          .eq('id', data.user.id);
+
         toast({
           title: "Account created!",
-          description: "Welcome to Shariz. Let's verify your identity.",
+          description: "Welcome to Shariz. Start trading!",
         });
-        // Will redirect to KYC via useEffect
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -158,7 +178,6 @@ const Auth = () => {
   };
 
   const fetchUserProfile = async (userId: string) => {
-    const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await supabase
       .from('profiles')
       .select('mfa_enabled')
@@ -307,6 +326,21 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="signup-username" className="text-sm md:text-base">Username</Label>
+                  <Input
+                    id="signup-username"
+                    type="text"
+                    placeholder="johndoe"
+                    value={signUpData.username}
+                    onChange={(e) => setSignUpData({ ...signUpData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                    className="h-12 text-base"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Letters, numbers, and underscores only
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="signup-email" className="text-sm md:text-base">Email</Label>
                   <Input
                     id="signup-email"
@@ -329,7 +363,7 @@ const Auth = () => {
                     className="h-12 text-base"
                     required
                   />
-                  <p className="text-xs md:text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     Must be at least 8 characters
                   </p>
                 </div>
@@ -350,9 +384,6 @@ const Auth = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <p className="text-xs md:text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                  Must be 18+ and will require identity verification (KYC) as required by federal law.
-                </p>
                 <Button 
                   type="submit" 
                   className="w-full h-12 text-base bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
