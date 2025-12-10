@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
 import { User, Settings, LogOut, Menu } from "lucide-react";
-import TradingModeToggle from "./TradingModeToggle";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
@@ -91,11 +90,6 @@ const Navigation = () => {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-4">
-            {/* Trading Mode Toggle - Desktop */}
-            <div className="hidden md:block">
-              <TradingModeToggle compact />
-            </div>
-
             {/* Mobile Menu Toggle */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="md:hidden">
@@ -170,12 +164,6 @@ const Navigation = () => {
                     </NavLink>
                   )}
                   
-                  {/* Trading Mode Toggle - Mobile */}
-                  <div className="border-t border-border pt-4 mt-2">
-                    <p className="text-sm text-muted-foreground mb-2">Trading Mode</p>
-                    <TradingModeToggle />
-                  </div>
-
                   <div className="border-t border-border pt-6 mt-4">
                     {isAuthenticated && profile ? (
                       <div className="space-y-4">
