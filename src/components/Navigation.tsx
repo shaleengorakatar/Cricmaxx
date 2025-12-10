@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
-import { User, Settings, LogOut, Menu } from "lucide-react";
+import { User, Settings, LogOut, Menu, Wallet } from "lucide-react";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
@@ -90,6 +90,16 @@ const Navigation = () => {
           </nav>
 
           <div className="flex items-center gap-2 md:gap-4">
+            {/* Balance Display - Mobile */}
+            {isAuthenticated && profile && (
+              <div className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
+                <Wallet className="w-3.5 h-3.5 text-primary" />
+                <span className="text-xs font-semibold text-primary">
+                  {profile.balance?.toLocaleString() ?? 0}
+                </span>
+              </div>
+            )}
+
             {/* Mobile Menu Toggle */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="md:hidden">
@@ -241,14 +251,13 @@ const Navigation = () => {
             <div className="hidden md:flex items-center gap-4">
             {isAuthenticated && profile ? (
               <>
-                {/* KYC Warning Badge */}
-                {!profile.kyc_verified && (
-                  <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-                    <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
-                      ⚠️ KYC Required
-                    </span>
-                  </div>
-                )}
+                {/* Balance Display - Desktop */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
+                  <Wallet className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">
+                    {profile.balance?.toLocaleString() ?? 0}
+                  </span>
+                </div>
 
                 {/* User Menu */}
                 <DropdownMenu>
