@@ -54,18 +54,18 @@ const Navigation = () => {
             {isAuthenticated && (
               <>
                 <NavLink 
-                  to="/friends"
-                  className="text-sm text-foreground hover:text-primary transition-colors"
-                  activeClassName="text-primary font-semibold"
-                >
-                  Friends
-                </NavLink>
-                <NavLink 
                   to="/dashboard"
                   className="text-sm text-foreground hover:text-primary transition-colors"
                   activeClassName="text-primary font-semibold"
                 >
                   Dashboard
+                </NavLink>
+                <NavLink 
+                  to="/friends"
+                  className="text-sm text-foreground hover:text-primary transition-colors"
+                  activeClassName="text-primary font-semibold"
+                >
+                  Friends
                 </NavLink>
               </>
             )}
@@ -94,8 +94,9 @@ const Navigation = () => {
             {isAuthenticated && profile && (
               <Link 
                 to="/dashboard" 
-                className="flex lg:hidden items-center gap-1 px-2 py-1 bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer"
+                className="flex lg:hidden items-center gap-1.5 px-2 py-1 bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer"
               >
+                <Wallet className="w-3.5 h-3.5 text-accent" />
                 <span className="text-xs font-bold text-accent">
                   ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                 </span>
@@ -138,20 +139,20 @@ const Navigation = () => {
                   {isAuthenticated && (
                     <>
                       <NavLink 
-                        to="/friends"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                        activeClassName="text-primary font-semibold"
-                      >
-                        Friends
-                      </NavLink>
-                      <NavLink 
                         to="/dashboard"
                         onClick={() => setMobileMenuOpen(false)}
                         className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
                         activeClassName="text-primary font-semibold"
                       >
                         Dashboard
+                      </NavLink>
+                      <NavLink 
+                        to="/friends"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
+                        activeClassName="text-primary font-semibold"
+                      >
+                        Friends
                       </NavLink>
                     </>
                   )}
@@ -258,6 +259,7 @@ const Navigation = () => {
                   to="/dashboard" 
                   className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors cursor-pointer"
                 >
+                  <Wallet className="w-4 h-4 text-accent" />
                   <span className="text-sm font-bold text-accent">
                     ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                   </span>
