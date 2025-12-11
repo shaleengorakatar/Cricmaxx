@@ -92,11 +92,14 @@ const Navigation = () => {
           <div className="flex items-center gap-2 lg:gap-3">
             {/* Balance Display - Mobile */}
             {isAuthenticated && profile && (
-              <div className="flex lg:hidden items-center gap-1 px-2 py-1 bg-accent/10 rounded-md">
+              <Link 
+                to="/dashboard" 
+                className="flex lg:hidden items-center gap-1 px-2 py-1 bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer"
+              >
                 <span className="text-xs font-bold text-accent">
                   ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                 </span>
-              </div>
+              </Link>
             )}
 
             {/* Mobile Menu Toggle */}
@@ -251,11 +254,14 @@ const Navigation = () => {
             {isAuthenticated && profile ? (
               <>
                 {/* Balance Display - Desktop */}
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg">
+                <Link 
+                  to="/dashboard" 
+                  className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors cursor-pointer"
+                >
                   <span className="text-sm font-bold text-accent">
                     ₹{Math.floor(profile.balance ?? 0).toLocaleString()}
                   </span>
-                </div>
+                </Link>
 
                 {/* User Menu */}
                 <DropdownMenu>
