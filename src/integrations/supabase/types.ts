@@ -86,6 +86,33 @@ export type Database = {
         }
         Relationships: []
       }
+      distributed_cache: {
+        Row: {
+          cache_key: string
+          cache_type: string
+          created_at: string
+          data: Json
+          expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          cache_key: string
+          cache_type: string
+          created_at?: string
+          data: Json
+          expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          cache_key?: string
+          cache_type?: string
+          created_at?: string
+          data?: Json
+          expires_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fraud_alerts: {
         Row: {
           actual_value: number | null
@@ -1119,6 +1146,21 @@ export type Database = {
       }
     }
     Functions: {
+      cache_cleanup: { Args: never; Returns: number }
+      cache_get_or_set: {
+        Args: { _cache_key: string; _cache_type: string; _ttl_seconds?: number }
+        Returns: Json
+      }
+      cache_invalidate: { Args: { _key_prefix: string }; Returns: number }
+      cache_set: {
+        Args: {
+          _cache_key: string
+          _cache_type: string
+          _data: Json
+          _ttl_seconds?: number
+        }
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           _max_attempts?: number
