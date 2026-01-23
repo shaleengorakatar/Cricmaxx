@@ -4,58 +4,95 @@ import { Badge } from "@/components/ui/badge";
 interface Transaction {
   id: string;
   date: string;
-  type: "deposit" | "withdrawal" | "trade" | "win" | "loss";
+  type: "deposit" | "withdrawal" | "trade" | "settlement" | "refund";
   description: string;
   amount: number;
+  marketName?: string;
 }
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
 }
 
+/**
+ * Audit-friendly transaction history
+ * Uses prediction market-safe language: tokens added, committed, settled, redemption
+ */
 const TransactionHistory = ({ transactions }: TransactionHistoryProps) => {
+  const getTypeLabel = (type: Transaction["type"]) => {
+    switch (type) {
+      case "deposit":
+        return "Tokens added";
+      case "withdrawal":
+        return "Redemption";
+      case "trade":
+        return "Tokens committed";
+      case "settlement":
+        return "Tokens settled";
+      case "refund":
+        return "Tokens returned";
+    }
+  };
+
   const getTypeBadge = (type: Transaction["type"]) => {
     switch (type) {
       case "deposit":
-        return <Badge variant="default" className="bg-green-600">Deposit</Badge>;
+        return <Badge variant="secondary" className="text-xs">{getTypeLabel(type)}</Badge>;
       case "withdrawal":
-        return <Badge variant="secondary">Withdrawal</Badge>;
+        return <Badge variant="outline" className="text-xs">{getTypeLabel(type)}</Badge>;
       case "trade":
-        return <Badge variant="outline">Trade</Badge>;
-      case "win":
-        return <Badge className="bg-green-600">Win</Badge>;
-      case "loss":
-        return <Badge variant="destructive">Loss</Badge>;
+        return <Badge variant="outline" className="text-xs">{getTypeLabel(type)}</Badge>;
+      case "settlement":
+        return <Badge variant="secondary" className="text-xs">{getTypeLabel(type)}</Badge>;
+      case "refund":
+        return <Badge variant="secondary" className="text-xs">{getTypeLabel(type)}</Badge>;
     }
   };
 
   const isCredit = (type: Transaction["type"]) => {
-    return type === "deposit" || type === "win";
+    return type === "deposit" || type === "settlement" || type === "refund";
+  };
+
+  const formatActivity = (transaction: Transaction) => {
+    const prefix = isCredit(transaction.type) ? "+" : "–";
+    const amount = Math.abs(transaction.amount);
+    
+    switch (transaction.type) {
+      case "deposit":
+        return `${prefix}${amount} Tokens added`;
+      case "withdrawal":
+        return `${prefix}${amount} Tokens redemption requested`;
+      case "trade":
+        return `${prefix}${amount} Tokens committed${transaction.marketName ? ` (${transaction.marketName})` : ''}`;
+      case "settlement":
+        return `${prefix}${amount} Tokens settled${transaction.marketName ? ` (${transaction.marketName})` : ''}`;
+      case "refund":
+        return `${prefix}${amount} Tokens returned${transaction.marketName ? ` (${transaction.marketName})` : ''}`;
+      default:
+        return `${prefix}${amount} Tokens`;
+    }
   };
 
   return (
     <Card className="p-4 md:p-6">
-      <h2 className="text-base md:text-lg font-semibold text-foreground mb-4">Transaction History</h2>
+      <h2 className="text-base md:text-lg font-semibold text-foreground mb-4">Wallet Activity</h2>
       
       {transactions.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
-          No transactions yet. Your transaction history will appear here.
+          No activity yet. Your wallet activity will appear here.
         </p>
       ) : (
         <div className="space-y-2 md:space-y-3">
           {transactions.map((transaction) => (
-            <div key={transaction.id} className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors active:scale-[0.98]">
+            <div 
+              key={transaction.id} 
+              className="flex items-center justify-between p-3 md:p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
+            >
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {getTypeBadge(transaction.type)}
-                  <span className="text-xs text-muted-foreground">{transaction.date}</span>
-                </div>
-                <p className="text-sm text-foreground truncate">{transaction.description}</p>
-              </div>
-              <div className="ml-4 shrink-0">
-                <p className={`text-sm md:text-base font-semibold ${isCredit(transaction.type) ? 'text-green-600' : 'text-red-600'}`}>
-                  {isCredit(transaction.type) ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString()}
+                <p className="text-sm text-foreground font-medium">
+                  {formatActivity(transaction)}
                 </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{transaction.date}</p>
               </div>
             </div>
           ))}

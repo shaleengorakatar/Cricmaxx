@@ -104,8 +104,8 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
       }
 
       toast({
-        title: "🎉 Prediction placed!",
-        description: `${side.toUpperCase()} — If correct, you get $${payout.toFixed(2)}!`,
+        title: "Position opened!",
+        description: `${side.toUpperCase()} — If correct, ${payout.toFixed(2)} tokens returned`,
       });
     } catch (error: any) {
       if (soundEnabled) playSound('error');
@@ -191,7 +191,7 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
         {/* Stake Amount with Visual Slider */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Your stake</span>
+            <span className="text-sm font-medium text-muted-foreground">Stake amount</span>
             <div className="flex items-center gap-1">
               <span className="text-3xl font-bold text-foreground">${stakeAmount}</span>
             </div>
@@ -251,8 +251,8 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
               
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
-                <p className="text-xs font-medium opacity-80">If Yes wins, you get</p>
-                <p className="text-xl font-black">${yesPayout.toFixed(2)}</p>
+                <p className="text-xs font-medium opacity-80">If Yes, you get</p>
+                <p className="text-xl font-black">{yesPayout.toFixed(2)} tokens</p>
               </div>
             </div>
             
@@ -284,8 +284,8 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
               
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
-                <p className="text-xs font-medium opacity-80">If No wins, you get</p>
-                <p className="text-xl font-black">${noPayout.toFixed(2)}</p>
+                <p className="text-xs font-medium opacity-80">If No, you get</p>
+                <p className="text-xl font-black">{noPayout.toFixed(2)} tokens</p>
               </div>
             </div>
             
@@ -308,19 +308,19 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
                 </button>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs p-4 space-y-2">
-                <p className="font-semibold">Simple prediction trading:</p>
+                <p className="font-semibold">How positions work:</p>
                 <ul className="text-sm space-y-1.5">
                   <li className="flex items-start gap-2">
                     <span className="text-success">✓</span>
-                    <span><strong>If you're right:</strong> Get $1 per share</span>
+                    <span><strong>If outcome matches:</strong> Tokens returned at 1:1</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-destructive">✗</span>
-                    <span><strong>If you're wrong:</strong> Shares worth $0</span>
+                    <span><strong>If outcome differs:</strong> 0 tokens returned</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-accent">💡</span>
-                    <span>Lower odds = higher probability (but smaller payout)</span>
+                    <span>Tokens are locked until market resolves</span>
                   </li>
                 </ul>
               </TooltipContent>
@@ -332,7 +332,7 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
         {isAuthenticated && (
           <div className="text-center pt-4 border-t border-border/50">
             <p className="text-sm text-muted-foreground">
-              Available balance: <span className="font-bold text-foreground">${userBalance.toFixed(2)}</span>
+              Available tokens: <span className="font-bold text-foreground">{userBalance.toFixed(0)}</span>
             </p>
           </div>
         )}

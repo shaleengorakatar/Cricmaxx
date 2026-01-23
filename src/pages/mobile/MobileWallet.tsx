@@ -1,112 +1,130 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MobileLayout } from "@/layouts/MobileLayout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, ArrowUpCircle, ArrowDownCircle, History } from "lucide-react";
+import { Coins, BarChart3, History, ArrowDownCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import WalletHome from "@/components/wallet/WalletHome";
+import PositionsScreen from "@/components/wallet/PositionsScreen";
+import WalletActivity from "@/components/wallet/WalletActivity";
+import BuyTokensDialog from "@/components/wallet/BuyTokensDialog";
+import RedeemTokensDialog from "@/components/wallet/RedeemTokensDialog";
+import { Button } from "@/components/ui/button";
+import { WalletActivityType } from "@/lib/walletTerminology";
+
+interface Position {
+  id: string;
+  marketQuestion: string;
+  side: "yes" | "no";
+  tokensCommitted: number;
+  status: "active" | "settled";
+  tokensReturned?: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: WalletActivityType;
+  amount: number;
+  marketName?: string;
+  timestamp: string;
+}
 
 const MobileWallet = () => {
   const { user, profile } = useAuth();
-  const { toast } = useToast();
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
+  const [redeemDialogOpen, setRedeemDialogOpen] = useState(false);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [tokensInPlay, setTokensInPlay] = useState(0);
+  const [settledThisWeek, setSettledThisWeek] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const handleDeposit = async () => {
-    if (!user || !depositAmount) return;
-    
-    const amount = parseFloat(depositAmount);
-    if (amount <= 0 || amount > 10000) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter an amount between $0.01 and $10,000",
-        variant: "destructive",
-      });
-      return;
+  useEffect(() => {
+    if (user) {
+      fetchWalletData();
     }
+  }, [user]);
 
+  const fetchWalletData = async () => {
+    if (!user) return;
     setLoading(true);
+
     try {
-      const { error } = await supabase.functions.invoke('wallet-operations', {
-        body: {
-          operation: 'deposit',
-          amount: amount,
-        },
-      });
+      // Fetch open positions
+      const { data: positionsData } = await supabase
+        .from("positions")
+        .select(`
+          id,
+          side,
+          size,
+          entry_price,
+          status,
+          market_id,
+          markets (question)
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (positionsData) {
+        const formattedPositions: Position[] = positionsData.map((p: any) => ({
+          id: p.id,
+          marketQuestion: p.markets?.question || "Unknown Market",
+          side: p.side as "yes" | "no",
+          tokensCommitted: Number(p.size) * Number(p.entry_price),
+          status: p.status === "open" ? "active" : "settled",
+          tokensReturned: p.status === "closed" ? Number(p.size) : 0,
+        }));
 
-      toast({
-        title: "Deposit successful",
-        description: `Added ${amount.toFixed(2)} credits to your wallet`,
-      });
-      setDepositAmount("");
-    } catch (error: any) {
-      toast({
-        title: "Deposit failed",
-        description: error.message || "Failed to process deposit",
-        variant: "destructive",
-      });
+        setPositions(formattedPositions);
+
+        // Calculate tokens in play
+        const inPlay = formattedPositions
+          .filter(p => p.status === "active")
+          .reduce((sum, p) => sum + p.tokensCommitted, 0);
+        setTokensInPlay(Math.round(inPlay));
+
+        // Count settled this week
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        const settled = formattedPositions.filter(p => p.status === "settled").length;
+        setSettledThisWeek(settled);
+      }
+
+      // Fetch transactions for activity
+      const { data: transactionsData } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (transactionsData) {
+        const formattedActivities: ActivityItem[] = transactionsData.map((t: any) => {
+          let type: WalletActivityType = "tokens_added";
+          if (t.type === "deposit") type = "tokens_added";
+          else if (t.type === "withdrawal") type = "redemption_requested";
+          else if (t.type === "trade") type = "tokens_committed";
+          else if (t.type === "resolution" || t.type === "payout") type = "tokens_settled";
+
+          return {
+            id: t.id,
+            type,
+            amount: Math.abs(Number(t.amount)),
+            timestamp: t.created_at,
+          };
+        });
+        setActivities(formattedActivities);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWithdraw = async () => {
-    if (!user || !withdrawAmount) return;
-    
-    const amount = parseFloat(withdrawAmount);
-    if (amount <= 0) {
-      toast({
-        title: "Invalid amount",
-        description: "Please enter a valid amount",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (amount > (profile?.balance || 0)) {
-      toast({
-        title: "Insufficient balance",
-        description: `You only have ${profile?.balance.toFixed(2)} credits`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.functions.invoke('wallet-operations', {
-        body: {
-          operation: 'withdrawal',
-          amount: amount,
-        },
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Withdrawal successful",
-        description: `Withdrew ${amount.toFixed(2)} credits from your wallet`,
-      });
-      setWithdrawAmount("");
-    } catch (error: any) {
-      toast({
-        title: "Withdrawal failed",
-        description: error.message || "Failed to process withdrawal",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleBalanceUpdate = () => {
+    fetchWalletData();
   };
-
-  const quickAmounts = [10, 25, 50, 100, 250, 500];
 
   if (!user) {
     return (
@@ -120,139 +138,73 @@ const MobileWallet = () => {
     );
   }
 
+  const availableTokens = Math.round(profile?.balance || 0);
+  const openPositionsCount = positions.filter(p => p.status === "active").length;
+
   return (
     <MobileLayout>
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Wallet</h1>
-
-        {/* Balance Card */}
-        <Card className="p-6 mb-6 bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
-          <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="h-5 w-5" />
-            <p className="text-sm opacity-90">Available Balance</p>
-          </div>
-          <p className="text-4xl font-bold">
-            {profile?.balance.toLocaleString() || 0}
-          </p>
-          <p className="text-sm opacity-75 mt-1">credits</p>
-        </Card>
-
-        {/* Tabs */}
-        <Tabs defaultValue="deposit" className="w-full">
+        <Tabs defaultValue="wallet" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="deposit" className="text-base">
-              <ArrowUpCircle className="h-4 w-4 mr-2" />
-              Deposit
+            <TabsTrigger value="wallet" className="text-sm">
+              <Coins className="h-4 w-4 mr-1.5" />
+              Wallet
             </TabsTrigger>
-            <TabsTrigger value="withdraw" className="text-base">
-              <ArrowDownCircle className="h-4 w-4 mr-2" />
-              Withdraw
+            <TabsTrigger value="positions" className="text-sm">
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Positions
             </TabsTrigger>
-            <TabsTrigger value="history" className="text-base">
-              <History className="h-4 w-4 mr-2" />
-              History
+            <TabsTrigger value="activity" className="text-sm">
+              <History className="h-4 w-4 mr-1.5" />
+              Activity
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="deposit" className="space-y-4">
-            <Card className="p-4">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="deposit-amount" className="text-base">Amount</Label>
-                  <Input
-                    id="deposit-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    className="h-14 text-lg mt-2"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block">
-                    Quick amounts
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {quickAmounts.map((amount) => (
-                      <Button
-                        key={amount}
-                        variant="outline"
-                        onClick={() => setDepositAmount(amount.toString())}
-                        className="h-12"
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleDeposit}
-                  disabled={loading || !depositAmount}
-                  className="w-full h-14 text-base"
-                >
-                  Deposit Funds
-                </Button>
-              </div>
-            </Card>
+          <TabsContent value="wallet" className="space-y-4">
+            <WalletHome
+              availableTokens={availableTokens}
+              tokensInPlay={tokensInPlay}
+              openPositions={openPositionsCount}
+              settledThisWeek={settledThisWeek}
+              onBuyTokens={() => setBuyDialogOpen(true)}
+            />
+            
+            {/* Redeem button - separate, less prominent */}
+            <Button
+              variant="ghost"
+              onClick={() => setRedeemDialogOpen(true)}
+              className="w-full text-muted-foreground"
+              disabled={availableTokens < 10 || openPositionsCount > 0}
+            >
+              <ArrowDownCircle className="h-4 w-4 mr-2" />
+              Request Redemption
+            </Button>
           </TabsContent>
 
-          <TabsContent value="withdraw" className="space-y-4">
-            <Card className="p-4">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="withdraw-amount" className="text-base">Amount</Label>
-                  <Input
-                    id="withdraw-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="h-14 text-lg mt-2"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-muted-foreground mb-2 block">
-                    Quick amounts
-                  </Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {quickAmounts.map((amount) => (
-                      <Button
-                        key={amount}
-                        variant="outline"
-                        onClick={() => setWithdrawAmount(amount.toString())}
-                        className="h-12"
-                        disabled={amount > (profile?.balance || 0)}
-                      >
-                        ${amount}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleWithdraw}
-                  disabled={loading || !withdrawAmount}
-                  className="w-full h-14 text-base"
-                  variant="destructive"
-                >
-                  Withdraw Funds
-                </Button>
-              </div>
-            </Card>
+          <TabsContent value="positions">
+            <PositionsScreen positions={positions} />
           </TabsContent>
 
-          <TabsContent value="history">
-            <Card className="p-4">
-              <p className="text-center text-muted-foreground py-8">
-                Transaction history coming soon
-              </p>
-            </Card>
+          <TabsContent value="activity">
+            <WalletActivity activities={activities} />
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      <BuyTokensDialog
+        isOpen={buyDialogOpen}
+        onClose={() => setBuyDialogOpen(false)}
+        onSuccess={handleBalanceUpdate}
+      />
+
+      <RedeemTokensDialog
+        isOpen={redeemDialogOpen}
+        onClose={() => setRedeemDialogOpen(false)}
+        onSuccess={handleBalanceUpdate}
+        availableTokens={availableTokens}
+        hasOpenPositions={openPositionsCount > 0}
+      />
     </MobileLayout>
   );
 };
