@@ -113,6 +113,33 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notifications: {
+        Row: {
+          email_type: string
+          id: string
+          metadata: Json | null
+          sent_at: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          email_type: string
+          id?: string
+          metadata?: Json | null
+          sent_at?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          sent_at?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       fraud_alerts: {
         Row: {
           actual_value: number | null
@@ -635,6 +662,7 @@ export type Database = {
           expiry_time: string
           id: string
           image_url: string | null
+          is_featured: boolean | null
           liquidity_pool: number
           no_price: number
           outcome: string | null
@@ -642,6 +670,8 @@ export type Database = {
           pool_enabled: boolean
           pool_no_shares: number
           pool_yes_shares: number
+          prediction_count: number | null
+          price_history: Json | null
           question: string
           resolution_notes: string | null
           resolution_source: string | null
@@ -664,6 +694,7 @@ export type Database = {
           expiry_time: string
           id?: string
           image_url?: string | null
+          is_featured?: boolean | null
           liquidity_pool?: number
           no_price?: number
           outcome?: string | null
@@ -671,6 +702,8 @@ export type Database = {
           pool_enabled?: boolean
           pool_no_shares?: number
           pool_yes_shares?: number
+          prediction_count?: number | null
+          price_history?: Json | null
           question: string
           resolution_notes?: string | null
           resolution_source?: string | null
@@ -693,6 +726,7 @@ export type Database = {
           expiry_time?: string
           id?: string
           image_url?: string | null
+          is_featured?: boolean | null
           liquidity_pool?: number
           no_price?: number
           outcome?: string | null
@@ -700,6 +734,8 @@ export type Database = {
           pool_enabled?: boolean
           pool_no_shares?: number
           pool_yes_shares?: number
+          prediction_count?: number | null
+          price_history?: Json | null
           question?: string
           resolution_notes?: string | null
           resolution_source?: string | null
@@ -712,6 +748,30 @@ export type Database = {
           updated_at?: string
           volume?: number
           yes_price?: number
+        }
+        Relationships: []
+      }
+      onboarding_status: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          skipped_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          skipped_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          skipped_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1419,6 +1479,10 @@ export type Database = {
       }
     }
     Functions: {
+      append_price_history: {
+        Args: { p_market_id: string; p_no_price: number; p_yes_price: number }
+        Returns: undefined
+      }
       batch_check_order_status: {
         Args: { _order_ids: string[] }
         Returns: {

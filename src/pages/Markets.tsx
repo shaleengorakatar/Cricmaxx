@@ -145,7 +145,7 @@ const Markets = () => {
       setUserPositions(new Map());
     }
 
-    const formattedMarkets: Market[] = allMarketData.map((m) => ({
+    const formattedMarkets: (Market & { prediction_count?: number; price_history?: any[] })[] = allMarketData.map((m: any) => ({
       id: m.id,
       question: m.question,
       category: m.category as Market["category"],
@@ -156,6 +156,8 @@ const Markets = () => {
       expiryTime: m.expiry_time,
       description: m.description || "",
       imageUrl: m.image_url || "",
+      prediction_count: m.prediction_count || 0,
+      price_history: Array.isArray(m.price_history) ? m.price_history : [],
     }));
 
     setAllMarkets(formattedMarkets);
