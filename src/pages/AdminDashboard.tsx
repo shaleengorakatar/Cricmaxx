@@ -11,6 +11,7 @@ import CricketMarketGenerator from "@/components/admin/CricketMarketGenerator";
 import { CreatorApplicationsPanel } from "@/components/admin/CreatorApplicationsPanel";
 import PlatformFeesPanel from "@/components/admin/PlatformFeesPanel";
 import LiquiditySeedingPanel from "@/components/admin/LiquiditySeedingPanel";
+import LoadTestPanel from "@/components/admin/LoadTestPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
           <Tabs defaultValue="approvals" className="space-y-4 md:space-y-6">
             {/* Mobile: Scrollable pill tabs */}
             <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
-              <TabsList className="inline-flex h-auto p-1 gap-1 bg-muted/50 rounded-lg min-w-max md:grid md:grid-cols-4 lg:grid-cols-8 md:w-full">
+              <TabsList className="inline-flex h-auto p-1 gap-1 bg-muted/50 rounded-lg min-w-max md:grid md:grid-cols-5 lg:grid-cols-9 md:w-full">
                 <TabsTrigger value="approvals" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Approvals
                 </TabsTrigger>
@@ -91,6 +92,9 @@ const AdminDashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="monitoring" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Monitor
+                </TabsTrigger>
+                <TabsTrigger value="loadtest" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Load Test
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -128,6 +132,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="monitoring">
               <MonitoringPanel />
+            </TabsContent>
+
+            <TabsContent value="loadtest">
+              <LoadTestPanel />
             </TabsContent>
           </Tabs>
         </div>
