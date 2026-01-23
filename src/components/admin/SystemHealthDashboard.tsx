@@ -60,6 +60,18 @@ interface SystemHealth {
   timestamp: string;
 }
 
+interface RateLimitStats {
+  active_limits: number;
+  users_rate_limited: number;
+  by_operation: Array<{
+    operation_type: string;
+    total_attempts: number;
+    users_affected: number;
+    max_attempts: number;
+  }>;
+  generated_at: string;
+}
+
 interface CacheAnalytics {
   entries_by_type: Array<{
     type: string;
@@ -121,6 +133,17 @@ const SystemHealthDashboard = () => {
       const { data, error } = await supabase.rpc('get_queue_analytics', { _hours: 24 });
       if (error) throw error;
       return data as unknown as QueueAnalytics;
+    },
+    refetchInterval: 30000,
+  });
+
+  // Fetch rate limit stats
+  const { data: rateLimitStats } = useQuery({
+    queryKey: ['rate-limit-stats'],
+    queryFn: async (): Promise<RateLimitStats | null> => {
+      const { data, error } = await supabase.rpc('get_rate_limit_stats');
+      if (error) throw error;
+      return data as unknown as RateLimitStats;
     },
     refetchInterval: 30000,
   });
@@ -424,6 +447,67 @@ const SystemHealthDashboard = () => {
                 ${(health?.users.total_balance ?? 0).toLocaleString()}
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rate Limiting & Scalability Stats */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Rate Limiting & Scalability
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Active Rate Limits</p>
+              <p className="text-xl font-bold">{rateLimitStats?.active_limits ?? 0}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Users Rate Limited</p>
+              <p className={`text-xl font-bold ${(rateLimitStats?.users_rate_limited ?? 0) > 0 ? 'text-yellow-600' : 'text-green-600'}`}>
+                {rateLimitStats?.users_rate_limited ?? 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Queue Pending</p>
+              <p className={`text-xl font-bold ${(health?.queue.pending ?? 0) > 10 ? 'text-yellow-600' : ''}`}>
+                {health?.queue.pending ?? 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Avg Processing</p>
+              <p className="text-xl font-bold">{queueAnalytics?.avg_processing_time_ms ?? 0}ms</p>
+            </div>
+          </div>
+
+          {rateLimitStats?.by_operation && rateLimitStats.by_operation.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Rate Limits by Operation</p>
+              <div className="grid gap-2">
+                {rateLimitStats.by_operation.map((op) => (
+                  <div key={op.operation_type} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded">
+                    <span className="font-medium">{op.operation_type.replace('_', ' ')}</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-muted-foreground">{op.users_affected} users</span>
+                      <Badge variant={op.max_attempts >= 10 ? "destructive" : "secondary"}>
+                        {op.total_attempts} attempts
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="p-3 bg-muted/30 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              <strong>Scalability Config:</strong> Rate limit: 10 orders/min per user • 
+              Read-replica ready analytics • Optimized connection pooling • 
+              Batch query functions for high throughput
+            </p>
           </div>
         </CardContent>
       </Card>
