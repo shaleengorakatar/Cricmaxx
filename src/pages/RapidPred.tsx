@@ -78,13 +78,13 @@ const RapidPred = () => {
   const fetchMarkets = async () => {
     setLoading(true);
     const now = new Date();
-    const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     const { data, error } = await supabase
       .from("markets")
       .select("*")
       .in("status", ["approved", "open"])
-      .lte("expiry_time", fourteenDaysFromNow.toISOString())
+      .lte("expiry_time", thirtyDaysFromNow.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("expiry_time", { ascending: true })
       .limit(50);
