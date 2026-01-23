@@ -23,16 +23,19 @@ interface Position {
   quantity: number;
   entryPrice: number;
   currentPrice: number;
-  unrealizedPL: number;
+  tokensCommitted: number;
+  status: "active" | "settled";
+  tokensReturned?: number;
   expiring?: boolean;
 }
 
 interface Transaction {
   id: string;
   date: string;
-  type: "deposit" | "withdrawal" | "trade" | "win" | "loss";
+  type: "deposit" | "withdrawal" | "trade" | "settlement" | "refund";
   description: string;
   amount: number;
+  marketName?: string;
 }
 
 const Dashboard = () => {
@@ -71,13 +74,24 @@ const Dashboard = () => {
       .limit(10);
 
     if (data && !error) {
-      const formattedTransactions: Transaction[] = data.map(t => ({
-        id: t.id,
-        date: new Date(t.created_at).toLocaleDateString(),
-        description: t.type.charAt(0).toUpperCase() + t.type.slice(1),
-        amount: Number(t.amount),
-        type: t.type as any
-      }));
+      const formattedTransactions: Transaction[] = data.map(t => {
+        // Map old transaction types to prediction-safe types
+        let transactionType: Transaction["type"] = "trade";
+        if (t.type === "deposit") transactionType = "deposit";
+        else if (t.type === "withdrawal") transactionType = "withdrawal";
+        else if (t.type === "trade") transactionType = "trade";
+        else if (t.type === "win" || t.type === "payout" || t.type === "resolution") transactionType = "settlement";
+        else if (t.type === "loss") transactionType = "settlement";
+        else if (t.type === "refund") transactionType = "refund";
+
+        return {
+          id: t.id,
+          date: new Date(t.created_at).toLocaleDateString(),
+          description: t.type.charAt(0).toUpperCase() + t.type.slice(1),
+          amount: Number(t.amount),
+          type: transactionType
+        };
+      });
       setTransactions(formattedTransactions);
 
       // Generate chart data from transactions (last 7 days)
@@ -132,7 +146,7 @@ const Dashboard = () => {
       const formattedPositions: Position[] = data.map(p => {
         const market = p.markets as any;
         const currentPrice = p.side === 'yes' ? Number(market?.yes_price || 0) : Number(market?.no_price || 0);
-        const unrealizedPL = (currentPrice - Number(p.entry_price)) * Number(p.size);
+        const tokensCommitted = Math.round(Number(p.size) * Number(p.entry_price));
         const isExpiringSoon = market?.expiry_time ? 
           new Date(market.expiry_time).getTime() - Date.now() < 24 * 60 * 60 * 1000 : false;
 
@@ -143,16 +157,17 @@ const Dashboard = () => {
           quantity: Number(p.size),
           entryPrice: Number(p.entry_price),
           currentPrice: currentPrice,
-          unrealizedPL: unrealizedPL,
+          tokensCommitted: tokensCommitted,
+          status: "active" as const,
           expiring: isExpiringSoon
         };
       });
 
       setPositions(formattedPositions);
 
-      // Calculate total P&L
-      const totalPL = formattedPositions.reduce((sum, pos) => sum + pos.unrealizedPL, 0);
-      setProfitLoss(totalPL);
+      // Calculate total tokens in play
+      const totalTokensInPlay = formattedPositions.reduce((sum, pos) => sum + pos.tokensCommitted, 0);
+      setProfitLoss(totalTokensInPlay); // Repurpose as "in play" indicator
     }
   };
 
