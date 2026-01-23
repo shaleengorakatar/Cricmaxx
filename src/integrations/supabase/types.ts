@@ -571,6 +571,60 @@ export type Database = {
           },
         ]
       }
+      market_resolution_log: {
+        Row: {
+          action: string
+          api_response: Json | null
+          created_at: string
+          error_message: string | null
+          id: string
+          market_id: string
+          notes: string | null
+          outcome: string | null
+          performed_by: string | null
+          source: string
+        }
+        Insert: {
+          action: string
+          api_response?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_id: string
+          notes?: string | null
+          outcome?: string | null
+          performed_by?: string | null
+          source: string
+        }
+        Update: {
+          action?: string
+          api_response?: Json | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_id?: string
+          notes?: string | null
+          outcome?: string | null
+          performed_by?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_resolution_log_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "market_resolution_log_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
+        ]
+      }
       markets: {
         Row: {
           category: string
@@ -589,7 +643,12 @@ export type Database = {
           pool_no_shares: number
           pool_yes_shares: number
           question: string
+          resolution_notes: string | null
+          resolution_source: string | null
           resolution_time: string | null
+          resolution_window_hours: number | null
+          resolved_at: string | null
+          resolved_by: string | null
           status: string
           type: string
           updated_at: string
@@ -613,7 +672,12 @@ export type Database = {
           pool_no_shares?: number
           pool_yes_shares?: number
           question: string
+          resolution_notes?: string | null
+          resolution_source?: string | null
           resolution_time?: string | null
+          resolution_window_hours?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -637,7 +701,12 @@ export type Database = {
           pool_no_shares?: number
           pool_yes_shares?: number
           question?: string
+          resolution_notes?: string | null
+          resolution_source?: string | null
           resolution_time?: string | null
+          resolution_window_hours?: number | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           status?: string
           type?: string
           updated_at?: string
@@ -1015,6 +1084,66 @@ export type Database = {
         }
         Relationships: []
       }
+      resolution_notifications: {
+        Row: {
+          created_at: string
+          email_sent: boolean | null
+          id: string
+          market_id: string
+          message: string
+          notification_type: string
+          outcome: string | null
+          payout_amount: number | null
+          push_sent: boolean | null
+          read: boolean | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          market_id: string
+          message: string
+          notification_type: string
+          outcome?: string | null
+          payout_amount?: number | null
+          push_sent?: boolean | null
+          read?: boolean | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_sent?: boolean | null
+          id?: string
+          market_id?: string
+          message?: string
+          notification_type?: string
+          outcome?: string | null
+          payout_amount?: number | null
+          push_sent?: boolean | null
+          read?: boolean | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resolution_notifications_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resolution_notifications_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
+        ]
+      }
       system_metrics: {
         Row: {
           id: string
@@ -1331,6 +1460,19 @@ export type Database = {
       get_market_detail: {
         Args: { _market_id: string; _user_id?: string }
         Returns: Json
+      }
+      get_market_resolution_history: {
+        Args: { market_uuid: string }
+        Returns: {
+          action: string
+          created_at: string
+          error_message: string
+          id: string
+          notes: string
+          outcome: string
+          performed_by_name: string
+          source: string
+        }[]
       }
       get_market_stats_cached: {
         Args: { _category?: string; _limit?: number; _status?: string }
