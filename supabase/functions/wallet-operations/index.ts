@@ -8,6 +8,14 @@ const corsHeaders = {
 interface WalletOperationRequest {
   operation: 'deposit' | 'withdrawal';
   amount: number;
+  idempotencyKey?: string;
+  expectedVersion?: number;
+}
+
+// Generate idempotency key if not provided
+function generateIdempotencyKey(userId: string, operation: string, amount: number): string {
+  const timestamp = Math.floor(Date.now() / 1000); // 1-second window
+  return `${userId}-${operation}-${amount}-${timestamp}`;
 }
 
 Deno.serve(async (req) => {
@@ -46,7 +54,7 @@ Deno.serve(async (req) => {
     console.log(`Processing wallet operation for user ${user.id}`);
 
     // Parse request body
-    const { operation, amount }: WalletOperationRequest = await req.json();
+    const { operation, amount, idempotencyKey, expectedVersion }: WalletOperationRequest = await req.json();
 
     // Input validation
     if (!operation || !['deposit', 'withdrawal'].includes(operation)) {
@@ -85,6 +93,9 @@ Deno.serve(async (req) => {
     // Round to 2 decimal places to prevent floating point issues
     const sanitizedAmount = Math.round(amount * 100) / 100;
 
+    // Generate or use provided idempotency key
+    const finalIdempotencyKey = idempotencyKey || generateIdempotencyKey(user.id, operation, sanitizedAmount);
+
     // Check rate limit first (10 operations per hour)
     const { data: rateLimitCheck, error: rateLimitError } = await supabaseAdmin
       .rpc('check_rate_limit', {
@@ -107,12 +118,14 @@ Deno.serve(async (req) => {
 
     console.log(`Rate limit check passed. Attempts remaining: ${rateLimitCheck.attempts_remaining}`);
 
-    // Process wallet operation atomically using database function
+    // Process wallet operation atomically using NEW database function with optimistic locking
     const { data: result, error: operationError } = await supabaseAdmin
-      .rpc('process_wallet_operation', {
+      .rpc('process_wallet_operation_v2', {
         _user_id: user.id,
         _operation: operation,
         _amount: sanitizedAmount,
+        _expected_version: expectedVersion || null,
+        _idempotency_key: finalIdempotencyKey,
         _metadata: {
           timestamp: new Date().toISOString(),
           ip: req.headers.get('x-forwarded-for') || 'unknown',
@@ -122,10 +135,30 @@ Deno.serve(async (req) => {
 
     if (operationError) {
       console.error('Wallet operation error:', operationError);
+      
+      // Check for concurrent modification error
+      if (operationError.message?.includes('Concurrent modification')) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Transaction conflict detected. Please refresh and try again.',
+            code: 'VERSION_CONFLICT',
+            retryable: true
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 409,
+          }
+        );
+      }
+      
       throw new Error(operationError.message || 'Failed to process wallet operation');
     }
 
-    console.log(`${operation} completed successfully. Transaction ID: ${result.transaction_id}`);
+    // Check if this was a cached (deduplicated) response
+    const wasCached = result.cached === true;
+    
+    console.log(`${operation} completed successfully. Transaction ID: ${result.transaction_id}${wasCached ? ' (cached)' : ''}`);
 
     return new Response(
       JSON.stringify({
@@ -135,8 +168,11 @@ Deno.serve(async (req) => {
         newBalance: result.balance_after,
         previousBalance: result.balance_before,
         transactionId: result.transaction_id,
+        version: result.new_version,
         attemptsRemaining: rateLimitCheck.attempts_remaining,
-        message: `${operation === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${sanitizedAmount} credits successful`
+        cached: wasCached,
+        idempotencyKey: finalIdempotencyKey,
+        message: `${operation === 'deposit' ? 'Deposit' : 'Withdrawal'} of ${sanitizedAmount} credits successful${wasCached ? ' (duplicate request)' : ''}`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -147,14 +183,24 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Wallet operation error:', error);
     
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    let statusCode = 400;
+    
+    if (errorMessage === 'Unauthorized') {
+      statusCode = 401;
+    } else if (errorMessage.includes('Rate limit')) {
+      statusCode = 429;
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        error: errorMessage,
+        retryable: statusCode === 429
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error instanceof Error && error.message === 'Unauthorized' ? 401 : 400,
+        status: statusCode,
       }
     );
   }
