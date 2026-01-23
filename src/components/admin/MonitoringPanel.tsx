@@ -1,11 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, Activity, Shield } from "lucide-react";
+import SystemHealthDashboard from "./SystemHealthDashboard";
 
 interface FraudAlert {
   id: string;
@@ -119,10 +121,31 @@ const MonitoringPanel = () => {
   const reviewedAlerts = fraudAlerts?.filter(a => a.status !== 'pending') || [];
 
   return (
-    <div className="space-y-6">
-      {/* Fraud Alerts */}
-      <Card>
-        <CardHeader className="pb-3">
+    <Tabs defaultValue="health" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="health" className="flex items-center gap-2">
+          <Activity className="h-4 w-4" />
+          System Health
+        </TabsTrigger>
+        <TabsTrigger value="fraud" className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          Fraud Alerts
+          {pendingAlerts.length > 0 && (
+            <Badge variant="destructive" className="ml-1 h-5 px-1.5">
+              {pendingAlerts.length}
+            </Badge>
+          )}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="health">
+        <SystemHealthDashboard />
+      </TabsContent>
+
+      <TabsContent value="fraud" className="space-y-6">
+        {/* Fraud Alerts */}
+        <Card>
+          <CardHeader className="pb-3">
           <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <span className="flex items-center gap-2 text-base sm:text-lg">
               <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
@@ -248,9 +271,10 @@ const MonitoringPanel = () => {
             <span>• Multiple withdrawals (5+/24h)</span>
             <span>• Large single transactions</span>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
   );
 };
 

@@ -1015,6 +1015,33 @@ export type Database = {
         }
         Relationships: []
       }
+      system_metrics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_name: string
+          metric_type: string
+          metric_value: number
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_name?: string
+          metric_type?: string
+          metric_value?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
       trades: {
         Row: {
           buy_order_id: string
@@ -1299,6 +1326,7 @@ export type Database = {
       }
       cleanup_expired_records: { Args: never; Returns: Json }
       detect_fraud_patterns: { Args: never; Returns: undefined }
+      get_cache_analytics: { Args: { _hours?: number }; Returns: Json }
       get_leaderboard_cached: { Args: { _limit?: number }; Returns: Json }
       get_market_detail: {
         Args: { _market_id: string; _user_id?: string }
@@ -1308,6 +1336,8 @@ export type Database = {
         Args: { _category?: string; _limit?: number; _status?: string }
         Returns: Json
       }
+      get_queue_analytics: { Args: { _hours?: number }; Returns: Json }
+      get_system_health: { Args: never; Returns: Json }
       get_user_dashboard: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
