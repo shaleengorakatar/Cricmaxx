@@ -5,9 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// In-memory cache with TTL
-const memoryCache = new Map<string, { data: unknown; expires: number }>();
-
 // Cache TTL configurations (in seconds)
 const CACHE_CONFIG = {
   market_prices: 5,      // 5 seconds for real-time prices
@@ -17,7 +14,7 @@ const CACHE_CONFIG = {
 };
 
 interface CacheRequest {
-  action: 'get' | 'set' | 'invalidate' | 'get_market_prices' | 'get_leaderboard';
+  action: 'get' | 'set' | 'invalidate' | 'get_market_prices' | 'get_leaderboard' | 'cleanup';
   key?: string;
   data?: unknown;
   ttl?: number;
@@ -27,22 +24,6 @@ interface CacheRequest {
 
 function getCacheKey(type: string, identifier?: string): string {
   return identifier ? `${type}:${identifier}` : type;
-}
-
-function getFromMemory(key: string): unknown | null {
-  const cached = memoryCache.get(key);
-  if (cached && cached.expires > Date.now()) {
-    return cached.data;
-  }
-  memoryCache.delete(key);
-  return null;
-}
-
-function setInMemory(key: string, data: unknown, ttlSeconds: number): void {
-  memoryCache.set(key, {
-    data,
-    expires: Date.now() + (ttlSeconds * 1000)
-  });
 }
 
 Deno.serve(async (req) => {
@@ -71,11 +52,18 @@ Deno.serve(async (req) => {
         }
 
         const cacheKey = getCacheKey('market_prices', marketId);
-        const cached = getFromMemory(cacheKey);
         
-        if (cached) {
+        // Check distributed cache first
+        const { data: cacheResult, error: cacheError } = await supabaseAdmin
+          .rpc('cache_get_or_set', {
+            _cache_key: cacheKey,
+            _cache_type: 'market_prices',
+            _ttl_seconds: CACHE_CONFIG.market_prices
+          });
+
+        if (!cacheError && cacheResult?.hit) {
           return new Response(
-            JSON.stringify({ success: true, data: cached, cached: true }),
+            JSON.stringify({ success: true, data: cacheResult.data, cached: true }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -89,18 +77,13 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Cache the result
-        setInMemory(cacheKey, market, CACHE_CONFIG.market_prices);
-
-        // Update cache metadata
-        await supabaseAdmin
-          .from('cache_metadata')
-          .upsert({
-            cache_key: cacheKey,
-            cache_type: 'market_prices',
-            last_updated: new Date().toISOString(),
-            ttl_seconds: CACHE_CONFIG.market_prices
-          });
+        // Store in distributed cache
+        await supabaseAdmin.rpc('cache_set', {
+          _cache_key: cacheKey,
+          _cache_type: 'market_prices',
+          _data: market,
+          _ttl_seconds: CACHE_CONFIG.market_prices
+        });
 
         return new Response(
           JSON.stringify({ success: true, data: market, cached: false }),
@@ -110,11 +93,18 @@ Deno.serve(async (req) => {
 
       case 'get_leaderboard': {
         const cacheKey = getCacheKey('leaderboard', `top_${limit}`);
-        const cached = getFromMemory(cacheKey);
         
-        if (cached) {
+        // Check distributed cache first
+        const { data: cacheResult, error: cacheError } = await supabaseAdmin
+          .rpc('cache_get_or_set', {
+            _cache_key: cacheKey,
+            _cache_type: 'leaderboard',
+            _ttl_seconds: CACHE_CONFIG.leaderboard
+          });
+
+        if (!cacheError && cacheResult?.hit) {
           return new Response(
-            JSON.stringify({ success: true, data: cached, cached: true }),
+            JSON.stringify({ success: true, data: cacheResult.data, cached: true }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
@@ -128,18 +118,13 @@ Deno.serve(async (req) => {
 
         if (error) throw error;
 
-        // Cache the result
-        setInMemory(cacheKey, leaderboard, CACHE_CONFIG.leaderboard);
-
-        // Update cache metadata
-        await supabaseAdmin
-          .from('cache_metadata')
-          .upsert({
-            cache_key: cacheKey,
-            cache_type: 'leaderboard',
-            last_updated: new Date().toISOString(),
-            ttl_seconds: CACHE_CONFIG.leaderboard
-          });
+        // Store in distributed cache
+        await supabaseAdmin.rpc('cache_set', {
+          _cache_key: cacheKey,
+          _cache_type: 'leaderboard',
+          _data: leaderboard,
+          _ttl_seconds: CACHE_CONFIG.leaderboard
+        });
 
         return new Response(
           JSON.stringify({ success: true, data: leaderboard, cached: false }),
@@ -150,12 +135,18 @@ Deno.serve(async (req) => {
       case 'get': {
         if (!key) throw new Error('key required for get action');
         
-        const cached = getFromMemory(key);
+        const { data: cacheResult } = await supabaseAdmin
+          .rpc('cache_get_or_set', {
+            _cache_key: key,
+            _cache_type: 'custom',
+            _ttl_seconds: 60
+          });
+
         return new Response(
           JSON.stringify({ 
             success: true, 
-            data: cached, 
-            found: cached !== null 
+            data: cacheResult?.data ?? null, 
+            found: cacheResult?.hit ?? false 
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -167,7 +158,13 @@ Deno.serve(async (req) => {
         }
         
         const cacheTtl = ttl || 60;
-        setInMemory(key, data, cacheTtl);
+        
+        await supabaseAdmin.rpc('cache_set', {
+          _cache_key: key,
+          _cache_type: 'custom',
+          _data: data,
+          _ttl_seconds: cacheTtl
+        });
         
         return new Response(
           JSON.stringify({ success: true, message: 'Cached successfully' }),
@@ -178,15 +175,21 @@ Deno.serve(async (req) => {
       case 'invalidate': {
         if (!key) throw new Error('key required for invalidate action');
         
-        // Invalidate matching keys
-        for (const [k] of memoryCache) {
-          if (k.startsWith(key)) {
-            memoryCache.delete(k);
-          }
-        }
+        const { data: deletedCount } = await supabaseAdmin
+          .rpc('cache_invalidate', { _key_prefix: key });
         
         return new Response(
-          JSON.stringify({ success: true, message: 'Cache invalidated' }),
+          JSON.stringify({ success: true, message: 'Cache invalidated', deleted: deletedCount }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'cleanup': {
+        const { data: deletedCount } = await supabaseAdmin
+          .rpc('cache_cleanup');
+        
+        return new Response(
+          JSON.stringify({ success: true, message: 'Expired cache entries cleaned', deleted: deletedCount }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
