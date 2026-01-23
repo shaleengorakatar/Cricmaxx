@@ -1,8 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { Clock, User, Building2, AlertCircle } from "lucide-react";
+import { Clock, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import InfoTooltip from "@/components/InfoTooltip";
+import MarketCreatorInfo from "./MarketCreatorInfo";
+import SocialShareButtons from "./SocialShareButtons";
 
 interface MarketHeaderProps {
   market: Market;
@@ -29,27 +31,21 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
                 Expires {format(expiryDate, "MMM dd, yyyy")}
               </span>
             </div>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              {market.type === "orderbook" ? (
-                <>
-                  <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="text-xs sm:text-sm">Exchange</span>
-                </>
-              ) : (
-                <>
-                  <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="text-xs sm:text-sm">Creator</span>
-                </>
-              )}
-            </div>
+            
+            {/* Creator info - compact inline */}
+            <MarketCreatorInfo marketId={market.id} compact />
           </div>
         </div>
-        <Badge 
-          variant={isExpired ? "destructive" : "default"}
-          className="text-xs sm:text-sm px-3 sm:px-4 py-1 whitespace-nowrap"
-        >
-          {isExpired ? "Closed" : "Open"}
-        </Badge>
+        
+        <div className="flex items-center gap-2">
+          <SocialShareButtons market={market} />
+          <Badge 
+            variant={isExpired ? "destructive" : "default"}
+            className="text-xs sm:text-sm px-3 sm:px-4 py-1 whitespace-nowrap"
+          >
+            {isExpired ? "Closed" : "Open"}
+          </Badge>
+        </div>
       </div>
 
       <div className="bg-muted/50 border border-border rounded-lg p-3 sm:p-3">
