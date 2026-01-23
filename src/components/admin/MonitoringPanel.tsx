@@ -6,8 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Loader2, AlertTriangle, CheckCircle, Activity, Shield } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle, Activity, Shield, Radio } from "lucide-react";
 import SystemHealthDashboard from "./SystemHealthDashboard";
+import { GlobalActivityFeed } from "./GlobalActivityFeed";
 
 interface FraudAlert {
   id: string;
@@ -121,8 +122,12 @@ const MonitoringPanel = () => {
   const reviewedAlerts = fraudAlerts?.filter(a => a.status !== 'pending') || [];
 
   return (
-    <Tabs defaultValue="health" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-2">
+    <Tabs defaultValue="activity" className="space-y-6">
+      <TabsList className="grid w-full grid-cols-3">
+        <TabsTrigger value="activity" className="flex items-center gap-2">
+          <Radio className="h-4 w-4" />
+          Live Activity
+        </TabsTrigger>
         <TabsTrigger value="health" className="flex items-center gap-2">
           <Activity className="h-4 w-4" />
           System Health
@@ -137,6 +142,10 @@ const MonitoringPanel = () => {
           )}
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="activity">
+        <GlobalActivityFeed limit={100} />
+      </TabsContent>
 
       <TabsContent value="health">
         <SystemHealthDashboard />
