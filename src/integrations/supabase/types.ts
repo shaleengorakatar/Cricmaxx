@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      cache_metadata: {
+        Row: {
+          cache_key: string
+          cache_type: string
+          last_updated: string
+          metadata: Json | null
+          ttl_seconds: number
+        }
+        Insert: {
+          cache_key: string
+          cache_type: string
+          last_updated?: string
+          metadata?: Json | null
+          ttl_seconds?: number
+        }
+        Update: {
+          cache_key?: string
+          cache_type?: string
+          last_updated?: string
+          metadata?: Json | null
+          ttl_seconds?: number
+        }
+        Relationships: []
+      }
       creator_applications: {
         Row: {
           admin_notes: string | null
@@ -292,6 +316,42 @@ export type Database = {
           },
         ]
       }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          idempotency_key: string
+          operation_type: string
+          request_hash: string
+          response_data: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key: string
+          operation_type: string
+          request_hash: string
+          response_data?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          idempotency_key?: string
+          operation_type?: string
+          request_hash?: string
+          response_data?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       kyc_access_log: {
         Row: {
           access_type: string
@@ -524,6 +584,63 @@ export type Database = {
         }
         Relationships: []
       }
+      order_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          market_id: string
+          max_retries: number
+          metadata: Json | null
+          order_type: string
+          price: number
+          priority: number
+          processed_at: string | null
+          quantity: number
+          retry_count: number
+          side: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_id: string
+          max_retries?: number
+          metadata?: Json | null
+          order_type: string
+          price: number
+          priority?: number
+          processed_at?: string | null
+          quantity: number
+          retry_count?: number
+          side: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          market_id?: string
+          max_retries?: number
+          metadata?: Json | null
+          order_type?: string
+          price?: number
+          priority?: number
+          processed_at?: string | null
+          quantity?: number
+          retry_count?: number
+          side?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           avg_fill_price: number | null
@@ -732,6 +849,7 @@ export type Database = {
           terms_accepted_at: string | null
           updated_at: string | null
           username: string | null
+          version: number
         }
         Insert: {
           avatar_url?: string | null
@@ -752,6 +870,7 @@ export type Database = {
           terms_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null
+          version?: number
         }
         Update: {
           avatar_url?: string | null
@@ -772,6 +891,7 @@ export type Database = {
           terms_accepted_at?: string | null
           updated_at?: string | null
           username?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -1008,6 +1128,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_expired_records: { Args: never; Returns: Json }
       detect_fraud_patterns: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -1016,9 +1137,21 @@ export type Database = {
         }
         Returns: boolean
       }
+      process_order_queue: { Args: { batch_size?: number }; Returns: Json }
       process_wallet_operation: {
         Args: {
           _amount: number
+          _metadata?: Json
+          _operation: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      process_wallet_operation_v2: {
+        Args: {
+          _amount: number
+          _expected_version: number
+          _idempotency_key?: string
           _metadata?: Json
           _operation: string
           _user_id: string
