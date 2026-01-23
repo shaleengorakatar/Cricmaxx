@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
 import { User, Settings, LogOut, Menu, Coins } from "lucide-react";
+import { NotificationsBell } from "./notifications/NotificationsBell";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
@@ -254,6 +255,9 @@ const Navigation = () => {
             <div className="hidden lg:flex items-center gap-3">
             {isAuthenticated && profile ? (
               <>
+                {/* Notifications Bell */}
+                <NotificationsBell />
+
                 {/* Balance Display - Desktop */}
                 <Link 
                   to="/dashboard" 
