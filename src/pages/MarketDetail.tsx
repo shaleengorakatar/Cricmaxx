@@ -6,7 +6,7 @@ import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
-
+import { ResolutionRules } from "@/components/market-detail/ResolutionRules";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
@@ -46,6 +46,8 @@ const MarketDetail = () => {
   const { profile, isAuthenticated } = useAuth();
   
   const [market, setMarket] = useState<Market | null>(null);
+  const [marketStatus, setMarketStatus] = useState<string>('open');
+  const [marketOutcome, setMarketOutcome] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
@@ -121,6 +123,8 @@ const MarketDetail = () => {
     };
 
     setMarket(formattedMarket);
+    setMarketStatus(data.status);
+    setMarketOutcome(data.outcome);
     setPriceHistory(generatePriceHistory(formattedMarket.yesPrice));
     setLoading(false);
   };
@@ -173,6 +177,14 @@ const MarketDetail = () => {
             {/* Market Info & Chart Section */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <MarketHeader market={market} />
+              
+              {/* Resolution Rules Accordion */}
+              <ResolutionRules 
+                marketId={market.id}
+                expiryTime={market.expiryTime}
+                status={marketStatus}
+                outcome={marketOutcome}
+              />
               
               {/* Collapsible Price Chart on Mobile */}
               <div className="md:block">
