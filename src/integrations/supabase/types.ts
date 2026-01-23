@@ -1419,6 +1419,25 @@ export type Database = {
       }
     }
     Functions: {
+      batch_check_order_status: {
+        Args: { _order_ids: string[] }
+        Returns: {
+          avg_fill_price: number
+          filled_quantity: number
+          order_id: string
+          status: string
+        }[]
+      }
+      batch_get_market_prices: {
+        Args: { _market_ids: string[] }
+        Returns: {
+          market_id: string
+          no_price: number
+          updated_at: string
+          volume: number
+          yes_price: number
+        }[]
+      }
       batch_get_markets: {
         Args: { _market_ids: string[] }
         Returns: {
@@ -1468,6 +1487,15 @@ export type Database = {
         }
         Returns: Json
       }
+      check_rate_limit_fast: {
+        Args: {
+          _max_attempts?: number
+          _operation_type: string
+          _user_id: string
+          _window_minutes?: number
+        }
+        Returns: Json
+      }
       cleanup_expired_records: { Args: never; Returns: Json }
       detect_fraud_patterns: { Args: never; Returns: undefined }
       get_cache_analytics: { Args: { _hours?: number }; Returns: Json }
@@ -1495,7 +1523,12 @@ export type Database = {
         Args: { _category?: string; _limit?: number; _status?: string }
         Returns: Json
       }
+      get_platform_analytics_readonly: {
+        Args: { _hours?: number }
+        Returns: Json
+      }
       get_queue_analytics: { Args: { _hours?: number }; Returns: Json }
+      get_rate_limit_stats: { Args: never; Returns: Json }
       get_system_health: { Args: never; Returns: Json }
       get_user_dashboard: { Args: { _user_id: string }; Returns: Json }
       has_role: {
@@ -1507,6 +1540,15 @@ export type Database = {
       }
       process_order_queue: { Args: { batch_size?: number }; Returns: Json }
       process_wallet_operation: {
+        Args: {
+          _amount: number
+          _metadata?: Json
+          _operation: string
+          _user_id: string
+        }
+        Returns: Json
+      }
+      process_wallet_operation_pooled: {
         Args: {
           _amount: number
           _metadata?: Json

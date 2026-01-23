@@ -60,6 +60,32 @@ serve(async (req) => {
     const action = body.action || pathAction;
 
     if (action === 'place' && req.method === 'POST') {
+      // Rate limiting for order placement (10 orders per minute per user)
+      const { data: rateCheck, error: rateError } = await supabase.rpc('check_rate_limit_fast', {
+        _user_id: user.id,
+        _operation_type: 'order_placement',
+        _max_attempts: 10,
+        _window_minutes: 1
+      });
+
+      if (rateError) {
+        console.error('Rate limit check error:', rateError);
+      } else if (rateCheck && !rateCheck.allowed) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded',
+          message: `Too many orders. Please wait ${rateCheck.retry_after_seconds} seconds.`,
+          retry_after: rateCheck.retry_after_seconds,
+          attempts_used: rateCheck.attempts_used
+        }), {
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': String(rateCheck.retry_after_seconds || 60)
+          },
+        });
+      }
+
       return await placeOrder(supabase, user.id, body);
     } else if (action === 'cancel' && req.method === 'POST') {
       return await cancelOrder(supabase, user.id, body);
