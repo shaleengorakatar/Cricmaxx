@@ -99,11 +99,11 @@ serve(async (req) => {
 
     console.log(`Starting load test: ${safeUsers} users x ${safeOps} ops = ${safeUsers * safeOps} total requests`);
 
-    // Get test markets
+    // Get test markets (check multiple valid statuses)
     const { data: markets } = await supabase
       .from('markets')
       .select('id')
-      .eq('status', 'active')
+      .in('status', ['active', 'approved', 'open'])
       .limit(10);
 
     const marketIds = markets?.map(m => m.id) || [];
