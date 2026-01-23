@@ -88,16 +88,18 @@ serve(async (req) => {
 
     const config: LoadTestConfig = await req.json();
     const { 
-      concurrentUsers = 100, 
-      operationsPerUser = 5, 
+      concurrentUsers = 50, 
+      operationsPerUser = 3, 
       testType = 'mixed' 
     } = config;
 
-    // Cap for safety
-    const safeUsers = Math.min(concurrentUsers, 1000);
-    const safeOps = Math.min(operationsPerUser, 10);
+    // Cap for edge function compute limits - max 500 total requests per invocation
+    const maxTotalRequests = 500;
+    const safeUsers = Math.min(concurrentUsers, 200);
+    const safeOps = Math.min(operationsPerUser, 5);
+    const effectiveUsers = Math.min(safeUsers, Math.floor(maxTotalRequests / safeOps));
 
-    console.log(`Starting load test: ${safeUsers} users x ${safeOps} ops = ${safeUsers * safeOps} total requests`);
+    console.log(`Starting load test: ${effectiveUsers} users x ${safeOps} ops = ${effectiveUsers * safeOps} total requests`);
 
     // Get test markets (check multiple valid statuses)
     const { data: markets } = await supabase
@@ -118,7 +120,7 @@ serve(async (req) => {
     }
 
     // Create test users (simulate with UUIDs)
-    const testUsers = Array.from({ length: safeUsers }, (_, i) => ({
+    const testUsers = Array.from({ length: effectiveUsers }, (_, i) => ({
       id: crypto.randomUUID(),
       index: i
     }));
@@ -210,12 +212,17 @@ serve(async (req) => {
       return userResults;
     });
 
-    // Execute all user simulations concurrently (in batches to avoid overwhelming)
-    const batchSize = 50;
+    // Execute all user simulations in smaller batches to prevent resource exhaustion
+    const batchSize = 20;
     for (let i = 0; i < userPromises.length; i += batchSize) {
       const batch = userPromises.slice(i, i + batchSize);
       const batchResults = await Promise.all(batch);
       batchResults.forEach(userResults => results.push(...userResults));
+      
+      // Small delay between batches to prevent overwhelming
+      if (i + batchSize < userPromises.length) {
+        await new Promise(r => setTimeout(r, 50));
+      }
     }
 
     const endTime = performance.now();
@@ -274,7 +281,7 @@ serve(async (req) => {
       : 0;
 
     const report: LoadTestReport = {
-      config: { concurrentUsers: safeUsers, operationsPerUser: safeOps, testType },
+      config: { concurrentUsers: effectiveUsers, operationsPerUser: safeOps, testType },
       summary: {
         totalRequests: results.length,
         successfulRequests: successfulResults.length,
