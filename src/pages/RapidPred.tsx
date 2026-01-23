@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,9 @@ import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
+import { useHaptics } from "@/hooks/useHaptics";
+import { WinLossAnimation } from "@/components/mobile/WinLossAnimation";
+import { triggerConfetti } from "@/lib/tradingEffects";
 
 interface SessionTrade {
   id: string;
@@ -41,6 +44,8 @@ const RapidPred = () => {
   const [lastTrade, setLastTrade] = useState<SessionTrade | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [animateTrade, setAnimateTrade] = useState<"yes" | "no" | null>(null);
+  const [winLossType, setWinLossType] = useState<"win" | "loss" | null>(null);
+  const haptics = useHaptics();
   const [sessionTrades, setSessionTrades] = useState<SessionTrade[]>(() => {
     const saved = localStorage.getItem("rapidpred_session_trades");
     if (saved) {
@@ -144,6 +149,7 @@ const RapidPred = () => {
       return;
     }
 
+    haptics.trade();
     setAnimateTrade(side);
     setIsPlacingTrade(true);
 
@@ -202,6 +208,8 @@ const RapidPred = () => {
       });
 
       if (filledQty > 0) {
+        setWinLossType("win");
+        triggerConfetti();
         toast({
           title: "🎉 Prediction placed!",
           description: `${side.toUpperCase()} — Potential win: $${maxWin.toFixed(2)}`,
@@ -211,6 +219,8 @@ const RapidPred = () => {
       loadNextMarket();
     } catch (error: any) {
       console.error("Trade error:", error);
+      haptics.error();
+      setWinLossType("loss");
       toast({
         title: "Trade Failed",
         description: error.message || "Could not place prediction",
@@ -221,21 +231,23 @@ const RapidPred = () => {
     }
   };
 
-  const loadNextMarket = () => {
+  const loadNextMarket = useCallback(() => {
+    haptics.swipe();
     if (currentIndex < markets.length - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
       setCurrentIndex(0);
     }
-  };
+  }, [currentIndex, markets.length, haptics]);
 
-  const loadPrevMarket = () => {
+  const loadPrevMarket = useCallback(() => {
+    haptics.swipe();
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
     } else {
       setCurrentIndex(markets.length - 1);
     }
-  };
+  }, [currentIndex, markets.length, haptics]);
 
   const handleSkip = () => loadNextMarket();
 
@@ -293,6 +305,7 @@ const RapidPred = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
+      <WinLossAnimation type={winLossType} onComplete={() => setWinLossType(null)} />
 
       <main className="flex-1 pt-20 pb-8 px-4">
         <div className="max-w-lg mx-auto space-y-4">
