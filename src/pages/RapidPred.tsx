@@ -13,6 +13,7 @@ import Footer from "@/components/Footer";
 import { useNavigate } from "react-router-dom";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
 
 interface SessionTrade {
   id: string;
@@ -77,14 +78,13 @@ const RapidPred = () => {
 
   const fetchMarkets = async () => {
     setLoading(true);
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const { now, maxExpiry } = getMarketDateRange();
 
     const { data, error } = await supabase
       .from("markets")
       .select("*")
-      .in("status", ["approved", "open"])
-      .lte("expiry_time", thirtyDaysFromNow.toISOString())
+      .in("status", [...ACTIVE_MARKET_STATUSES])
+      .lte("expiry_time", maxExpiry.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("expiry_time", { ascending: true })
       .limit(50);
