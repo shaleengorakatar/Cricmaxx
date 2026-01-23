@@ -93,9 +93,9 @@ serve(async (req) => {
       testType = 'mixed' 
     } = config;
 
-    // Cap for edge function compute limits - max 500 total requests per invocation
-    const maxTotalRequests = 500;
-    const safeUsers = Math.min(concurrentUsers, 200);
+    // Increased limits for stress testing - max 1500 total requests per invocation
+    const maxTotalRequests = 1500;
+    const safeUsers = Math.min(concurrentUsers, 500);
     const safeOps = Math.min(operationsPerUser, 5);
     const effectiveUsers = Math.min(safeUsers, Math.floor(maxTotalRequests / safeOps));
 
@@ -212,16 +212,21 @@ serve(async (req) => {
       return userResults;
     });
 
-    // Execute all user simulations in smaller batches to prevent resource exhaustion
-    const batchSize = 20;
+    // Execute all user simulations in smaller batches with controlled concurrency
+    const batchSize = 10; // Smaller batches for higher total users
     for (let i = 0; i < userPromises.length; i += batchSize) {
       const batch = userPromises.slice(i, i + batchSize);
       const batchResults = await Promise.all(batch);
       batchResults.forEach(userResults => results.push(...userResults));
       
+      // Progress logging for long tests
+      if ((i + batchSize) % 100 === 0) {
+        console.log(`Processed ${Math.min(i + batchSize, userPromises.length)}/${userPromises.length} users...`);
+      }
+      
       // Small delay between batches to prevent overwhelming
       if (i + batchSize < userPromises.length) {
-        await new Promise(r => setTimeout(r, 50));
+        await new Promise(r => setTimeout(r, 20));
       }
     }
 
