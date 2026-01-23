@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, BarChart3, BookOpen, Zap, User, Flame } from "lucide-react";
+import { TrendingUp, BarChart3, BookOpen, Zap, User, Flame, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
 import { useTradingPreferences } from "@/hooks/useTradingPreferences";
+import { Sparkline } from "@/components/ui/sparkline";
 
 export interface UserPosition {
   side: string;
@@ -20,7 +21,7 @@ export interface UserPosition {
 }
 
 interface MarketCardProps {
-  market: Market;
+  market: Market & { prediction_count?: number; price_history?: any[] };
   position?: UserPosition | null;
 }
 
@@ -50,6 +51,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
   // Calculate potential payout at $10 stake
   const yesPayout = (10 / market.yesPrice).toFixed(2);
   const noPayout = (10 / market.noPrice).toFixed(2);
+
+  // Extract price history for sparkline
+  const priceData = market.price_history?.map((p: any) => p.y) || [];
+  const predictionCount = market.prediction_count || 0;
 
   return (
     <Card 
@@ -104,7 +109,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
               )}
               
               {isHot && (
-                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 text-xs animate-pulse">
+                <Badge className="bg-gradient-to-r from-accent to-destructive text-accent-foreground border-0 text-xs animate-pulse">
                   <Flame className="h-3 w-3 mr-1" />
                   Hot
                 </Badge>
@@ -126,8 +131,8 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           </Badge>
         </div>
 
-        {/* Countdown Timer - Color coded */}
-        <div className="flex items-center gap-3">
+        {/* Stats row with sparkline */}
+        <div className="flex items-center gap-3 flex-wrap">
           <CountdownTimer 
             expiryTime={market.expiryTime} 
             compact 
@@ -149,6 +154,21 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
             <BarChart3 className="h-3.5 w-3.5" />
             <span className="font-medium">${market.volume.toLocaleString()}</span>
           </div>
+
+          {/* Prediction count */}
+          {predictionCount > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="h-3.5 w-3.5" />
+              <span>{predictionCount} predicted</span>
+            </div>
+          )}
+
+          {/* Price sparkline */}
+          {priceData.length > 1 && (
+            <div className="flex items-center gap-1.5 ml-auto">
+              <Sparkline data={priceData} width={50} height={16} />
+            </div>
+          )}
         </div>
 
         {/* Price Cards with Odds */}
