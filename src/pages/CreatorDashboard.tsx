@@ -6,6 +6,7 @@ import OracleMarketForm from "@/components/creator/OracleMarketForm";
 import MyMarkets from "@/components/creator/MyMarkets";
 import CreatorGuidance from "@/components/creator/CreatorGuidance";
 import MarketSuggestions from "@/components/creator/MarketSuggestions";
+import CreatorAnalytics from "@/components/creator/CreatorAnalytics";
 import { CreatorApplicationForm } from "@/components/creator/CreatorApplicationForm";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -193,44 +194,8 @@ const CreatorDashboard = () => {
             </p>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Earnings</p>
-                  <p className="text-xl md:text-2xl font-bold text-green-600">
-                    ${totalEarnings.toFixed(2)}
-                  </p>
-                </div>
-                <DollarSign className="h-7 w-7 md:h-8 md:w-8 text-green-600" />
-              </div>
-            </Card>
-
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Total Volume</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">
-                    {totalVolume.toLocaleString()}
-                  </p>
-                </div>
-                <BarChart3 className="h-7 w-7 md:h-8 md:w-8 text-accent" />
-              </div>
-            </Card>
-
-            <Card className="p-4 md:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Active Markets</p>
-                  <p className="text-xl md:text-2xl font-bold text-foreground">
-                    {activeMarkets}
-                  </p>
-                </div>
-                <TrendingUp className="h-7 w-7 md:h-8 md:w-8 text-accent" />
-              </div>
-            </Card>
-          </div>
+          {/* Creator Analytics - Full Width */}
+          <CreatorAnalytics />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
             {/* Main Content - 2 columns */}

@@ -7,6 +7,7 @@ import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import { ResolutionRules } from "@/components/market-detail/ResolutionRules";
+import MarketCreatorInfo from "@/components/market-detail/MarketCreatorInfo";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
@@ -315,6 +316,9 @@ const MarketDetail = () => {
                   </div>
                 </div>
               </Card>
+
+              {/* Creator Info Card */}
+              <MarketCreatorInfo marketId={market.id} />
 
               {/* CFTC Disclaimer */}
               <Card className="p-4 bg-muted/30">

@@ -993,11 +993,14 @@ export type Database = {
           avatar_url: string | null
           balance: number | null
           created_at: string | null
+          creator_tier: string | null
+          creator_verified: boolean | null
           display_name: string | null
           email: string
           id: string
           kyc_verified: boolean | null
           last_active_at: string | null
+          markets_created: number | null
           mfa_enabled: boolean | null
           name: string
           predictions_correct: number
@@ -1006,6 +1009,8 @@ export type Database = {
           share_trades_with_friends: boolean | null
           show_on_leaderboard: boolean
           terms_accepted_at: string | null
+          total_creator_earnings: number | null
+          total_creator_volume: number | null
           updated_at: string | null
           username: string | null
           version: number
@@ -1014,11 +1019,14 @@ export type Database = {
           avatar_url?: string | null
           balance?: number | null
           created_at?: string | null
+          creator_tier?: string | null
+          creator_verified?: boolean | null
           display_name?: string | null
           email: string
           id: string
           kyc_verified?: boolean | null
           last_active_at?: string | null
+          markets_created?: number | null
           mfa_enabled?: boolean | null
           name: string
           predictions_correct?: number
@@ -1027,6 +1035,8 @@ export type Database = {
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
           terms_accepted_at?: string | null
+          total_creator_earnings?: number | null
+          total_creator_volume?: number | null
           updated_at?: string | null
           username?: string | null
           version?: number
@@ -1035,11 +1045,14 @@ export type Database = {
           avatar_url?: string | null
           balance?: number | null
           created_at?: string | null
+          creator_tier?: string | null
+          creator_verified?: boolean | null
           display_name?: string | null
           email?: string
           id?: string
           kyc_verified?: boolean | null
           last_active_at?: string | null
+          markets_created?: number | null
           mfa_enabled?: boolean | null
           name?: string
           predictions_correct?: number
@@ -1048,6 +1061,8 @@ export type Database = {
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
           terms_accepted_at?: string | null
+          total_creator_earnings?: number | null
+          total_creator_volume?: number | null
           updated_at?: string | null
           username?: string | null
           version?: number
@@ -1456,7 +1471,9 @@ export type Database = {
       cleanup_expired_records: { Args: never; Returns: Json }
       detect_fraud_patterns: { Args: never; Returns: undefined }
       get_cache_analytics: { Args: { _hours?: number }; Returns: Json }
+      get_creator_analytics: { Args: { _user_id: string }; Returns: Json }
       get_leaderboard_cached: { Args: { _limit?: number }; Returns: Json }
+      get_market_creator_info: { Args: { _market_id: string }; Returns: Json }
       get_market_detail: {
         Args: { _market_id: string; _user_id?: string }
         Returns: Json
@@ -1511,6 +1528,7 @@ export type Database = {
       }
       refresh_leaderboard: { Args: never; Returns: undefined }
       refresh_market_stats: { Args: never; Returns: undefined }
+      update_creator_tier: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "creator" | "trader"
