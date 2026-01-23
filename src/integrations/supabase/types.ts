@@ -247,6 +247,13 @@ export type Database = {
             foreignKeyName: "friend_invite_tokens_used_by_fkey"
             columns: ["used_by"]
             isOneToOne: false
+            referencedRelation: "mv_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_invite_tokens_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -262,6 +269,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "leaderboard_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_invite_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mv_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -317,6 +331,13 @@ export type Database = {
             foreignKeyName: "friendships_friend_id_fkey"
             columns: ["friend_id"]
             isOneToOne: false
+            referencedRelation: "mv_leaderboard"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_friend_id_fkey"
+            columns: ["friend_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -332,6 +353,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "leaderboard_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mv_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -534,6 +562,13 @@ export type Database = {
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "market_oracle_rules_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
         ]
       }
       markets: {
@@ -719,6 +754,13 @@ export type Database = {
             referencedRelation: "markets"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "orders_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
         ]
       }
       positions: {
@@ -773,6 +815,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "positions_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
+          {
             foreignKeyName: "positions_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -784,6 +833,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "leaderboard_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "positions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mv_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -845,6 +901,13 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "leaderboard_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_alerts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "mv_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -1005,6 +1068,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "trades_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
+          {
             foreignKeyName: "trades_sell_order_id_fkey"
             columns: ["sell_order_id"]
             isOneToOne: false
@@ -1144,8 +1214,65 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_leaderboard: {
+        Row: {
+          avatar_url: string | null
+          display_name: string | null
+          id: string | null
+          predictions_correct: number | null
+          predictions_total: number | null
+          rank: number | null
+          rating_score: number | null
+          show_on_leaderboard: boolean | null
+          username: string | null
+          win_rate: number | null
+        }
+        Relationships: []
+      }
+      mv_market_stats: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          filled_volume: number | null
+          market_id: string | null
+          no_price: number | null
+          question: string | null
+          status: string | null
+          total_orders: number | null
+          unique_traders: number | null
+          updated_at: string | null
+          volume: number | null
+          yes_price: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      batch_get_markets: {
+        Args: { _market_ids: string[] }
+        Returns: {
+          category: string
+          created_at: string
+          description: string
+          expiry_time: string
+          id: string
+          no_price: number
+          question: string
+          status: string
+          volume: number
+          yes_price: number
+        }[]
+      }
+      batch_get_positions: {
+        Args: { _market_ids: string[]; _user_id: string }
+        Returns: {
+          current_value: number
+          entry_price: number
+          market_id: string
+          side: string
+          size: number
+        }[]
+      }
       cache_cleanup: { Args: never; Returns: number }
       cache_get_or_set: {
         Args: { _cache_key: string; _cache_type: string; _ttl_seconds?: number }
@@ -1172,6 +1299,16 @@ export type Database = {
       }
       cleanup_expired_records: { Args: never; Returns: Json }
       detect_fraud_patterns: { Args: never; Returns: undefined }
+      get_leaderboard_cached: { Args: { _limit?: number }; Returns: Json }
+      get_market_detail: {
+        Args: { _market_id: string; _user_id?: string }
+        Returns: Json
+      }
+      get_market_stats_cached: {
+        Args: { _category?: string; _limit?: number; _status?: string }
+        Returns: Json
+      }
+      get_user_dashboard: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1200,6 +1337,8 @@ export type Database = {
         }
         Returns: Json
       }
+      refresh_leaderboard: { Args: never; Returns: undefined }
+      refresh_market_stats: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "creator" | "trader"
