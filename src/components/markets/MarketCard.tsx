@@ -1,9 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, Clock, BarChart3, BookOpen, Zap, User, Flame, Timer } from "lucide-react";
+import { TrendingUp, BarChart3, BookOpen, Zap, User, Flame } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +10,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 
 export interface UserPosition {
   side: string;
@@ -25,9 +26,11 @@ interface MarketCardProps {
 
 const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
+  const { formatOdds } = useTradingPreferences();
+  
   const expiryDate = new Date(market.expiryTime);
-  const timeToExpiry = formatDistanceToNow(expiryDate, { addSuffix: true });
-  const isExpiringSoon = expiryDate.getTime() - Date.now() < 24 * 60 * 60 * 1000;
+  const timeToExpiry = expiryDate.getTime() - Date.now();
+  const isExpiringSoon = timeToExpiry < 24 * 60 * 60 * 1000;
   const isHot = market.volume > 10000;
 
   const handleClick = () => {
@@ -44,9 +47,9 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
 
   const pnl = calculatePnL();
 
-  // Calculate potential multipliers
-  const yesMultiplier = (1 / market.yesPrice).toFixed(1);
-  const noMultiplier = (1 / market.noPrice).toFixed(1);
+  // Calculate potential payout at $10 stake
+  const yesPayout = (10 / market.yesPrice).toFixed(2);
+  const noPayout = (10 / market.noPrice).toFixed(2);
 
   return (
     <Card 
@@ -106,13 +109,6 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
                   Hot
                 </Badge>
               )}
-              
-              {isExpiringSoon && (
-                <Badge variant="destructive" className="text-xs">
-                  <Timer className="h-3 w-3 mr-1" />
-                  Ending Soon
-                </Badge>
-              )}
             </div>
             
             {/* Question */}
@@ -130,39 +126,44 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           </Badge>
         </div>
 
-        {/* Market Type Indicator */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        {/* Countdown Timer - Color coded */}
+        <div className="flex items-center gap-3">
+          <CountdownTimer 
+            expiryTime={market.expiryTime} 
+            compact 
+          />
+          
           {market.type === "orderbook" ? (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
               <BookOpen className="h-3.5 w-3.5" />
               <span>Order Book</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
               <Zap className="h-3.5 w-3.5 text-accent" />
               <span>Instant</span>
             </div>
           )}
           
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <BarChart3 className="h-3.5 w-3.5" />
             <span className="font-medium">${market.volume.toLocaleString()}</span>
           </div>
         </div>
 
-        {/* Price Cards */}
+        {/* Price Cards with Odds */}
         <div className="grid grid-cols-2 gap-3">
           {/* YES Card */}
           <div className="price-yes group/price">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-muted-foreground">Yes</span>
-              <span className="text-xs font-bold text-success">{yesMultiplier}x</span>
+              <span className="text-xs font-bold text-success">{formatOdds(market.yesPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-success">
               ${market.yesPrice.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {(market.yesPrice * 100).toFixed(0)}% chance
+              $10 → <span className="font-semibold text-success">${yesPayout}</span>
             </p>
           </div>
           
@@ -170,28 +171,19 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           <div className="price-no group/price">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-muted-foreground">No</span>
-              <span className="text-xs font-bold text-destructive">{noMultiplier}x</span>
+              <span className="text-xs font-bold text-destructive">{formatOdds(market.noPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-destructive">
               ${market.noPrice.toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {(market.noPrice * 100).toFixed(0)}% chance
+              $10 → <span className="font-semibold text-destructive">${noPayout}</span>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-border/50">
-          {/* Expiry */}
-          <div className={cn(
-            "flex items-center gap-1.5 text-xs",
-            isExpiringSoon ? "text-destructive font-medium" : "text-muted-foreground"
-          )}>
-            <Clock className="h-3.5 w-3.5" />
-            <span>{timeToExpiry}</span>
-          </div>
-          
+        <div className="flex items-center justify-end pt-3 border-t border-border/50">
           {/* CTA */}
           <div className="flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
             <span>Trade</span>
