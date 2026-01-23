@@ -10,19 +10,24 @@ import {
   HelpCircle, 
   LogOut,
   Fingerprint,
-  ChevronRight 
+  ChevronRight,
+  Share2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { ProfileBadges } from "@/components/mobile/ProfileBadges";
+import { XPProgressBar } from "@/components/mobile/XPProgressBar";
+import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 
 const MobileProfile = () => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { isAvailable, biometricType } = useBiometricAuth();
   const { toast } = useToast();
+  const { predictionStreak } = useTradingPreferences();
 
   const handleSignOut = async () => {
     await signOut();
@@ -43,6 +48,19 @@ const MobileProfile = () => {
       title: "Coming soon",
       description: "Biometric authentication setup will be available after building the native app",
     });
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join me on Shariz',
+        text: 'Make predictions and win on Shariz!',
+        url: window.location.origin,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.origin);
+      toast({ title: "Link copied!" });
+    }
   };
 
   const menuItems = [
@@ -73,6 +91,11 @@ const MobileProfile = () => {
       onClick: () => toast({ title: "Coming soon" }),
     },
     {
+      icon: Share2,
+      label: "Invite Friends",
+      onClick: handleShare,
+    },
+    {
       icon: HelpCircle,
       label: "Help & Support",
       onClick: () => toast({ title: "Coming soon" }),
@@ -96,14 +119,18 @@ const MobileProfile = () => {
     );
   }
 
+  const winRate = profile?.predictions_total && profile.predictions_total > 0
+    ? Math.round((profile.predictions_correct / profile.predictions_total) * 100)
+    : 0;
+
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-4">
+      <div className="px-4 pt-6 pb-4 space-y-6">
         {/* Profile Header */}
-        <Card className="p-6 mb-6">
+        <Card className="p-6 bg-gradient-to-br from-card to-card/50">
           <div className="flex items-center gap-4 mb-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+            <Avatar className="h-16 w-16 ring-2 ring-primary/20">
+              <AvatarFallback className="text-xl bg-gradient-to-br from-primary to-accent text-primary-foreground">
                 {profile?.name?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
@@ -112,30 +139,62 @@ const MobileProfile = () => {
                 {profile?.name || 'User'}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {profile?.email}
+                @{profile?.username || profile?.email?.split('@')[0]}
               </p>
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
-            <div>
-              <p className="text-sm text-muted-foreground">Balance</p>
-              <p className="text-lg font-bold text-foreground">
-                {profile?.balance.toLocaleString() || 0}
+          {/* XP Progress */}
+          <XPProgressBar ratingScore={profile?.rating_score || 1000} className="mb-4" />
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-foreground">
+                {profile?.predictions_total || 0}
               </p>
+              <p className="text-xs text-muted-foreground">Predictions</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">KYC Status</p>
-              <Badge variant={profile?.kyc_verified ? "default" : "secondary"} className="mt-1">
-                {profile?.kyc_verified ? "Verified" : "Not Verified"}
-              </Badge>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-success">
+                {winRate}%
+              </p>
+              <p className="text-xs text-muted-foreground">Win Rate</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-foreground">
+                {profile?.balance?.toLocaleString() || 0}
+              </p>
+              <p className="text-xs text-muted-foreground">Balance</p>
             </div>
           </div>
         </Card>
 
+        {/* Badges */}
+        <Card className="p-4">
+          <ProfileBadges
+            predictionsTotal={profile?.predictions_total || 0}
+            predictionsCorrect={profile?.predictions_correct || 0}
+            streak={predictionStreak}
+            ratingScore={profile?.rating_score || 1000}
+          />
+        </Card>
+
+        {/* KYC Status */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-foreground">KYC Verification</p>
+              <p className="text-sm text-muted-foreground">Complete to unlock all features</p>
+            </div>
+            <Badge variant={profile?.kyc_verified ? "default" : "secondary"}>
+              {profile?.kyc_verified ? "Verified" : "Pending"}
+            </Badge>
+          </div>
+        </Card>
+
         {/* Menu Items */}
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -176,7 +235,7 @@ const MobileProfile = () => {
         </Button>
 
         {/* App Version */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-muted-foreground">
           Shariz v1.0.0 • Built with Capacitor
         </p>
       </div>
