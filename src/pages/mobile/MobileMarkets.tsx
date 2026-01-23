@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Market } from "@/types/market";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
 
 const MobileMarkets = () => {
   const navigate = useNavigate();
@@ -20,14 +21,13 @@ const MobileMarkets = () => {
   }, []);
 
   const fetchMarkets = async () => {
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const { now, maxExpiry } = getMarketDateRange();
 
     const { data, error } = await supabase
       .from("markets")
       .select("*")
-      .in("status", ["approved", "open"])
-      .lte("expiry_time", thirtyDaysFromNow.toISOString())
+      .in("status", [...ACTIVE_MARKET_STATUSES])
+      .lte("expiry_time", maxExpiry.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("created_at", { ascending: false });
 

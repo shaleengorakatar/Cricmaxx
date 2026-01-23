@@ -6,6 +6,7 @@ import { TrendingUp, Clock, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
+import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
 
 export default function LiveMarketsWidget() {
   const [markets, setMarkets] = useState<Market[]>([]);
@@ -17,14 +18,13 @@ export default function LiveMarketsWidget() {
   }, []);
 
   const fetchLiveMarkets = async () => {
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const { now, maxExpiry } = getMarketDateRange();
 
     const { data, error } = await supabase
       .from("markets")
       .select("*")
-      .in("status", ["approved", "open"])
-      .lte("expiry_time", thirtyDaysFromNow.toISOString())
+      .in("status", [...ACTIVE_MARKET_STATUSES])
+      .lte("expiry_time", maxExpiry.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("volume", { ascending: false })
       .limit(6);

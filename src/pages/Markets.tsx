@@ -10,6 +10,7 @@ import { TrendingUp, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { getMarketDateRange, ACTIVE_MARKET_STATUSES, shouldShowMarket } from "@/lib/marketFilters";
 
 const Markets = () => {
   const { isAuthenticated } = useAuth();
@@ -38,12 +39,8 @@ const Markets = () => {
           
           if (payload.eventType === 'INSERT') {
             const data = payload.new as any;
-            // Only add if it's approved/open and within 30 days
-            const expiry = new Date(data.expiry_time);
-            const now = new Date();
-            const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-            
-            if (['approved', 'open'].includes(data.status) && expiry >= now && expiry <= thirtyDaysFromNow) {
+            // Only add if it's approved/open and within visibility window
+            if (shouldShowMarket(data.status, data.expiry_time)) {
               const newMarket: Market = {
                 id: data.id,
                 question: data.question,
@@ -85,15 +82,14 @@ const Markets = () => {
   }, []);
 
   const fetchMarkets = async () => {
-    const now = new Date();
-    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const { now, maxExpiry } = getMarketDateRange();
 
-    // Fetch active markets (within 30 days)
+    // Fetch active markets (within visibility window)
     const { data: activeMarkets, error: activeError } = await supabase
       .from("markets")
       .select("*")
-      .in("status", ["approved", "open"])
-      .lte("expiry_time", thirtyDaysFromNow.toISOString())
+      .in("status", [...ACTIVE_MARKET_STATUSES])
+      .lte("expiry_time", maxExpiry.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("created_at", { ascending: false });
 
