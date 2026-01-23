@@ -38,12 +38,12 @@ const Markets = () => {
           
           if (payload.eventType === 'INSERT') {
             const data = payload.new as any;
-            // Only add if it's approved/open and within 14 days
+            // Only add if it's approved/open and within 30 days
             const expiry = new Date(data.expiry_time);
             const now = new Date();
-            const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+            const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
             
-            if (['approved', 'open'].includes(data.status) && expiry >= now && expiry <= fourteenDaysFromNow) {
+            if (['approved', 'open'].includes(data.status) && expiry >= now && expiry <= thirtyDaysFromNow) {
               const newMarket: Market = {
                 id: data.id,
                 question: data.question,
@@ -86,14 +86,14 @@ const Markets = () => {
 
   const fetchMarkets = async () => {
     const now = new Date();
-    const fourteenDaysFromNow = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Fetch active markets (within 14 days)
+    // Fetch active markets (within 30 days)
     const { data: activeMarkets, error: activeError } = await supabase
       .from("markets")
       .select("*")
       .in("status", ["approved", "open"])
-      .lte("expiry_time", fourteenDaysFromNow.toISOString())
+      .lte("expiry_time", thirtyDaysFromNow.toISOString())
       .gte("expiry_time", now.toISOString())
       .order("created_at", { ascending: false });
 
