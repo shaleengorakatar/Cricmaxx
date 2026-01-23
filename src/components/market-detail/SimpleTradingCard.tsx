@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useTradingPreferences } from "@/hooks/useTradingPreferences";
+import { OddsToggle } from "@/components/trading/OddsToggle";
+import { SoundToggle } from "@/components/trading/SoundToggle";
+import { StreakDisplay } from "@/components/trading/StreakDisplay";
+import { triggerConfetti, triggerHaptic, playSound, celebrateStreak } from "@/lib/tradingEffects";
 
 interface SimpleTradingCardProps {
   marketId: string;
@@ -17,6 +22,7 @@ interface SimpleTradingCardProps {
 }
 
 const STAKE_OPTIONS = [5, 10, 25, 50, 100];
+const QUICK_AMOUNTS = [1, 5, 10];
 
 const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleTradingCardProps) => {
   const { isAuthenticated } = useAuth();
@@ -24,13 +30,18 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
   const [stakeAmount, setStakeAmount] = useState(10);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
   const [lastTradeSide, setLastTradeSide] = useState<"yes" | "no" | null>(null);
+  
+  const { 
+    formatOdds, 
+    soundEnabled, 
+    incrementStreak, 
+    predictionStreak 
+  } = useTradingPreferences();
 
-  const yesMultiplier = Math.round((1 / yesPrice) * 10) / 10;
-  const noMultiplier = Math.round((1 / noPrice) * 10) / 10;
   const yesShares = stakeAmount / yesPrice;
   const noShares = stakeAmount / noPrice;
-  const yesWin = yesShares - stakeAmount;
-  const noWin = noShares - stakeAmount;
+  const yesPayout = yesShares; // $1 per share if wins
+  const noPayout = noShares;
 
   const handleTrade = async (side: "yes" | "no") => {
     if (!isAuthenticated) {
@@ -49,11 +60,13 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
         description: "Please add funds to your wallet",
         variant: "destructive",
       });
+      if (soundEnabled) playSound('error');
       return;
     }
 
     setIsPlacingTrade(true);
     setLastTradeSide(side);
+    if (soundEnabled) playSound('click');
 
     try {
       const price = side === "yes" ? yesPrice : noPrice;
@@ -75,13 +88,27 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
       const orderData = response.data?.order;
       const fillPrice = orderData?.avgFillPrice || price;
       const shares = stakeAmount / fillPrice;
-      const maxWin = shares - stakeAmount;
+      const payout = shares;
+
+      // Success effects
+      triggerConfetti();
+      triggerHaptic('medium');
+      if (soundEnabled) playSound('success');
+      
+      // Update streak
+      incrementStreak();
+      const newStreak = predictionStreak + 1;
+      if (newStreak >= 2) {
+        celebrateStreak(newStreak);
+        if (soundEnabled && newStreak % 3 === 0) playSound('streak');
+      }
 
       toast({
         title: "🎉 Prediction placed!",
-        description: `${side.toUpperCase()} — You could win $${maxWin.toFixed(2)}!`,
+        description: `${side.toUpperCase()} — If correct, you get $${payout.toFixed(2)}!`,
       });
     } catch (error: any) {
+      if (soundEnabled) playSound('error');
       toast({
         title: "Trade Failed",
         description: error.message || "Could not place prediction",
@@ -93,21 +120,72 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
     }
   };
 
+  const handleQuickPredict = async (side: "yes" | "no", amount: number) => {
+    const originalAmount = stakeAmount;
+    setStakeAmount(amount);
+    await handleTrade(side);
+    setStakeAmount(originalAmount);
+  };
+
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-card">
       {/* Header gradient */}
       <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
       
       <CardContent className="p-6 space-y-6">
-        {/* Title */}
-        <div className="text-center space-y-1">
-          <div className="flex items-center justify-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            <h3 className="text-lg font-bold">Quick Predict</h3>
+        {/* Title with toggles */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              <h3 className="text-lg font-bold">Quick Predict</h3>
+            </div>
+            <div className="flex items-center gap-1">
+              <OddsToggle />
+              <SoundToggle />
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             Pick a side and predict the outcome
           </p>
+          
+          {/* Streak display */}
+          <StreakDisplay />
+        </div>
+
+        {/* Quick Predict Buttons - One-tap at preset amounts */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <DollarSign className="h-3.5 w-3.5" />
+            <span className="font-medium">One-tap predict</span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {QUICK_AMOUNTS.map((amount) => (
+              <div key={amount} className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => handleQuickPredict("yes", amount)}
+                  disabled={isPlacingTrade || amount > userBalance}
+                  className="px-2 py-2 rounded-lg text-xs font-bold bg-success/10 hover:bg-success/20 text-success border border-success/30 transition-all disabled:opacity-40"
+                >
+                  ${amount} Yes
+                </button>
+                <button
+                  onClick={() => handleQuickPredict("no", amount)}
+                  disabled={isPlacingTrade || amount > userBalance}
+                  className="px-2 py-2 rounded-lg text-xs font-bold bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 transition-all disabled:opacity-40"
+                >
+                  ${amount} No
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">or custom amount</span>
+          <div className="flex-1 h-px bg-border" />
         </div>
 
         {/* Stake Amount with Visual Slider */}
@@ -169,14 +247,12 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
                 <CheckCircle className="h-6 w-6" />
                 <span className="text-lg font-bold">YES</span>
               </div>
-              <p className="text-4xl font-black">{yesMultiplier}x</p>
-              <div className="space-y-0.5">
-                <p className="text-sm font-semibold opacity-90">
-                  Win ${yesWin.toFixed(2)}
-                </p>
-                <p className="text-xs opacity-75">
-                  Get ${yesShares.toFixed(2)} back
-                </p>
+              <p className="text-2xl font-black">{formatOdds(yesPrice)}</p>
+              
+              {/* Prominent payout display */}
+              <div className="bg-white/20 rounded-lg p-2 space-y-1">
+                <p className="text-xs font-medium opacity-80">If Yes wins, you get</p>
+                <p className="text-xl font-black">${yesPayout.toFixed(2)}</p>
               </div>
             </div>
             
@@ -204,14 +280,12 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
                 <XCircle className="h-6 w-6" />
                 <span className="text-lg font-bold">NO</span>
               </div>
-              <p className="text-4xl font-black">{noMultiplier}x</p>
-              <div className="space-y-0.5">
-                <p className="text-sm font-semibold opacity-90">
-                  Win ${noWin.toFixed(2)}
-                </p>
-                <p className="text-xs opacity-75">
-                  Get ${noShares.toFixed(2)} back
-                </p>
+              <p className="text-2xl font-black">{formatOdds(noPrice)}</p>
+              
+              {/* Prominent payout display */}
+              <div className="bg-white/20 rounded-lg p-2 space-y-1">
+                <p className="text-xs font-medium opacity-80">If No wins, you get</p>
+                <p className="text-xl font-black">${noPayout.toFixed(2)}</p>
               </div>
             </div>
             
@@ -238,15 +312,15 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
                 <ul className="text-sm space-y-1.5">
                   <li className="flex items-start gap-2">
                     <span className="text-success">✓</span>
-                    <span><strong>If you're right:</strong> Get your stake × multiplier</span>
+                    <span><strong>If you're right:</strong> Get $1 per share</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-destructive">✗</span>
-                    <span><strong>If you're wrong:</strong> Lose your stake</span>
+                    <span><strong>If you're wrong:</strong> Shares worth $0</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-accent">💡</span>
-                    <span>Higher multiplier = lower probability (but bigger payout!)</span>
+                    <span>Lower odds = higher probability (but smaller payout)</span>
                   </li>
                 </ul>
               </TooltipContent>

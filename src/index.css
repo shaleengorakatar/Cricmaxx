@@ -644,4 +644,84 @@ All colors MUST be HSL format for consistency
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/50;
   }
+
+  /* === Confetti Animation === */
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(0) translateX(0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(var(--confetti-y)) translateX(var(--confetti-x)) rotate(var(--confetti-rotate));
+      opacity: 0;
+    }
+  }
+
+  /* === Streak Celebration Animation === */
+  @keyframes streak-pop {
+    0% {
+      transform: translateX(-50%) scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: translateX(-50%) scale(1.15);
+    }
+    100% {
+      transform: translateX(-50%) scale(1);
+      opacity: 1;
+    }
+  }
+
+  @keyframes streak-fade {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-50%) scale(0.9) translateY(-20px);
+    }
+  }
+
+  /* === Celebrate Animation for Buttons === */
+  @keyframes celebrate {
+    0%, 100% {
+      transform: scale(1);
+    }
+    25% {
+      transform: scale(1.05) rotate(-2deg);
+    }
+    50% {
+      transform: scale(1.08);
+    }
+    75% {
+      transform: scale(1.05) rotate(2deg);
+    }
+  }
+
+  .animate-celebrate {
+    animation: celebrate 0.5s ease-out;
+  }
+
+  /* === Shimmer Effect === */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .bg-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      transparent 100%
+    );
+  }
+
+  .animate-shimmer {
+    animation: shimmer 1.5s infinite;
+  }
 }
