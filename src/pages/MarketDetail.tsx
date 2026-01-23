@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -10,12 +10,15 @@ import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
+import LiveTradeFeed from "@/components/market-detail/LiveTradeFeed";
 import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeMarketPrices, useRealtimeTrades } from "@/hooks/useRealtimeMarket";
+import { RealtimeStatus, LivePrice } from "@/components/ui/realtime-indicators";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -47,60 +50,46 @@ const MarketDetail = () => {
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
   const [stakeAmount] = useState(10);
+  const previousPricesRef = useRef<{ yes: number; no: number } | null>(null);
+  
+  // Real-time hooks
+  const { prices: realtimePrices, isConnected: pricesConnected } = useRealtimeMarketPrices(id);
+  const { trades: realtimeTrades, isConnected: tradesConnected } = useRealtimeTrades(id);
   
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
   const [orderBookExpanded, setOrderBookExpanded] = useState(false);
   const [statsExpanded, setStatsExpanded] = useState(false);
+  
+  // Update market with realtime prices
+  useEffect(() => {
+    if (realtimePrices && market) {
+      previousPricesRef.current = { yes: market.yesPrice, no: market.noPrice };
+      
+      setMarket(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          yesPrice: Number(realtimePrices.yes_price),
+          noPrice: Number(realtimePrices.no_price),
+          volume: Number(realtimePrices.volume),
+        };
+      });
+
+      // Add new price point to chart
+      setPriceHistory(prev => [
+        ...prev.slice(-23),
+        {
+          time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          yesPrice: Number(realtimePrices.yes_price),
+          noPrice: Number(realtimePrices.no_price),
+        }
+      ]);
+    }
+  }, [realtimePrices]);
 
   useEffect(() => {
     fetchMarket();
-  }, [id]);
-
-  // Real-time subscription for market updates
-  useEffect(() => {
-    if (!id) return;
-
-    const channel = supabase
-      .channel(`market-${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'markets',
-          filter: `id=eq.${id}`
-        },
-        (payload) => {
-          console.log('Real-time market update:', payload);
-          const data = payload.new as any;
-          
-          setMarket(prev => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              yesPrice: Number(data.yes_price),
-              noPrice: Number(data.no_price),
-              volume: Number(data.volume),
-            };
-          });
-
-          // Add new price point to chart
-          setPriceHistory(prev => [
-            ...prev.slice(-23),
-            {
-              time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-              yesPrice: Number(data.yes_price),
-              noPrice: Number(data.no_price),
-            }
-          ]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [id]);
 
   const fetchMarket = async () => {
@@ -173,8 +162,10 @@ const MarketDetail = () => {
               Back to Markets
             </Button>
             
-            {/* User Rating Badge */}
-            <UserRatingBadge />
+            <div className="flex items-center gap-2">
+              <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
+              <UserRatingBadge />
+            </div>
           </div>
 
           {/* Mobile: Single column layout, Desktop: Grid layout */}
@@ -227,9 +218,10 @@ const MarketDetail = () => {
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
               <Tabs defaultValue="trade" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="trade">Trade</TabsTrigger>
-                  <TabsTrigger value="calculator">Calculator</TabsTrigger>
+                  <TabsTrigger value="feed">Feed</TabsTrigger>
+                  <TabsTrigger value="calculator">Calc</TabsTrigger>
                   <TabsTrigger value="alerts">Alerts</TabsTrigger>
                 </TabsList>
                 <TabsContent value="trade" className="mt-4">
@@ -239,6 +231,9 @@ const MarketDetail = () => {
                     noPrice={market.noPrice}
                     userBalance={profile?.balance || 0}
                   />
+                </TabsContent>
+                <TabsContent value="feed" className="mt-4">
+                  <LiveTradeFeed marketId={market.id} maxHeight="350px" />
                 </TabsContent>
                 <TabsContent value="calculator" className="mt-4">
                   <MarketCalculator
@@ -271,6 +266,22 @@ const MarketDetail = () => {
                 <div className={`${statsExpanded ? 'block' : 'hidden'} md:block p-4 sm:p-6 space-y-3`}>
                   <h3 className="text-sm font-semibold text-foreground mb-3 hidden md:block">Market Statistics</h3>
                   <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Yes Price:</span>
+                      <LivePrice 
+                        price={market.yesPrice} 
+                        previousPrice={previousPricesRef.current?.yes}
+                        className="font-semibold"
+                      />
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">No Price:</span>
+                      <LivePrice 
+                        price={market.noPrice} 
+                        previousPrice={previousPricesRef.current?.no}
+                        className="font-semibold"
+                      />
+                    </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Total Volume:</span>
                       <span className="font-semibold text-foreground">
