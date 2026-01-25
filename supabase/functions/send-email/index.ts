@@ -22,19 +22,19 @@ interface EmailRequest {
 
 const EMAIL_TEMPLATES = {
   deposit: (data: EmailRequest["data"]) => ({
-    subject: `${data.amount} tokens added to your Criccmax wallet`,
+    subject: `${data.amount} tokens added to your CricMaxx wallet`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a; font-size: 24px;">🏏 Tokens Added</h1>
         <p style="color: #666; font-size: 16px; line-height: 1.6;">
-          <strong>${data.amount} tokens</strong> have been added to your Criccmax wallet.
+          <strong>${data.amount} tokens</strong> have been added to your CricMaxx wallet.
         </p>
         <p style="color: #666; font-size: 14px;">
           These tokens are now available as collateral for making predictions on cricket matches.
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
+          CricMaxx Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -55,7 +55,7 @@ const EMAIL_TEMPLATES = {
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
+          CricMaxx Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -77,7 +77,7 @@ const EMAIL_TEMPLATES = {
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
+          CricMaxx Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -92,7 +92,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Criccmax <notifications@resend.dev>",
+      from: "CricMaxx <notifications@resend.dev>",
       to: [to],
       subject,
       html,

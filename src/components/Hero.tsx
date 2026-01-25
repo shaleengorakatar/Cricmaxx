@@ -21,7 +21,7 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto text-center">
           {/* Mobile-optimized title */}
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-            Criccmax 🏏
+            CricMaxx 🏏
           </h1>
           
           {/* Mobile-optimized tagline */}
@@ -34,7 +34,7 @@ const Hero = () => {
           
           {/* Mobile-optimized description */}
           <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-12 text-primary-foreground/90 max-w-3xl mx-auto leading-relaxed px-2">
-            Welcome to Criccmax, the ultimate cricket prediction playground. 
+            Welcome to CricMaxx, the ultimate cricket prediction playground. 
             Make <span className="font-semibold">fast, live predictions</span> on your favorite matches 
             with real-time order book trading. Feel the stadium energy from anywhere. 
             All contracts are CFTC-compliant.

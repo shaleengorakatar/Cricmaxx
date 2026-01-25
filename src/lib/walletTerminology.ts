@@ -1,7 +1,7 @@
 /**
  * Prediction Market-Safe Wallet Terminology
  * 
- * Criccmax Tokens are used as collateral to take positions in information 
+ * CricMaxx Tokens are used as collateral to take positions in information 
  * markets and are returned when markets resolve.
  * 
  * ✅ Use: position, stake, commit, settle, resolve, tokens returned
@@ -11,7 +11,7 @@
 export const WALLET_TERMS = {
   // Core token language
   TOKEN_NAME: "tokens",
-  TOKEN_DESCRIPTION: "Criccmax Tokens are used as collateral to take positions in information markets and are returned when markets resolve.",
+  TOKEN_DESCRIPTION: "CricMaxx Tokens are used as collateral to take positions in information markets and are returned when markets resolve.",
   
   // Wallet sections
   AVAILABLE: "Available Tokens",
@@ -35,7 +35,7 @@ export const WALLET_TERMS = {
   SETTLED_POSITIONS: "Settled",
   
   // Descriptions
-  COLLATERAL_DESC: "Tokens are used as collateral to take positions in Criccmax prediction markets.",
+  COLLATERAL_DESC: "Tokens are used as collateral to take positions in CricMaxx prediction markets.",
   LOCK_DESC: "Tokens will be locked until market resolves",
   MAX_OUTCOME_DESC: "Max outcome defined by market rules",
   REDEMPTION_DESC: "Tokens must not be committed to open markets.",
