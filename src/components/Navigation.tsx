@@ -25,7 +25,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between gap-8">
           <Link to="/" className="flex items-center shrink-0">
             <div className="text-2xl font-bold text-primary">
-              Shariz
+              Criccmax 🏏
             </div>
           </Link>
           

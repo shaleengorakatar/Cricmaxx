@@ -19,7 +19,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">1. Information We Collect</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
-                  Shariz collects the following information:
+                  Criccmax collects the following information:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li><strong>Identity Information:</strong> Name, date of birth, address, government ID (for KYC verification)</li>
@@ -47,7 +47,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">3. Information Sharing</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz does not sell your personal information. We may share information with:
+                  Criccmax does not sell your personal information. We may share information with:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4 mt-2">
                   <li>Regulatory authorities (CFTC, FinCEN) as required by law</li>
@@ -91,7 +91,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">7. Cookies and Tracking</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz uses cookies and similar technologies to maintain sessions, analyze usage patterns, and improve 
+                  Criccmax uses cookies and similar technologies to maintain sessions, analyze usage patterns, and improve 
                   platform functionality. You can manage cookie preferences through your browser settings.
                 </p>
               </section>
@@ -99,7 +99,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">8. Children's Privacy</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz does not knowingly collect information from individuals under 18. If we become aware of such data 
+                  Criccmax does not knowingly collect information from individuals under 18. If we become aware of such data 
                   collection, we will promptly delete it.
                 </p>
               </section>
@@ -107,7 +107,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">9. International Users</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz operates under U.S. jurisdiction. By using our services, international users consent to the transfer 
+                  Criccmax operates under U.S. jurisdiction. By using our services, international users consent to the transfer 
                   and processing of their data in the United States.
                 </p>
               </section>
@@ -123,8 +123,8 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">11. Contact Us</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  For privacy-related inquiries or to exercise your rights, contact us at privacy@shariz.com or write to: 
-                  Shariz Privacy Office, [Address].
+                  For privacy-related inquiries or to exercise your rights, contact us at privacy@criccmax.com or write to: 
+                  Criccmax Privacy Office, [Address].
                 </p>
               </section>
             </div>

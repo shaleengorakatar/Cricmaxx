@@ -53,8 +53,8 @@ const MobileProfile = () => {
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'Join me on Shariz',
-        text: 'Make predictions and win on Shariz!',
+        title: 'Join me on Criccmax',
+        text: 'Make cricket predictions and win on Criccmax! 🏏',
         url: window.location.origin,
       });
     } else {
@@ -236,7 +236,7 @@ const MobileProfile = () => {
 
         {/* App Version */}
         <p className="text-center text-xs text-muted-foreground">
-          Shariz v1.0.0 • Built with Capacitor
+          Criccmax v1.0.0 • Built with Capacitor
         </p>
       </div>
     </MobileLayout>

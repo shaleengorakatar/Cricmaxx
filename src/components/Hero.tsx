@@ -21,23 +21,23 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto text-center">
           {/* Mobile-optimized title */}
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-            Shariz
+            Criccmax 🏏
           </h1>
           
           {/* Mobile-optimized tagline */}
           <p className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-6 sm:mb-8">
-            Predict. Profit.{" "}
+            Fast. Live.{" "}
             <span className="text-accent inline-flex items-center gap-1">
-              Participate.
+              Fun.
             </span>
           </p>
           
           {/* Mobile-optimized description */}
           <p className="text-base sm:text-lg md:text-xl mb-8 sm:mb-12 text-primary-foreground/90 max-w-3xl mx-auto leading-relaxed px-2">
-            Welcome to Shariz, a web-based prediction market platform with real-time order book trading. 
-            Trade on <span className="font-semibold">peer-to-peer prediction markets</span> with exchange-style order matching 
-            and fixed-payout event contracts. All trades are federally compliant under CFTC regulations, 
-            ensuring trust and legality.
+            Welcome to Criccmax, the ultimate cricket prediction playground. 
+            Make <span className="font-semibold">fast, live predictions</span> on your favorite matches 
+            with real-time order book trading. Feel the stadium energy from anywhere. 
+            All contracts are CFTC-compliant.
           </p>
 
           {/* Mobile-optimized buttons - stack on mobile, side-by-side on larger screens */}
@@ -48,7 +48,7 @@ const Hero = () => {
               onClick={handleStartTrading}
             >
               <TrendingUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-              Start Trading
+              Start Predicting
             </Button>
             <Button 
               size="lg" 

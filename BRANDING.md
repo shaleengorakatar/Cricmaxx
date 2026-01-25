@@ -1,10 +1,10 @@
-# Shariz Branding & Style Guide
+# Criccmax Branding & Style Guide
 
 ## Brand Identity
 
-**Shariz - Predict. Profit. Participate.**
+**Criccmax - Fast. Live. Fun. 🏏**
 
-A modern, credible, and clean fintech/trading platform that combines trust with action.
+The ultimate cricket prediction playground — a modern, energetic, and sporty platform that feels like being at the stadium.
 
 ---
 
@@ -45,10 +45,10 @@ A modern, credible, and clean fintech/trading platform that combines trust with 
 ## Typography
 
 ### Font Family
-**Inter** - Modern, clean, professional sans-serif
+**Space Grotesk** - Modern, techy, and sporty sans-serif
 
 ```css
-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
 ```
 
 ### Typography Scale
@@ -73,6 +73,31 @@ font-family: 'Inter', system-ui, -apple-system, sans-serif;
 
 ---
 
+## Brand Voice
+
+### Tagline
+**"Fast. Live. Fun."**
+
+### Sub-brands
+- **Criccmax RapidPred** - Quick prediction feature
+- **Criccmax Creator** - Market creation dashboard
+- **Criccmax Wallet** - Token management
+
+### Tone
+- **Energetic**: Like a cricket stadium 📣
+- **Sporty**: Cricket-focused, passionate
+- **Fun**: Feels like fantasy gaming meets real-money skill
+- **Trustworthy**: Regulated and transparent
+
+### Example Copy
+- ✅ "Make live predictions on your favorite matches"
+- ✅ "Feel the stadium energy from anywhere"
+- ✅ "CFTC-regulated fixed-payout contracts"
+- ❌ "Gamble on outcomes" (implies gambling)
+- ❌ "Get rich quick" (implies unrealistic returns)
+
+---
+
 ## UI Components
 
 ### Buttons
@@ -81,7 +106,7 @@ font-family: 'Inter', system-ui, -apple-system, sans-serif;
 ```tsx
 className="bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 transition-transform h-12 rounded-lg"
 ```
-- **Use for**: Main actions like "Submit", "Buy", "Trade"
+- **Use for**: Main actions like "Submit", "Predict", "Trade"
 - **Colors**: Navy background, white text
 - **Border radius**: 0.5rem (8px)
 
@@ -199,6 +224,7 @@ Use **Lucide React** icons for consistency
 | Time/Expiry | Clock, Calendar | Muted |
 | Settings | Settings, Cog | Primary |
 | Alert/Warning | AlertTriangle | Warning Yellow |
+| Cricket | 🏏 emoji | - |
 
 ---
 
@@ -242,25 +268,6 @@ transition-smooth   // Smooth transitions
 
 ---
 
-## Brand Voice
-
-### Tagline
-**"Predict. Profit. Participate."**
-
-### Tone
-- **Professional**: Credible, trustworthy language
-- **Confident**: Action-oriented, decisive
-- **Clear**: Simple, jargon-free when possible
-- **Compliant**: Transparent about regulations
-
-### Example Copy
-- ✅ "Trade on verified prediction markets"
-- ✅ "CFTC-regulated fixed-payout contracts"
-- ❌ "Gamble on outcomes" (implies gambling)
-- ❌ "Get rich quick" (implies unrealistic returns)
-
----
-
 ## Responsive Design
 
 ### Breakpoints
@@ -287,7 +294,7 @@ className="text-sm md:text-base"  // Body text scaling
 
 ## Dark Mode
 
-Shariz supports dark mode with adjusted colors:
+Criccmax supports dark mode with adjusted colors:
 - **Background**: Dark navy `220 80% 8%`
 - **Cards**: Lighter navy `220 70% 12%`
 - **Text**: Light grey `0 0% 98%`
@@ -303,13 +310,13 @@ Toggle dark mode with `class="dark"` on root element.
 ```tsx
 <section className="gradient-hero text-white py-20 px-4">
   <h1 className="text-4xl md:text-5xl font-bold mb-4">
-    Predict. Profit. Participate.
+    Fast. Live. Fun. 🏏
   </h1>
   <p className="text-lg md:text-xl text-white/90 mb-8">
-    Federally-compliant prediction markets
+    The ultimate cricket prediction playground
   </p>
   <button className="bg-accent text-accent-foreground hover:bg-accent/90 h-12 px-8 rounded-lg">
-    Start Trading
+    Start Predicting
   </button>
 </section>
 ```
@@ -318,7 +325,7 @@ Toggle dark mode with `class="dark"` on root element.
 ```tsx
 <div className="card-hover rounded-lg border bg-card p-6">
   <h3 className="text-lg font-semibold text-foreground mb-2">
-    Will Bitcoin reach $100k by 2025?
+    Will India win vs Australia?
   </h3>
   <div className="flex items-center gap-4 text-sm text-muted-foreground">
     <span>Yes: <span className="text-accent font-semibold">$0.65</span></span>
@@ -344,11 +351,11 @@ Toggle dark mode with `class="dark"` on root element.
 
 ## Contact & Support
 
-For questions about Shariz branding:
+For questions about Criccmax branding:
 - Design System: See `src/index.css` and `tailwind.config.ts`
 - Components: See `src/components/ui/`
 - Updates: Keep this guide updated with any brand changes
 
 ---
 
-**Version 1.0** | Last updated: 2025-01-12
+**Version 2.0** | Last updated: 2026-01-25

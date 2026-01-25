@@ -23,7 +23,7 @@ const CreatorGuidance = () => {
           <div>
             <h4 className="font-medium text-foreground text-sm mb-1">Admin Approval Required</h4>
             <p className="text-xs text-muted-foreground">
-              All markets must be approved by Shariz admins before going live. 
+              All markets must be approved by Criccmax admins before going live. 
               This ensures quality and compliance standards.
             </p>
           </div>

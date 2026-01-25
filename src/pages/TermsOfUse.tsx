@@ -56,7 +56,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
       
       toast({
         title: "Terms accepted",
-        description: "You can now use all features of Shariz",
+        description: "You can now use all features of Criccmax",
       });
 
       if (requireAcceptance) {
@@ -88,7 +88,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">1. Acceptance of Terms</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  By accessing or using Shariz, you agree to be bound by these Terms of Use and all applicable laws and regulations. 
+                  By accessing or using Criccmax, you agree to be bound by these Terms of Use and all applicable laws and regulations. 
                   If you do not agree with any of these terms, you are prohibited from using or accessing this platform.
                 </p>
               </section>
@@ -96,7 +96,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">2. Platform Description</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
-                  Shariz is a federally-compliant prediction market platform offering peer-to-peer order book trading
+                  Criccmax is a federally-compliant cricket prediction market platform offering peer-to-peer order book trading
                   with exchange-style order matching and fixed-payout event contracts.
                 </p>
               </section>
@@ -104,7 +104,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">3. CFTC Regulation</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz operates event contracts under U.S. Commodity Futures Trading Commission (CFTC) guidelines. 
+                  Criccmax operates event contracts under U.S. Commodity Futures Trading Commission (CFTC) guidelines. 
                   All contracts are regulated as commodities, not gambling or betting. Event contracts are binary options that 
                   pay a fixed amount ($1.00) if the predicted event occurs and nothing ($0.00) if it does not. These are 
                   fixed-payout contracts regulated under federal law.
@@ -114,7 +114,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">4. Eligibility Requirements</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
-                  To use Shariz, you must:
+                  To use Criccmax, you must:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Be at least 18 years of age or older</li>
@@ -127,7 +127,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">5. Know Your Customer (KYC)</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Federal regulations require Shariz to verify the identity of all users. You must provide accurate personal 
+                  Federal regulations require Criccmax to verify the identity of all users. You must provide accurate personal 
                   information and may be required to submit government-issued identification documents. Trading is restricted 
                   until KYC verification is complete. Failure to complete KYC may result in account suspension.
                 </p>
@@ -139,14 +139,14 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
                   Trading on prediction markets involves substantial risk of loss. The value of event contracts can fluctuate 
                   significantly based on market conditions and event outcomes. You may lose all funds invested in a position. 
                   Past performance is not indicative of future results. Only trade with funds you can afford to lose. 
-                  Shariz is not responsible for trading losses.
+                  Criccmax is not responsible for trading losses.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-semibold mb-3">7. Market Rules</h2>
                 <p className="text-muted-foreground leading-relaxed mb-2">
-                  All markets on Shariz are subject to specific rules including:
+                  All markets on Criccmax are subject to specific rules including:
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-4">
                   <li>Clear question definitions and resolution criteria</li>
@@ -160,7 +160,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">8. Fees and Costs</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz charges a platform fee of up to 5% on winning positions. Creator markets may include additional 
+                  Criccmax charges a platform fee of up to 5% on winning positions. Creator markets may include additional 
                   creator fees (typically 2%). All fees are disclosed prior to trading. Fees are deducted automatically 
                   upon market settlement.
                 </p>
@@ -184,7 +184,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">10. Account Suspension and Termination</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz reserves the right to suspend or terminate accounts for violations of these terms, suspected fraud, 
+                  Criccmax reserves the right to suspend or terminate accounts for violations of these terms, suspected fraud, 
                   or failure to comply with KYC requirements. Suspended accounts may have trading restricted and withdrawals 
                   delayed pending investigation.
                 </p>
@@ -193,16 +193,16 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">11. Dispute Resolution</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Market outcomes are determined by designated resolution sources. Shariz administrators have final authority 
+                  Market outcomes are determined by designated resolution sources. Criccmax administrators have final authority 
                   on market settlements. Disputes must be submitted within 7 days of market resolution. Users agree to binding 
-                  arbitration for any disputes with Shariz.
+                  arbitration for any disputes with Criccmax.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-lg font-semibold mb-3">12. Limitation of Liability</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz is not liable for trading losses, market volatility, technical failures, or force majeure events. 
+                  Criccmax is not liable for trading losses, market volatility, technical failures, or force majeure events. 
                   The platform is provided "as is" without warranties. Maximum liability is limited to fees paid by the user 
                   in the 12 months preceding any claim.
                 </p>
@@ -211,7 +211,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">13. Changes to Terms</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shariz reserves the right to modify these terms at any time. Users will be notified of material changes. 
+                  Criccmax reserves the right to modify these terms at any time. Users will be notified of material changes. 
                   Continued use of the platform after changes constitutes acceptance of the new terms.
                 </p>
               </section>
@@ -219,7 +219,7 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
               <section>
                 <h2 className="text-lg font-semibold mb-3">14. Contact Information</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  For questions about these terms, contact us at legal@shariz.com or visit our support page.
+                  For questions about these terms, contact us at legal@criccmax.com or visit our support page.
                 </p>
               </section>
             </div>
