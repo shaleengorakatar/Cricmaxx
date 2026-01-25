@@ -18,7 +18,7 @@ const PortfolioSummary = ({ balance, profitLoss, isVerified }: PortfolioSummaryP
   return (
     <Card className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base md:text-lg font-semibold text-foreground">Criccmax Wallet</h2>
+        <h2 className="text-base md:text-lg font-semibold text-foreground">CricMaxx Wallet</h2>
         {isVerified && (
           <div className="flex items-center gap-1 text-sm text-accent">
             <CheckCircle2 className="h-4 w-4" />

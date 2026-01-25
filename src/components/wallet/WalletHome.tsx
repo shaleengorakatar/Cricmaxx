@@ -25,7 +25,7 @@ const WalletHome = ({
     <div className="space-y-4">
       {/* Header */}
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Shariz Wallet</h1>
+        <h1 className="text-2xl font-bold text-foreground">CricMaxx Wallet</h1>
       </div>
 
       {/* Available Tokens - Primary */}

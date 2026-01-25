@@ -1,8 +1,8 @@
-# Criccmax Branding & Style Guide
+# CricMaxx Branding & Style Guide
 
 ## Brand Identity
 
-**Criccmax - Fast. Live. Fun. 🏏**
+**CricMaxx - Fast. Live. Fun. 🏏**
 
 The ultimate cricket prediction playground — a modern, energetic, and sporty platform that feels like being at the stadium.
 
