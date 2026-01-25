@@ -9,9 +9,9 @@ import { cn } from "@/lib/utils";
 const ONBOARDING_SCREENS = [
   {
     icon: TrendingUp,
-    title: "Take Positions on Events",
-    description: "Shariz lets you stake tokens on the outcomes of real-world events. If your prediction is correct, tokens are returned at full value.",
-    highlight: "From cricket matches to crypto prices",
+    title: "Make Live Cricket Predictions",
+    description: "Criccmax lets you stake tokens on the outcomes of real cricket matches. If your prediction is correct, tokens are returned at full value.",
+    highlight: "Fast, live, and fun — like being in the stadium!",
   },
   {
     icon: Coins,
@@ -165,7 +165,7 @@ export function OnboardingModal() {
                 onClick={nextScreen}
                 className="gap-1 bg-primary text-primary-foreground"
               >
-                {isLastScreen ? "Get Started" : "Next"}
+                {isLastScreen ? "Let's Go!" : "Next"}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

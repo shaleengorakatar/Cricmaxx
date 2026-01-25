@@ -129,7 +129,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
 
       toast({
         title: "Market submitted for review",
-        description: "Your market will be reviewed by Shariz admins and go live once approved.",
+        description: "Your market will be reviewed by Criccmax admins and go live once approved.",
       });
 
       // Reset form

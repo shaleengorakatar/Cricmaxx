@@ -41,7 +41,7 @@ const MobileHome = () => {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              Welcome back{user ? `, ${profile?.name?.split(' ')[0] || ''}` : ''}!
+              Welcome back{user ? `, ${profile?.name?.split(' ')[0] || ''}` : ''}! 🏏
             </h1>
             <p className="text-muted-foreground mt-1">
               Ready to make predictions?
@@ -73,7 +73,7 @@ const MobileHome = () => {
               onClick={() => navigate("/rapid-pred")}
               className="h-14 text-base bg-gradient-to-r from-primary to-accent hover:opacity-90"
             >
-              ⚡ Quick Predict
+              ⚡ Criccmax RapidPred
             </Button>
             <Button
               onClick={() => navigate("/mobile/markets")}

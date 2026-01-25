@@ -22,19 +22,19 @@ interface EmailRequest {
 
 const EMAIL_TEMPLATES = {
   deposit: (data: EmailRequest["data"]) => ({
-    subject: `${data.amount} tokens added to your Shariz wallet`,
+    subject: `${data.amount} tokens added to your Criccmax wallet`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Tokens Added</h1>
+        <h1 style="color: #1a1a1a; font-size: 24px;">🏏 Tokens Added</h1>
         <p style="color: #666; font-size: 16px; line-height: 1.6;">
-          <strong>${data.amount} tokens</strong> have been added to your Shariz wallet.
+          <strong>${data.amount} tokens</strong> have been added to your Criccmax wallet.
         </p>
         <p style="color: #666; font-size: 14px;">
-          These tokens are now available as collateral for taking positions in prediction markets.
+          These tokens are now available as collateral for making predictions on cricket matches.
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Shariz Tokens are used as collateral to take positions in information markets and are returned when markets resolve.
+          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -43,7 +43,7 @@ const EMAIL_TEMPLATES = {
     subject: `Position opened: ${data.side?.toUpperCase()} on "${data.marketQuestion?.slice(0, 40)}..."`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Position Opened</h1>
+        <h1 style="color: #1a1a1a; font-size: 24px;">🏏 Position Opened</h1>
         <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
           <p style="margin: 0; font-weight: 600; color: #1a1a1a;">${data.marketQuestion}</p>
         </div>
@@ -55,7 +55,7 @@ const EMAIL_TEMPLATES = {
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Shariz Tokens are used as collateral to take positions in information markets and are returned when markets resolve.
+          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -64,7 +64,7 @@ const EMAIL_TEMPLATES = {
     subject: `Market resolved: ${data.tokensReturned} tokens returned`,
     html: `
       <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #1a1a1a; font-size: 24px;">Market Resolved</h1>
+        <h1 style="color: #1a1a1a; font-size: 24px;">🏏 Market Resolved</h1>
         <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
           <p style="margin: 0; font-weight: 600; color: #1a1a1a;">${data.marketQuestion}</p>
         </div>
@@ -77,7 +77,7 @@ const EMAIL_TEMPLATES = {
         </div>
         <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
         <p style="color: #999; font-size: 12px;">
-          Shariz Tokens are used as collateral to take positions in information markets and are returned when markets resolve.
+          Criccmax Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve.
         </p>
       </div>
     `,
@@ -92,7 +92,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Shariz <notifications@resend.dev>",
+      from: "Criccmax <notifications@resend.dev>",
       to: [to],
       subject,
       html,
