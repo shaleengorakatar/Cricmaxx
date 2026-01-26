@@ -24,11 +24,11 @@ const Hero = () => {
           <img 
             src={cricmaxxLogo} 
             alt="CricMaxx" 
-            className="h-48 sm:h-56 md:h-72 w-auto mx-auto mb-6 sm:mb-8 drop-shadow-2xl"
+            className="h-64 sm:h-72 md:h-96 w-auto mx-auto mb-2 sm:mb-4 drop-shadow-2xl"
           />
           
           {/* Mobile-optimized tagline */}
-          <p className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-6 sm:mb-8">
+          <p className="text-xl sm:text-2xl md:text-3xl font-semibold mb-6 sm:mb-8">
             Fast. Live.{" "}
             <span className="text-accent inline-flex items-center gap-1">
               Fun.
