@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Fingerprint, Mail, Lock, User, ArrowLeft } from "lucide-react";
+import { Fingerprint, Mail, User, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -152,18 +153,14 @@ const MobileAuth = () => {
 
             <div>
               <Label htmlFor="password" className="text-base">Password</Label>
-              <div className="relative mt-2">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 h-14 text-base"
-                  required
-                />
-              </div>
+              <PasswordInput
+                id="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="h-14 text-base mt-2"
+                required
+              />
               {!isLogin && <PasswordRequirements password={formData.password} />}
             </div>
 
