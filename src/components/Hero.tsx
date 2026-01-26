@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -19,10 +20,12 @@ const Hero = () => {
 
       <div className="container mx-auto px-4 py-24 sm:py-32 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Mobile-optimized title */}
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-4 sm:mb-6 leading-tight">
-            CricMaxx 🏏
-          </h1>
+          {/* Logo */}
+          <img 
+            src={cricmaxxLogo} 
+            alt="CricMaxx" 
+            className="h-32 sm:h-40 md:h-48 w-auto mx-auto mb-6 sm:mb-8 drop-shadow-2xl"
+          />
           
           {/* Mobile-optimized tagline */}
           <p className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-6 sm:mb-8">

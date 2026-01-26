@@ -13,6 +13,7 @@ import {
 } from "./ui/dropdown-menu";
 import { User, Settings, LogOut, Menu, Coins } from "lucide-react";
 import { NotificationsBell } from "./notifications/NotificationsBell";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
@@ -24,9 +25,11 @@ const Navigation = () => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between gap-8">
           <Link to="/" className="flex items-center shrink-0">
-            <div className="text-2xl font-bold text-primary">
-              CricMaxx 🏏
-            </div>
+            <img 
+              src={cricmaxxLogo} 
+              alt="CricMaxx" 
+              className="h-10 w-auto"
+            />
           </Link>
           
           {/* Desktop Navigation */}
