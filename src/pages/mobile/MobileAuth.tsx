@@ -8,6 +8,7 @@ import { Fingerprint, Mail, Lock, User, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
+import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
 
 const MobileAuth = () => {
   const navigate = useNavigate();
@@ -56,6 +57,18 @@ const MobileAuth = () => {
         });
         navigate('/mobile');
       } else {
+        // Validate password before signup
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+          toast({
+            title: "Password doesn't meet requirements",
+            description: passwordValidation.errors[0],
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await signUp(
           formData.email,
           formData.password,
@@ -66,7 +79,7 @@ const MobileAuth = () => {
         
         toast({
           title: "Account created!",
-          description: "Please check your email to verify your account",
+          description: "Welcome to CricMaxx! Start predicting.",
         });
       }
     } catch (error: any) {
@@ -94,7 +107,7 @@ const MobileAuth = () => {
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">
-            Shariz
+            CricMaxx 🏏
           </h1>
           <p className="text-muted-foreground">
             {isLogin ? 'Sign in to your account' : 'Create your account'}
@@ -151,6 +164,7 @@ const MobileAuth = () => {
                   required
                 />
               </div>
+              {!isLogin && <PasswordRequirements password={formData.password} />}
             </div>
 
             <Button

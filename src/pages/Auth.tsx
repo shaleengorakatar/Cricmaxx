@@ -11,12 +11,22 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
+
+// Custom password validation
+const passwordSchema = z.string()
+  .min(8, "Password must be at least 8 characters")
+  .max(100)
+  .refine((p) => /[A-Z]/.test(p), "Password must contain an uppercase letter")
+  .refine((p) => /[a-z]/.test(p), "Password must contain a lowercase letter")
+  .refine((p) => /[0-9]/.test(p), "Password must contain a number")
+  .refine((p) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(p), "Password must contain a special character");
 
 const signUpSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
   username: z.string().trim().min(3, "Username must be at least 3 characters").max(30).regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().trim().email("Invalid email address").max(255),
-  password: z.string().min(8, "Password must be at least 8 characters").max(100),
+  password: passwordSchema,
   accountType: z.enum(['trader', 'creator'])
 });
 
@@ -114,7 +124,7 @@ const Auth = () => {
 
         toast({
           title: "Account created!",
-          description: "Welcome to Shariz. Start trading!",
+          description: "Welcome to CricMaxx. Start predicting!",
         });
       }
     } catch (error) {
@@ -159,7 +169,7 @@ const Auth = () => {
         } else {
           toast({
             title: "Welcome back!",
-            description: "Successfully signed in to Shariz.",
+            description: "Successfully signed in to CricMaxx.",
           });
           // Will redirect via useEffect
         }
@@ -253,8 +263,8 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center px-4 md:px-6">
-          <CardTitle className="text-3xl font-bold text-primary">Shariz</CardTitle>
-          <CardDescription>Predict. Profit. Participate.</CardDescription>
+          <CardTitle className="text-3xl font-bold text-primary">CricMaxx</CardTitle>
+          <CardDescription>Fast. Live. Fun. 🏏</CardDescription>
         </CardHeader>
         <CardContent className="px-4 md:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -363,9 +373,7 @@ const Auth = () => {
                     className="h-12 text-base"
                     required
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Must be at least 8 characters
-                  </p>
+                  <PasswordRequirements password={signUpData.password} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="account-type" className="text-sm md:text-base">Account Type</Label>
