@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, TrendingUp, FileText, Wallet, User, Zap } from "lucide-react";
+import { Home, TrendingUp, FileText, User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const tabs = [
   { name: "Home", path: "/mobile", icon: Home },
@@ -18,6 +19,15 @@ export const BottomTabBar = () => {
     <nav className="fixed bottom-4 left-4 right-4 mx-auto max-w-md z-50">
       {/* Floating glass container */}
       <div className="relative">
+        {/* Logo centered above nav */}
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-10">
+          <img 
+            src={cricmaxxLogo} 
+            alt="CricMaxx" 
+            className="h-6 w-auto opacity-60"
+          />
+        </div>
+        
         {/* Glow effect behind the nav */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 blur-xl opacity-60" />
         
