@@ -24,7 +24,7 @@ const Hero = () => {
           <img 
             src={cricmaxxLogo} 
             alt="CricMaxx" 
-            className="h-32 sm:h-40 md:h-48 w-auto mx-auto mb-6 sm:mb-8 drop-shadow-2xl"
+            className="h-48 sm:h-56 md:h-72 w-auto mx-auto mb-6 sm:mb-8 drop-shadow-2xl"
           />
           
           {/* Mobile-optimized tagline */}
