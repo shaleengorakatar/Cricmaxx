@@ -33,3 +33,9 @@ verify_jwt = true
 
 [functions.order-book]
 verify_jwt = true
+
+[functions.create-payment-checkout]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false

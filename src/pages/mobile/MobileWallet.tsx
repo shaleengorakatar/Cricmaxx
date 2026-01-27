@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MobileLayout } from "@/layouts/MobileLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Coins, BarChart3, History, ArrowDownCircle } from "lucide-react";
+import { Coins, BarChart3, History, ArrowDownCircle, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import WalletHome from "@/components/wallet/WalletHome";
 import PositionsScreen from "@/components/wallet/PositionsScreen";
 import WalletActivity from "@/components/wallet/WalletActivity";
-import BuyTokensDialog from "@/components/wallet/BuyTokensDialog";
+import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 import RedeemTokensDialog from "@/components/wallet/RedeemTokensDialog";
+import PaymentHistory from "@/components/wallet/PaymentHistory";
 import { Button } from "@/components/ui/button";
 import { WalletActivityType } from "@/lib/walletTerminology";
+import { useToast } from "@/hooks/use-toast";
 
 interface Position {
   id: string;
@@ -31,6 +34,8 @@ interface ActivityItem {
 
 const MobileWallet = () => {
   const { user, profile } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [redeemDialogOpen, setRedeemDialogOpen] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -38,6 +43,31 @@ const MobileWallet = () => {
   const [tokensInPlay, setTokensInPlay] = useState(0);
   const [settledThisWeek, setSettledThisWeek] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("wallet");
+
+  // Handle payment success/cancel URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    const amount = searchParams.get("amount");
+    
+    if (paymentStatus === "success") {
+      toast({
+        title: "Payment Successful!",
+        description: `${amount || ''} tokens have been added to your wallet.`,
+      });
+      // Clear the URL params
+      setSearchParams({});
+      // Refresh data
+      fetchWalletData();
+    } else if (paymentStatus === "cancelled") {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. No tokens were added.",
+        variant: "destructive",
+      });
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (user) {
@@ -144,8 +174,8 @@ const MobileWallet = () => {
   return (
     <MobileLayout>
       <div className="px-4 pt-6 pb-4">
-        <Tabs defaultValue="wallet" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+        <Tabs defaultValue="wallet" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="wallet" className="text-sm">
               <Coins className="h-4 w-4 mr-1.5" />
               Wallet
@@ -153,6 +183,10 @@ const MobileWallet = () => {
             <TabsTrigger value="positions" className="text-sm">
               <BarChart3 className="h-4 w-4 mr-1.5" />
               Positions
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="text-sm">
+              <CreditCard className="h-4 w-4 mr-1.5" />
+              Payments
             </TabsTrigger>
             <TabsTrigger value="activity" className="text-sm">
               <History className="h-4 w-4 mr-1.5" />
@@ -185,6 +219,13 @@ const MobileWallet = () => {
             <PositionsScreen positions={positions} />
           </TabsContent>
 
+          <TabsContent value="payments" className="space-y-4">
+            <div className="space-y-3">
+              <h3 className="font-medium">Payment History</h3>
+              <PaymentHistory />
+            </div>
+          </TabsContent>
+
           <TabsContent value="activity">
             <WalletActivity activities={activities} />
           </TabsContent>
@@ -192,7 +233,7 @@ const MobileWallet = () => {
       </div>
 
       {/* Dialogs */}
-      <BuyTokensDialog
+      <PaymentMethodsDialog
         isOpen={buyDialogOpen}
         onClose={() => setBuyDialogOpen(false)}
         onSuccess={handleBalanceUpdate}
