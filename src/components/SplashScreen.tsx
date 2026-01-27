@@ -55,11 +55,11 @@ const SplashScreen = ({ isVisible, onSkip }: SplashScreenProps) => {
             </Button>
           </motion.div>
 
-          {/* Logo with animation */}
+          {/* Logo with animation - larger size to account for empty space in image */}
           <motion.img
             src={cricmaxxLogo}
             alt="CricMaxx"
-            className="h-48 sm:h-64 md:h-80 w-auto drop-shadow-2xl relative z-10"
+            className="h-72 sm:h-96 md:h-[28rem] w-auto drop-shadow-2xl relative z-10 -my-8"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ 
               scale: 1, 
