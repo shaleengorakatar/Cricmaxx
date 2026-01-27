@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const Hero = () => {
@@ -20,11 +21,19 @@ const Hero = () => {
 
       <div className="container mx-auto px-4 py-24 sm:py-32 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
-          {/* Logo */}
-          <img 
+          {/* Logo with floating animation */}
+          <motion.img 
             src={cricmaxxLogo} 
             alt="CricMaxx" 
             className="h-64 sm:h-72 md:h-96 w-auto mx-auto mb-0 -mt-8 sm:-mt-10 md:-mt-16 drop-shadow-2xl"
+            animate={{ 
+              y: [0, -12, 0],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
           />
           
           {/* Mobile-optimized tagline */}
