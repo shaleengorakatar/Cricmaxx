@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
@@ -8,6 +9,20 @@ interface SplashScreenProps {
 }
 
 const SplashScreen = ({ isVisible, onSkip }: SplashScreenProps) => {
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSkip?.();
+    }
+  }, [onSkip]);
+
+  useEffect(() => {
+    if (isVisible) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [isVisible, handleKeyDown]);
+
   return (
     <AnimatePresence>
       {isVisible && (
