@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
 
 // Use public path for stable preload URL matching
-const cricmaxxLogo = "/assets/cricmaxx-logo.webp";
+const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },

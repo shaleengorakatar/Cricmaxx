@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 // Use public path for stable preload URL matching
-const cricmaxxLogo = "/assets/cricmaxx-logo.webp";
+const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 interface SplashScreenProps {
   isVisible: boolean;
