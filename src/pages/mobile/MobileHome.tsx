@@ -70,7 +70,7 @@ const MobileHome = () => {
         <Card className="p-4 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20">
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={() => navigate("/rapid-pred")}
+              onClick={() => navigate("/rapidpred")}
               className="h-14 text-base bg-gradient-to-r from-primary to-accent hover:opacity-90"
             >
               ⚡ RapidPred
