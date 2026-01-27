@@ -1,7 +1,9 @@
 import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
+
+// Use public path for stable preload URL matching
+const cricmaxxLogo = "/assets/cricmaxx-logo.webp";
 
 interface SplashScreenProps {
   isVisible: boolean;

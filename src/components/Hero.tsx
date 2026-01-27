@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
+
+// Use public path for stable preload URL matching
+const cricmaxxLogo = "/assets/cricmaxx-logo.webp";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
