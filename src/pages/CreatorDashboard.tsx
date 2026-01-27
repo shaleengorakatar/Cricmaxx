@@ -13,13 +13,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CreatorMarket } from "@/types/creator";
 import { DollarSign, TrendingUp, BarChart3, Sparkles, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ApplicationData {
+  description: string;
+  follower_count: number;
+  social_media_platform: string;
+  social_media_handle: string;
+  creator_type: string | null;
+  previous_experience: string | null;
+}
+
 const CreatorDashboard = () => {
   const [markets, setMarkets] = useState<CreatorMarket[]>([]);
   const [applicationStatus, setApplicationStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [applicationData, setApplicationData] = useState<ApplicationData | null>(null);
+  const [isEditingApplication, setIsEditingApplication] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const { isAuthenticated, isCreator, loading, user } = useAuth();
   const navigate = useNavigate();
@@ -76,7 +88,7 @@ const CreatorDashboard = () => {
       
       const { data, error } = await supabase
         .from('creator_applications')
-        .select('status')
+        .select('status, description, follower_count, social_media_platform, social_media_handle, creator_type, previous_experience')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -86,6 +98,16 @@ const CreatorDashboard = () => {
       
       const status = data?.status as 'pending' | 'approved' | 'rejected' | undefined;
       setApplicationStatus(status || 'none');
+      if (data) {
+        setApplicationData({
+          description: data.description,
+          follower_count: data.follower_count,
+          social_media_platform: data.social_media_platform,
+          social_media_handle: data.social_media_handle,
+          creator_type: data.creator_type,
+          previous_experience: data.previous_experience,
+        });
+      }
       setLoadingStatus(false);
     };
 
@@ -106,6 +128,7 @@ const CreatorDashboard = () => {
 
   const handleApplicationSubmitted = () => {
     setApplicationStatus('pending');
+    setIsEditingApplication(false);
   };
 
   // Show loading while checking auth
@@ -130,7 +153,7 @@ const CreatorDashboard = () => {
               <CreatorApplicationForm onApplicationSubmitted={handleApplicationSubmitted} />
             )}
 
-            {applicationStatus === 'pending' && (
+            {applicationStatus === 'pending' && !isEditingApplication && (
               <Card className="p-8">
                 <div className="text-center">
                   <Badge variant="secondary" className="mb-4">
@@ -142,7 +165,7 @@ const CreatorDashboard = () => {
                     Your creator application is currently under review by our admin team. 
                     We typically review applications within 24-48 hours. You'll receive an email once your application is processed.
                   </p>
-                  <div className="bg-muted/50 p-4 rounded-lg text-left">
+                  <div className="bg-muted/50 p-4 rounded-lg text-left mb-6">
                     <p className="text-sm font-medium mb-2">What happens next?</p>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• Admin reviews your profile and social media presence</li>
@@ -151,8 +174,40 @@ const CreatorDashboard = () => {
                       <li>• You'll be notified via email about the decision</li>
                     </ul>
                   </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsEditingApplication(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Update Application
+                  </Button>
                 </div>
               </Card>
+            )}
+
+            {applicationStatus === 'pending' && isEditingApplication && applicationData && (
+              <div className="space-y-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setIsEditingApplication(false)}
+                  className="mb-2"
+                >
+                  ← Back to Status
+                </Button>
+                <CreatorApplicationForm 
+                  onApplicationSubmitted={handleApplicationSubmitted}
+                  existingApplication={{
+                    description: applicationData.description,
+                    followerCount: String(applicationData.follower_count),
+                    socialMediaPlatform: applicationData.social_media_platform,
+                    socialMediaHandle: applicationData.social_media_handle,
+                    creatorType: applicationData.creator_type || '',
+                    previousExperience: applicationData.previous_experience || '',
+                  }}
+                  isEditing={true}
+                />
+              </div>
             )}
 
             {applicationStatus === 'rejected' && (

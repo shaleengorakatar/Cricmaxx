@@ -395,6 +395,15 @@ const Auth = () => {
                       <SelectItem value="creator">Creator (Also Create Markets)</SelectItem>
                     </SelectContent>
                   </Select>
+                  {signUpData.accountType === 'creator' && (
+                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mt-2">
+                      <p className="text-xs text-accent font-medium mb-1">📋 Creator Application Required</p>
+                      <p className="text-xs text-muted-foreground">
+                        After signing up, you'll need to submit a creator application with your social media details. 
+                        An admin will review and approve your application before you can create markets.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <Button 
                   type="submit" 

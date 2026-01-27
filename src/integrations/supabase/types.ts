@@ -42,6 +42,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           created_at: string
+          creator_type: string | null
           description: string
           follower_count: number
           id: string
@@ -57,6 +58,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           created_at?: string
+          creator_type?: string | null
           description: string
           follower_count: number
           id?: string
@@ -72,6 +74,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           created_at?: string
+          creator_type?: string | null
           description?: string
           follower_count?: number
           id?: string

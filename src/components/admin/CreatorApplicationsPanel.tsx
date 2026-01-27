@@ -22,6 +22,7 @@ interface CreatorApplication {
   follower_count: number;
   social_media_platform: string;
   social_media_handle: string;
+  creator_type: string | null;
   previous_experience: string | null;
   status: 'pending' | 'approved' | 'rejected';
   admin_notes: string | null;
@@ -31,6 +32,19 @@ interface CreatorApplication {
     email: string;
   };
 }
+
+const CREATOR_TYPE_LABELS: Record<string, string> = {
+  cricket_analyst: "Cricket Analyst",
+  sports_commentator: "Sports Commentator",
+  sports_journalist: "Sports Journalist",
+  fantasy_sports: "Fantasy Sports Expert",
+  betting_tipster: "Betting Tipster",
+  influencer: "Sports Influencer",
+  podcaster: "Sports Podcaster",
+  youtuber: "Sports YouTuber",
+  streamer: "Live Streamer",
+  other: "Other",
+};
 
 export const CreatorApplicationsPanel = () => {
   const [applications, setApplications] = useState<CreatorApplication[]>([]);
@@ -208,6 +222,14 @@ export const CreatorApplicationsPanel = () => {
                               {criteria.hasFollowers && " ✓"}
                             </span>
                           </div>
+                          {app.creator_type && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="font-medium">Creator Type:</span>
+                              <Badge variant="outline" className="text-xs">
+                                {CREATOR_TYPE_LABELS[app.creator_type] || app.creator_type}
+                              </Badge>
+                            </div>
+                          )}
                         </div>
 
                         <div className="bg-muted/50 p-3 rounded text-sm mb-3">
@@ -317,6 +339,15 @@ export const CreatorApplicationsPanel = () => {
                 <h3 className="font-semibold text-sm mb-1">Handle</h3>
                 <p className="text-sm text-muted-foreground">{selectedApp.social_media_handle}</p>
               </div>
+
+              {selectedApp.creator_type && (
+                <div>
+                  <h3 className="font-semibold text-sm mb-1">Creator Type</h3>
+                  <Badge variant="secondary">
+                    {CREATOR_TYPE_LABELS[selectedApp.creator_type] || selectedApp.creator_type}
+                  </Badge>
+                </div>
+              )}
 
               <div>
                 <h3 className="font-semibold text-sm mb-1">Description</h3>
