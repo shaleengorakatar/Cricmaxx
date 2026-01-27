@@ -1480,6 +1480,31 @@ export type Database = {
         }
         Relationships: []
       }
+      order_book_aggregated: {
+        Row: {
+          market_id: string | null
+          order_count: number | null
+          price: number | null
+          side: string | null
+          total_quantity: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "markets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_market_id_fkey"
+            columns: ["market_id"]
+            isOneToOne: false
+            referencedRelation: "mv_market_stats"
+            referencedColumns: ["market_id"]
+          },
+        ]
+      }
     }
     Functions: {
       append_price_history: {
