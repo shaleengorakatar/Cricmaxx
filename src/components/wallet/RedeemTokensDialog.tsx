@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Wallet, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
+import { useStripeConnect } from "@/hooks/useStripeConnect";
 
 interface RedeemTokensDialogProps {
   isOpen: boolean;
@@ -28,9 +28,12 @@ const RedeemTokensDialog = ({
   const [amount, setAmount] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { status, isLoading: isLoadingStatus, startOnboarding, isConnecting, requestPayout } = useStripeConnect();
 
   const redeemAmount = parseFloat(amount) || 0;
-  const isValidAmount = redeemAmount >= WALLET_TERMS.MIN_REDEMPTION && redeemAmount <= availableTokens;
+  const minRedemption = 10; // Stripe minimum
+  const isValidAmount = redeemAmount >= minRedemption && redeemAmount <= availableTokens;
+  const isConnected = status?.status === "active" && status?.payouts_enabled;
 
   const handleRequestRedemption = () => {
     if (!isValidAmount) return;
@@ -43,31 +46,24 @@ const RedeemTokensDialog = ({
     setIsProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('wallet-operations', {
-        body: {
-          operation: 'withdrawal',
-          amount: redeemAmount
-        }
-      });
+      const result = await requestPayout(redeemAmount);
 
-      if (error) throw error;
-
-      if (data?.success) {
+      if (result?.success) {
         toast({
-          title: "Redemption requested",
-          description: `${redeemAmount} tokens redemption is being processed`,
+          title: "Payout initiated!",
+          description: result.message || `$${redeemAmount} will arrive in 2-5 business days`,
         });
         setAmount("");
         setStep(1);
         onSuccess();
         onClose();
       } else {
-        throw new Error(data?.error || 'Failed to request redemption');
+        throw new Error(result?.error || "Payout failed");
       }
     } catch (error) {
-      console.error('Redemption error:', error);
+      console.error("Payout error:", error);
       toast({
-        title: "Redemption failed",
+        title: "Payout failed",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
@@ -82,103 +78,161 @@ const RedeemTokensDialog = ({
     onClose();
   };
 
+  const renderConnectPrompt = () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Connect Bank Account</DialogTitle>
+        <DialogDescription>
+          Connect your bank account to redeem tokens for USD
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 pt-2">
+        <div className="p-4 rounded-lg bg-muted/50 border border-border">
+          <div className="flex items-start gap-3">
+            <Wallet className="h-5 w-5 text-primary mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Secure Payouts via Stripe</p>
+              <p className="text-xs text-muted-foreground">
+                Connect your bank account through Stripe's secure platform to receive payouts when you redeem tokens.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Button 
+          onClick={startOnboarding} 
+          disabled={isConnecting}
+          className="w-full h-12"
+        >
+          {isConnecting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Opening Stripe...
+            </>
+          ) : (
+            <>
+              Connect Bank Account
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+
+        <p className="text-xs text-center text-muted-foreground">
+          You'll be redirected to Stripe to securely link your bank account
+        </p>
+      </div>
+    </>
+  );
+
+  const renderRedeemForm = () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Redeem Tokens</DialogTitle>
+        <DialogDescription>
+          Available: {availableTokens.toLocaleString()} tokens (≈ ${availableTokens.toLocaleString()})
+        </DialogDescription>
+      </DialogHeader>
+
+      {hasOpenPositions && (
+        <Alert variant="destructive" className="mt-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {WALLET_TERMS.REDEMPTION_DESC}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="space-y-4 pt-2">
+        <div>
+          <Label htmlFor="redeem-amount" className="text-sm text-muted-foreground">
+            Amount to redeem (USD)
+          </Label>
+          <Input
+            id="redeem-amount"
+            type="number"
+            placeholder={`Min $${minRedemption}`}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            min={minRedemption}
+            max={availableTokens}
+            className="h-12 text-lg mt-2"
+            disabled={hasOpenPositions}
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Minimum payout: ${minRedemption} • 1 token = $1 USD
+          </p>
+        </div>
+
+        <Button
+          onClick={handleRequestRedemption}
+          disabled={!isValidAmount || hasOpenPositions}
+          className="w-full h-12"
+          variant="outline"
+        >
+          Continue to Confirmation
+        </Button>
+      </div>
+    </>
+  );
+
+  const renderConfirmation = () => (
+    <>
+      <DialogHeader>
+        <DialogTitle>Confirm Payout: ${redeemAmount}</DialogTitle>
+        <DialogDescription>
+          This amount will be transferred to your connected bank account
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-4 pt-2">
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p>• Funds typically arrive in 2-5 business days</p>
+          <p>• Your token balance will be reduced immediately</p>
+          <p>• You'll receive an email confirmation</p>
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={() => setStep(1)}
+            className="flex-1 h-12"
+            disabled={isProcessing}
+          >
+            Back
+          </Button>
+          <Button
+            onClick={handleConfirmRedemption}
+            disabled={isProcessing}
+            className="flex-1 h-12"
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Confirm $${redeemAmount} Payout`
+            )}
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-sm">
-        {step === 1 ? (
-          <>
-            <DialogHeader>
-              <DialogTitle>Redeem Tokens</DialogTitle>
-              <DialogDescription>
-                Available: {availableTokens.toLocaleString()} tokens
-              </DialogDescription>
-            </DialogHeader>
-
-            {hasOpenPositions && (
-              <Alert variant="destructive" className="mt-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {WALLET_TERMS.REDEMPTION_DESC}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-4 pt-2">
-              <div>
-                <Label htmlFor="redeem-amount" className="text-sm text-muted-foreground">
-                  Amount to redeem
-                </Label>
-                <Input
-                  id="redeem-amount"
-                  type="number"
-                  placeholder={`Min ${WALLET_TERMS.MIN_REDEMPTION} tokens`}
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  min={WALLET_TERMS.MIN_REDEMPTION}
-                  max={availableTokens}
-                  className="h-12 text-lg mt-2"
-                  disabled={hasOpenPositions}
-                />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Minimum redemption: {WALLET_TERMS.MIN_REDEMPTION} tokens
-                </p>
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                {WALLET_TERMS.REDEMPTION_DESC}
-              </p>
-
-              <Button
-                onClick={handleRequestRedemption}
-                disabled={!isValidAmount || hasOpenPositions}
-                className="w-full h-12"
-                variant="outline"
-              >
-                {WALLET_TERMS.REQUEST_REDEMPTION}
-              </Button>
-            </div>
-          </>
+        {isLoadingStatus ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : !isConnected ? (
+          renderConnectPrompt()
+        ) : step === 1 ? (
+          renderRedeemForm()
         ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Redeem {redeemAmount} tokens?</DialogTitle>
-              <DialogDescription>
-                ≈ ${redeemAmount.toFixed(2)}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>• {WALLET_TERMS.REDEMPTION_DELAY}</p>
-                <p>• {WALLET_TERMS.VERIFICATION_NOTE}</p>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep(1)}
-                  className="flex-1 h-12"
-                  disabled={isProcessing}
-                >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleConfirmRedemption}
-                  disabled={isProcessing}
-                  className="flex-1 h-12"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Confirm"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </>
+          renderConfirmation()
         )}
       </DialogContent>
     </Dialog>
