@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 const MobileAuth = () => {
   const navigate = useNavigate();

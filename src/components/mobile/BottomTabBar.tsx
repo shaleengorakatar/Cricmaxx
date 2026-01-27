@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, TrendingUp, FileText, User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 const tabs = [
   { name: "Home", path: "/mobile", icon: Home },

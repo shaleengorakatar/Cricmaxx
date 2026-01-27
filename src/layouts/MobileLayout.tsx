@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { BottomTabBar } from "@/components/mobile/BottomTabBar";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 interface MobileLayoutProps {
   children: ReactNode;

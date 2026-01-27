@@ -13,7 +13,7 @@ import {
 } from "./ui/dropdown-menu";
 import { User, Settings, LogOut, Menu, Coins } from "lucide-react";
 import { NotificationsBell } from "./notifications/NotificationsBell";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();

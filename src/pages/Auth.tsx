@@ -13,7 +13,7 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 // Custom password validation
 const passwordSchema = z.string()
