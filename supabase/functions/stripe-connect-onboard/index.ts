@@ -13,9 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // Authenticate user
@@ -25,14 +25,14 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
 
     if (authError || !user) {
       throw new Error("Unauthorized");
     }
 
     // Get user profile
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("email, stripe_account_id, stripe_account_status")
       .eq("id", user.id)
@@ -63,12 +63,7 @@ serve(async (req) => {
 
       accountId = account.id;
 
-      // Save account ID to profile using service role
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
-
+      // Save account ID to profile
       await supabaseAdmin
         .from("profiles")
         .update({
