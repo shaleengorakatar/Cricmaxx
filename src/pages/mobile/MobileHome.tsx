@@ -73,7 +73,7 @@ const MobileHome = () => {
               onClick={() => navigate("/rapid-pred")}
               className="h-14 text-base bg-gradient-to-r from-primary to-accent hover:opacity-90"
             >
-              ⚡ CricMaxx RapidPred
+              ⚡ RapidPred
             </Button>
             <Button
               onClick={() => navigate("/mobile/markets")}
