@@ -1071,6 +1071,8 @@ export type Database = {
           rating_score: number
           share_trades_with_friends: boolean | null
           show_on_leaderboard: boolean
+          stripe_account_id: string | null
+          stripe_account_status: string | null
           terms_accepted_at: string | null
           total_creator_earnings: number | null
           total_creator_volume: number | null
@@ -1097,6 +1099,8 @@ export type Database = {
           rating_score?: number
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
           terms_accepted_at?: string | null
           total_creator_earnings?: number | null
           total_creator_volume?: number | null
@@ -1123,6 +1127,8 @@ export type Database = {
           rating_score?: number
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
+          stripe_account_id?: string | null
+          stripe_account_status?: string | null
           terms_accepted_at?: string | null
           total_creator_earnings?: number | null
           total_creator_volume?: number | null
@@ -1325,7 +1331,9 @@ export type Database = {
           created_at: string
           id: string
           metadata: Json | null
+          payout_status: string | null
           status: string
+          stripe_payout_id: string | null
           type: string
           updated_at: string
           user_id: string
@@ -1337,7 +1345,9 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          payout_status?: string | null
           status?: string
+          stripe_payout_id?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -1349,7 +1359,9 @@ export type Database = {
           created_at?: string
           id?: string
           metadata?: Json | null
+          payout_status?: string | null
           status?: string
+          stripe_payout_id?: string | null
           type?: string
           updated_at?: string
           user_id?: string

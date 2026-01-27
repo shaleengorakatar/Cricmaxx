@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Coins, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
+import StripeConnectCard from "./StripeConnectCard";
 
 interface WalletHomeProps {
   availableTokens: number;
@@ -61,6 +62,9 @@ const WalletHome = ({
           </span>
         </div>
       </Card>
+
+      {/* Stripe Connect - Payout Settings */}
+      <StripeConnectCard />
 
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
