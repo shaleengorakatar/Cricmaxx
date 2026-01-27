@@ -8,7 +8,6 @@ import CricketScoresWidget from "@/components/CricketScoresWidget";
 import { StreakDisplay } from "@/components/trading/StreakDisplay";
 import { HotMarketsWidget } from "@/components/mobile/HotMarketsWidget";
 import { FriendActivityWidget } from "@/components/mobile/FriendActivityWidget";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const MobileHome = () => {
   const navigate = useNavigate();
@@ -37,23 +36,16 @@ const MobileHome = () => {
 
   return (
     <MobileLayout>
-      <div className="px-4 pt-6 pb-4 space-y-6">
-        {/* Header with Logo and Streak */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <img 
-              src={cricmaxxLogo} 
-              alt="CricMaxx" 
-              className="h-12 w-auto"
-            />
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                {user ? `Hey, ${profile?.name?.split(' ')[0] || ''}!` : 'Welcome!'}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Ready to predict?
-              </p>
-            </div>
+      <div className="px-4 pt-4 pb-4 space-y-6">
+        {/* Welcome Header with Streak */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">
+              {user ? `Hey, ${profile?.name?.split(' ')[0] || ''}!` : 'Welcome!'}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Ready to predict?
+            </p>
           </div>
           <StreakDisplay />
         </div>

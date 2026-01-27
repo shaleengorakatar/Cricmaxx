@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
 import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 const MobileAuth = () => {
   const navigate = useNavigate();
@@ -106,10 +107,12 @@ const MobileAuth = () => {
       </Button>
 
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">
-            CricMaxx 🏏
-          </h1>
+        <div className="text-center mb-6">
+          <img 
+            src={cricmaxxLogo} 
+            alt="CricMaxx" 
+            className="h-32 w-auto mx-auto -mb-4"
+          />
           <p className="text-muted-foreground">
             {isLogin ? 'Sign in to your account' : 'Create your account'}
           </p>
