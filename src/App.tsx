@@ -43,17 +43,27 @@ const PageLoader = () => (
   </div>
 );
 
+const SPLASH_SHOWN_KEY = "cricmaxx_splash_shown";
+
 const App = () => {
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    // Only show splash on first visit
+    return !localStorage.getItem(SPLASH_SHOWN_KEY);
+  });
 
   useEffect(() => {
+    if (!showSplash) return;
+
+    // Mark splash as shown
+    localStorage.setItem(SPLASH_SHOWN_KEY, "true");
+
     // Show splash for 2 seconds, then fade out
     const timer = setTimeout(() => {
       setShowSplash(false);
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [showSplash]);
 
   return (
     <QueryClientProvider client={queryClient}>
