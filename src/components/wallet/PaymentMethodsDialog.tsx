@@ -94,168 +94,117 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-accent" />
+      <DialogContent className="max-w-sm max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Wallet className="h-4 w-4 text-accent" />
             {WALLET_TERMS.BUY_TOKENS}
           </DialogTitle>
-          <DialogDescription className="text-sm">
-            {WALLET_TERMS.COLLATERAL_DESC}
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 pt-2">
-          {/* Amount Selection */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Select Amount</label>
-            <div className="grid grid-cols-2 gap-2">
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-4 space-y-4">
+          {/* Amount Selection - Compact grid */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Select Amount</label>
+            <div className="grid grid-cols-4 gap-1.5">
               {TOKEN_PRESETS.map((preset) => (
                 <button
                   key={preset.amount}
                   onClick={() => handlePresetSelect(preset.amount)}
                   className={cn(
-                    "p-3 rounded-lg border-2 text-left transition-all",
+                    "py-2 px-1 rounded-md border text-center transition-all text-xs font-medium",
                     selectedAmount === preset.amount
-                      ? "border-accent bg-accent/10"
+                      ? "border-accent bg-accent/10 text-accent"
                       : "border-border hover:border-muted-foreground/50"
                   )}
                 >
-                  <span className="font-medium text-sm">{preset.display}</span>
+                  ${preset.amount}
                 </button>
               ))}
             </div>
 
             {/* Custom amount */}
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input
                 type="text"
                 inputMode="numeric"
-                placeholder="Custom amount (min $10)"
+                placeholder="Custom (min $10)"
                 value={customAmount}
                 onChange={(e) => handleCustomAmountChange(e.target.value)}
                 className={cn(
-                  "pl-7",
+                  "pl-7 h-9 text-sm",
                   customAmount && !selectedAmount ? "border-accent" : ""
                 )}
               />
             </div>
           </div>
 
-          {/* Payment Methods */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Payment Method</label>
+          {/* Payment Method - Compact */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
             
-            {/* Stripe (Cards + Digital Wallets) */}
             <button
               onClick={() => setSelectedMethod('stripe')}
               className={cn(
-                "w-full p-4 rounded-lg border-2 text-left transition-all",
+                "w-full p-3 rounded-lg border text-left transition-all",
                 selectedMethod === 'stripe'
                   ? "border-accent bg-accent/5"
-                  : "border-border hover:border-muted-foreground/50"
+                  : "border-border"
               )}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">Card, Apple Pay, Google Pay</p>
-                    <p className="text-xs text-muted-foreground">Secure payment via Stripe</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium text-sm">Card, Apple Pay, Google Pay</span>
                 </div>
-                {selectedMethod === 'stripe' && (
-                  <Check className="h-5 w-5 text-accent" />
-                )}
+                {selectedMethod === 'stripe' && <Check className="h-4 w-4 text-accent" />}
               </div>
-              
-              {/* Payment method logos */}
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                <div className="flex items-center gap-1.5">
-                  {/* Visa */}
-                  <div className="h-6 w-9 bg-[#1A1F71] rounded flex items-center justify-center">
-                    <span className="text-white text-[8px] font-bold">VISA</span>
-                  </div>
-                  {/* Mastercard */}
-                  <div className="h-6 w-9 bg-gradient-to-r from-[#EB001B] to-[#F79E1B] rounded flex items-center justify-center">
-                    <div className="flex -space-x-1">
-                      <div className="h-3 w-3 rounded-full bg-[#EB001B] opacity-80"></div>
-                      <div className="h-3 w-3 rounded-full bg-[#F79E1B] opacity-80"></div>
-                    </div>
-                  </div>
-                  {/* Apple Pay */}
-                  <div className="h-6 px-2 bg-black rounded flex items-center justify-center">
-                    <span className="text-white text-[8px] font-medium"> Pay</span>
-                  </div>
-                  {/* Google Pay */}
-                  <div className="h-6 px-2 bg-white border rounded flex items-center justify-center">
-                    <span className="text-[8px] font-medium">
-                      <span className="text-[#4285F4]">G</span>
-                      <span className="text-[#EA4335]"> </span>
-                      <span className="text-black">Pay</span>
-                    </span>
-                  </div>
+              <div className="flex items-center gap-1 mt-2">
+                <div className="h-5 w-7 bg-[#1A1F71] rounded flex items-center justify-center">
+                  <span className="text-white text-[6px] font-bold">VISA</span>
+                </div>
+                <div className="h-5 w-7 bg-gradient-to-r from-[#EB001B] to-[#F79E1B] rounded" />
+                <div className="h-5 px-1.5 bg-black rounded">
+                  <span className="text-white text-[6px]"> Pay</span>
+                </div>
+                <div className="h-5 px-1.5 bg-white border rounded">
+                  <span className="text-[6px]">G Pay</span>
                 </div>
               </div>
             </button>
 
-            {/* PayPal */}
             <button
               onClick={() => setSelectedMethod('paypal')}
               className={cn(
-                "w-full p-4 rounded-lg border-2 text-left transition-all opacity-60",
-                selectedMethod === 'paypal'
-                  ? "border-accent bg-accent/5"
-                  : "border-border hover:border-muted-foreground/50"
+                "w-full p-3 rounded-lg border text-left transition-all opacity-50",
+                selectedMethod === 'paypal' ? "border-accent" : "border-border"
               )}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-5 w-5 flex items-center justify-center">
-                    <span className="text-[#003087] font-bold text-xs">P</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">PayPal</p>
-                    <p className="text-xs text-muted-foreground">Coming soon</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#003087] font-bold text-sm">P</span>
+                  <span className="text-sm">PayPal <span className="text-xs text-muted-foreground">(Coming soon)</span></span>
                 </div>
-                {selectedMethod === 'paypal' && (
-                  <Check className="h-5 w-5 text-accent" />
-                )}
               </div>
             </button>
           </div>
+        </div>
 
-          {/* Summary */}
+        {/* Fixed footer with summary and button */}
+        <div className="border-t bg-background px-4 py-3 space-y-3">
           {isValidAmount && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount</span>
-                <span>${finalAmount}.00</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Tokens</span>
-                <span className="font-medium">{finalAmount} tokens</span>
-              </div>
-              <div className="border-t border-border pt-2 flex justify-between">
-                <span className="font-medium">Total</span>
-                <span className="font-bold text-accent">${finalAmount}.00</span>
-              </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-muted-foreground">Total</span>
+              <span className="font-bold text-accent text-lg">${finalAmount}.00</span>
             </div>
           )}
 
-          {/* Security note */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Shield className="h-4 w-4" />
-            <span>Payments secured with bank-level encryption</span>
-          </div>
-
-          {/* Pay button */}
           <Button
             onClick={handlePayment}
             disabled={isProcessing || !isValidAmount || selectedMethod === 'paypal'}
-            className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
+            className="w-full h-11 bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {isProcessing ? (
               <>
@@ -269,6 +218,11 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
               </>
             )}
           </Button>
+
+          <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+            <Shield className="h-3 w-3" />
+            <span>Secured with bank-level encryption</span>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
