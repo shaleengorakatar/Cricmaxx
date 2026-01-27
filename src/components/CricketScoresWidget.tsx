@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, MapPin, Trophy, Activity, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
 const CRICAPI_BASE_URL = "https://api.cricapi.com/v1";
@@ -62,6 +64,7 @@ const CricketScoresWidget = () => {
   const [scoreLoading, setScoreLoading] = useState(false);
   const [infoLoading, setInfoLoading] = useState(false);
   const [dialogType, setDialogType] = useState<'score' | 'info'>('score');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     fetchMatches();
@@ -93,18 +96,20 @@ const CricketScoresWidget = () => {
     }
   };
 
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async (skipCache = false) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Check cache first
-      const cached = getCachedMatches();
-      if (cached) {
-        setMatches(cached.data);
-        setLastUpdated(new Date(cached.timestamp));
-        setLoading(false);
-        return;
+      // Check cache first (unless skipping)
+      if (!skipCache) {
+        const cached = getCachedMatches();
+        if (cached) {
+          setMatches(cached.data);
+          setLastUpdated(new Date(cached.timestamp));
+          setLoading(false);
+          return;
+        }
       }
 
       const url = new URL(`${CRICAPI_BASE_URL}/currentMatches`);
@@ -152,7 +157,12 @@ const CricketScoresWidget = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  const handlePullRefresh = useCallback(async () => {
+    // Force fetch by skipping cache
+    await fetchMatches(true);
+  }, [fetchMatches]);
 
   const getRelativeTime = (date: Date): string => {
     const now = new Date();
@@ -298,7 +308,7 @@ const CricketScoresWidget = () => {
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Activity className="h-12 w-12 text-destructive/50" />
               <p className="text-muted-foreground text-center">{error}</p>
-              <Button variant="outline" size="sm" onClick={fetchMatches}>
+              <Button variant="outline" size="sm" onClick={() => fetchMatches(true)}>
                 Retry
               </Button>
             </div>
@@ -307,9 +317,9 @@ const CricketScoresWidget = () => {
               <Trophy className="h-12 w-12 text-muted-foreground/50" />
               <p className="text-muted-foreground">No live matches at the moment</p>
             </div>
-          ) : (
-            <ScrollArea className="h-[420px]">
-              <div className="space-y-3 pr-4">
+          ) : isMobile ? (
+            <PullToRefresh onRefresh={handlePullRefresh} className="h-[420px]">
+              <div className="space-y-3 pr-2">
                 {matches.map((match) => {
                   const { team1, team2, matchDesc } = parseTeams(match.name);
                   const isLive = match.status?.toLowerCase() === "live";
@@ -319,13 +329,11 @@ const CricketScoresWidget = () => {
                       key={match.id}
                       className="group relative bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden"
                     >
-                      {/* Live indicator bar */}
                       {isLive && (
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-accent to-accent/60" />
                       )}
                       
                       <div className="p-4">
-                        {/* Header with match type and live badge */}
                         <div className="flex items-center justify-between mb-3">
                           <Badge 
                             variant="outline" 
@@ -341,7 +349,6 @@ const CricketScoresWidget = () => {
                           )}
                         </div>
 
-                        {/* Teams */}
                         <div className="mb-3">
                           {team2 ? (
                             <div className="flex flex-wrap items-center gap-1 sm:gap-2">
@@ -357,13 +364,88 @@ const CricketScoresWidget = () => {
                           )}
                         </div>
 
-                        {/* Date and time */}
                         <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3">
                           <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
                           <span>{formatMatchTime(match.dateTimeGMT)}</span>
                         </div>
 
-                        {/* Action buttons */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => fetchLiveScore(match.id)}
+                            className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium text-xs sm:text-sm h-8 sm:h-9"
+                          >
+                            <Activity className="h-3.5 w-3.5 mr-1" />
+                            Live Score
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => fetchMatchInfo(match.id)}
+                            className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
+                          >
+                            Info
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-center text-xs text-muted-foreground py-2">Pull down to refresh</p>
+              </div>
+            </PullToRefresh>
+          ) : (
+            <ScrollArea className="h-[420px]">
+              <div className="space-y-3 pr-4">
+                {matches.map((match) => {
+                  const { team1, team2, matchDesc } = parseTeams(match.name);
+                  const isLive = match.status?.toLowerCase() === "live";
+                  
+                  return (
+                    <div
+                      key={match.id}
+                      className="group relative bg-gradient-to-br from-muted/30 to-muted/50 rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300 overflow-hidden"
+                    >
+                      {isLive && (
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-accent to-accent/60" />
+                      )}
+                      
+                      <div className="p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs font-medium uppercase tracking-wide ${getMatchTypeColor(match.matchType)}`}
+                          >
+                            {match.matchType}
+                          </Badge>
+                          {isLive && (
+                            <Badge className="bg-accent text-accent-foreground animate-pulse flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-white rounded-full" />
+                              Live
+                            </Badge>
+                          )}
+                        </div>
+
+                        <div className="mb-3">
+                          {team2 ? (
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                              <span className="font-semibold text-sm sm:text-base text-foreground">{team1}</span>
+                              <span className="text-muted-foreground text-xs sm:text-sm">vs</span>
+                              <span className="font-semibold text-sm sm:text-base text-foreground">{team2}</span>
+                            </div>
+                          ) : (
+                            <span className="font-semibold text-sm sm:text-base text-foreground line-clamp-2">{team1}</span>
+                          )}
+                          {matchDesc && (
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-1">{matchDesc}</p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3">
+                          <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                          <span>{formatMatchTime(match.dateTimeGMT)}</span>
+                        </div>
+
                         <div className="flex gap-2">
                           <Button
                             size="sm"
