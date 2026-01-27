@@ -12,26 +12,37 @@ import { z } from "zod";
 
 const applicationSchema = z.object({
   description: z.string().trim().min(50, "Please provide at least 50 characters describing what you do").max(500),
-  followerCount: z.number().min(0, "Follower count must be positive"),
+  followerCount: z.number().min(10000, "You must have at least 10,000 followers to apply"),
   socialMediaPlatform: z.string().min(1, "Please select a platform"),
   socialMediaHandle: z.string().trim().min(2, "Handle must be at least 2 characters").max(100),
+  creatorType: z.string().min(1, "Please select your creator type"),
   previousExperience: z.string().trim().max(500).optional(),
 });
 
 interface CreatorApplicationFormProps {
   onApplicationSubmitted: () => void;
+  existingApplication?: {
+    description: string;
+    followerCount: string;
+    socialMediaPlatform: string;
+    socialMediaHandle: string;
+    creatorType: string;
+    previousExperience: string;
+  };
+  isEditing?: boolean;
 }
 
-export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplicationFormProps) => {
+export const CreatorApplicationForm = ({ onApplicationSubmitted, existingApplication, isEditing = false }: CreatorApplicationFormProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   
   const [formData, setFormData] = useState({
-    description: "",
-    followerCount: "",
-    socialMediaPlatform: "",
-    socialMediaHandle: "",
-    previousExperience: "",
+    description: existingApplication?.description || "",
+    followerCount: existingApplication?.followerCount || "",
+    socialMediaPlatform: existingApplication?.socialMediaPlatform || "",
+    socialMediaHandle: existingApplication?.socialMediaHandle || "",
+    creatorType: existingApplication?.creatorType || "",
+    previousExperience: existingApplication?.previousExperience || "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,6 +52,7 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
       const validated = applicationSchema.parse({
         ...formData,
         followerCount: parseInt(formData.followerCount) || 0,
+        creatorType: formData.creatorType,
       });
 
       setLoading(true);
@@ -56,35 +68,58 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
         return;
       }
 
-      const { error } = await supabase
-        .from('creator_applications')
-        .insert({
-          user_id: user.id,
-          description: validated.description,
-          follower_count: validated.followerCount,
-          social_media_platform: validated.socialMediaPlatform,
-          social_media_handle: validated.socialMediaHandle,
-          previous_experience: validated.previousExperience || null,
-        });
+      if (isEditing) {
+        const { error } = await supabase
+          .from('creator_applications')
+          .update({
+            description: validated.description,
+            follower_count: validated.followerCount,
+            social_media_platform: validated.socialMediaPlatform,
+            social_media_handle: validated.socialMediaHandle,
+            creator_type: validated.creatorType,
+            previous_experience: validated.previousExperience || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
 
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          toast({
-            title: "Application already submitted",
-            description: "You have already submitted a creator application. Please wait for admin review.",
-            variant: "destructive",
+        if (error) throw error;
+
+        toast({
+          title: "Application updated!",
+          description: "Your creator application has been updated. The admin will review the changes.",
+        });
+      } else {
+        const { error } = await supabase
+          .from('creator_applications')
+          .insert({
+            user_id: user.id,
+            description: validated.description,
+            follower_count: validated.followerCount,
+            social_media_platform: validated.socialMediaPlatform,
+            social_media_handle: validated.socialMediaHandle,
+            creator_type: validated.creatorType,
+            previous_experience: validated.previousExperience || null,
           });
-        } else {
-          throw error;
+
+        if (error) {
+          if (error.code === '23505') {
+            toast({
+              title: "Application already submitted",
+              description: "You have already submitted a creator application. Please wait for admin review.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
+          return;
         }
-        return;
+
+        toast({
+          title: "Application submitted!",
+          description: "Your creator application has been submitted for review. We'll notify you once it's reviewed.",
+        });
       }
 
-      toast({
-        title: "Application submitted!",
-        description: "Your creator application has been submitted for review. We'll notify you once it's reviewed.",
-      });
-      
       onApplicationSubmitted();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -111,11 +146,12 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />
-          Apply to Become a Creator
+          {isEditing ? 'Update Your Application' : 'Apply to Become a Creator'}
         </CardTitle>
         <CardDescription>
-          Creators can launch automated prediction markets and earn 2% commission on trading volume. 
-          Applications are reviewed by admins within 24-48 hours.
+          {isEditing 
+            ? 'Update your application details below. Changes will be reviewed by our admin team.'
+            : 'Creators can launch automated prediction markets and earn 2% commission on trading volume. Applications are reviewed by admins within 24-48 hours.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -178,12 +214,37 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
               placeholder="10000"
               value={formData.followerCount}
               onChange={(e) => setFormData({ ...formData, followerCount: e.target.value })}
-              min="0"
+              min="10000"
               required
             />
             <p className="text-xs text-muted-foreground">
-              Applications with 10,000+ followers are prioritized for approval
+              Minimum 10,000 followers required to apply
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="creatorType">Content Creator Type *</Label>
+            <Select
+              value={formData.creatorType}
+              onValueChange={(value) => setFormData({ ...formData, creatorType: value })}
+              required
+            >
+              <SelectTrigger id="creatorType">
+                <SelectValue placeholder="Select your creator type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cricket_analyst">Cricket Analyst</SelectItem>
+                <SelectItem value="sports_commentator">Sports Commentator</SelectItem>
+                <SelectItem value="sports_journalist">Sports Journalist</SelectItem>
+                <SelectItem value="fantasy_sports">Fantasy Sports Expert</SelectItem>
+                <SelectItem value="betting_tipster">Betting Tipster</SelectItem>
+                <SelectItem value="influencer">Sports Influencer</SelectItem>
+                <SelectItem value="podcaster">Sports Podcaster</SelectItem>
+                <SelectItem value="youtuber">Sports YouTuber</SelectItem>
+                <SelectItem value="streamer">Live Streamer</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -197,15 +258,17 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
             />
           </div>
 
-          <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-            <p className="text-sm font-medium text-foreground">Approval Criteria:</p>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>✓ 10,000+ followers strongly recommended</li>
-              <li>✓ Clear description of expertise and goals</li>
-              <li>✓ Verifiable social media presence</li>
-              <li>✓ Compliance with platform terms and CFTC regulations</li>
-            </ul>
-          </div>
+          {!isEditing && (
+            <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+              <p className="text-sm font-medium text-foreground">Approval Criteria:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>✓ Minimum 10,000 followers required</li>
+                <li>✓ Clear description of expertise and goals</li>
+                <li>✓ Verifiable social media presence</li>
+                <li>✓ Compliance with platform terms and CFTC regulations</li>
+              </ul>
+            </div>
+          )}
 
           <Button
             type="submit"
@@ -215,10 +278,10 @@ export const CreatorApplicationForm = ({ onApplicationSubmitted }: CreatorApplic
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Submitting...
+                {isEditing ? 'Updating...' : 'Submitting...'}
               </>
             ) : (
-              'Submit Application'
+              isEditing ? 'Update Application' : 'Submit Application'
             )}
           </Button>
         </form>
