@@ -28,6 +28,8 @@ const Navigation = () => {
             <img 
               src={cricmaxxLogo} 
               alt="CricMaxx" 
+              width={96}
+              height={64}
               className="h-16 w-auto"
             />
           </Link>

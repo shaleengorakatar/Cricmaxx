@@ -24,6 +24,8 @@ export const BottomTabBar = () => {
           <img 
             src={cricmaxxLogo} 
             alt="CricMaxx" 
+            width={36}
+            height={24}
             className="h-6 w-auto opacity-60"
           />
         </div>
