@@ -55,39 +55,31 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   }, [marketId]);
 
   const fetchOrders = async () => {
-    const { data: yesData } = await supabase
-      .from('orders')
-      .select('price, quantity, filled_quantity')
-      .eq('market_id', marketId)
-      .eq('side', 'yes')
-      .in('status', ['pending', 'partial'])
-      .order('price', { ascending: false });
+    // Use the aggregated order book view for privacy-preserving market transparency
+    // This view shows order depth without exposing individual user trading patterns
+    const { data: aggregatedData } = await supabase
+      .from('order_book_aggregated')
+      .select('side, price, total_quantity')
+      .eq('market_id', marketId);
 
-    const { data: noData } = await supabase
-      .from('orders')
-      .select('price, quantity, filled_quantity')
-      .eq('market_id', marketId)
-      .eq('side', 'no')
-      .in('status', ['pending', 'partial'])
-      .order('price', { ascending: false });
+    const yesLevels: OrderLevel[] = [];
+    const noLevels: OrderLevel[] = [];
 
-    const aggregateOrders = (orders: any[]) => {
-      const levels: Record<string, number> = {};
-      for (const order of orders || []) {
-        const remaining = order.quantity - order.filled_quantity;
-        if (remaining > 0 && order.price) {
-          const priceKey = Number(order.price).toFixed(2);
-          levels[priceKey] = (levels[priceKey] || 0) + remaining;
-        }
+    for (const row of aggregatedData || []) {
+      const level = { price: Number(row.price), quantity: Number(row.total_quantity) };
+      if (row.side === 'yes') {
+        yesLevels.push(level);
+      } else {
+        noLevels.push(level);
       }
-      return Object.entries(levels)
-        .map(([price, quantity]) => ({ price: parseFloat(price), quantity }))
-        .sort((a, b) => b.price - a.price)
-        .slice(0, 5);
-    };
+    }
 
-    setYesOrders(aggregateOrders(yesData || []));
-    setNoOrders(aggregateOrders(noData || []));
+    // Sort and limit to top 5 price levels
+    yesLevels.sort((a, b) => b.price - a.price);
+    noLevels.sort((a, b) => b.price - a.price);
+
+    setYesOrders(yesLevels.slice(0, 5));
+    setNoOrders(noLevels.slice(0, 5));
     setLoading(false);
   };
 
