@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 interface SplashScreenProps {
   isVisible: boolean;
@@ -59,6 +59,9 @@ const SplashScreen = ({ isVisible, onSkip }: SplashScreenProps) => {
           <motion.img
             src={cricmaxxLogo}
             alt="CricMaxx"
+            width={576}
+            height={384}
+            fetchPriority="high"
             className="h-72 sm:h-96 md:h-[28rem] w-auto drop-shadow-2xl relative z-10 -my-8"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ 

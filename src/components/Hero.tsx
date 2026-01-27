@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { TrendingUp, Users, Smartphone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
-import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.webp";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -65,6 +65,9 @@ const Hero = () => {
           <motion.img 
             src={cricmaxxLogo} 
             alt="CricMaxx" 
+            width={576}
+            height={384}
+            fetchPriority="high"
             className="h-64 sm:h-72 md:h-96 w-auto mx-auto mb-0 -mt-8 sm:-mt-10 md:-mt-16 drop-shadow-2xl"
             variants={itemVariants}
             animate={{ 
