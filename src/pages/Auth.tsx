@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { PasswordRequirements, validatePassword } from "@/components/auth/PasswordRequirements";
+import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 // Custom password validation
 const passwordSchema = z.string()
@@ -264,8 +265,12 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center px-4 md:px-6">
-          <CardTitle className="text-3xl font-bold text-primary">CricMaxx</CardTitle>
-          <CardDescription>Fast. Live. Fun. 🏏</CardDescription>
+          <img 
+            src={cricmaxxLogo} 
+            alt="CricMaxx" 
+            className="h-24 w-auto mx-auto -mb-2"
+          />
+          <CardDescription className="text-base">Fast. Live. Fun.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 md:px-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
