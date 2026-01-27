@@ -1,11 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import cricmaxxLogo from "@/assets/cricmaxx-logo.png";
 
 interface SplashScreenProps {
   isVisible: boolean;
+  onSkip?: () => void;
 }
 
-const SplashScreen = ({ isVisible }: SplashScreenProps) => {
+const SplashScreen = ({ isVisible, onSkip }: SplashScreenProps) => {
   return (
     <AnimatePresence>
       {isVisible && (
@@ -20,6 +22,23 @@ const SplashScreen = ({ isVisible }: SplashScreenProps) => {
             <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-accent/20 rounded-full blur-3xl" />
             <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-accent/15 rounded-full blur-3xl" />
           </div>
+
+          {/* Skip button */}
+          <motion.div
+            className="absolute top-6 right-6 z-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSkip}
+              className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              Skip
+            </Button>
+          </motion.div>
 
           {/* Logo with animation */}
           <motion.img
