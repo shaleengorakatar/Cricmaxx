@@ -60,7 +60,7 @@ const App = () => {
       <TradingModeProvider>
         <TradingPreferencesProvider>
           <TooltipProvider>
-            <SplashScreen isVisible={showSplash} />
+            <SplashScreen isVisible={showSplash} onSkip={() => setShowSplash(false)} />
             <Toaster />
             <Sonner />
             <BrowserRouter>
