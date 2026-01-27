@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Calendar, MapPin, Trophy, Activity } from "lucide-react";
+import { Loader2, Calendar, MapPin, Trophy, Activity, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 const CRICAPI_KEY = "e60c45e6-5ad0-48d9-8a9e-4acadba7edc3";
@@ -55,6 +55,7 @@ const CricketScoresWidget = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [liveScore, setLiveScore] = useState<LiveScore | null>(null);
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
@@ -66,13 +67,13 @@ const CricketScoresWidget = () => {
     fetchMatches();
   }, []);
 
-  const getCachedMatches = () => {
+  const getCachedMatches = (): { data: Match[]; timestamp: number } | null => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
-        const { data, timestamp } = JSON.parse(cached);
-        if (Date.now() - timestamp < CACHE_TTL) {
-          return data;
+        const parsed = JSON.parse(cached);
+        if (Date.now() - parsed.timestamp < CACHE_TTL) {
+          return parsed;
         }
       }
     } catch {
@@ -100,7 +101,8 @@ const CricketScoresWidget = () => {
       // Check cache first
       const cached = getCachedMatches();
       if (cached) {
-        setMatches(cached);
+        setMatches(cached.data);
+        setLastUpdated(new Date(cached.timestamp));
         setLoading(false);
         return;
       }
@@ -123,8 +125,9 @@ const CricketScoresWidget = () => {
         // Try to use stale cache if available
         const staleCache = localStorage.getItem(CACHE_KEY);
         if (staleCache) {
-          const { data } = JSON.parse(staleCache);
+          const { data, timestamp } = JSON.parse(staleCache);
           setMatches(data);
+          setLastUpdated(new Date(timestamp));
         }
         return;
       }
@@ -133,12 +136,15 @@ const CricketScoresWidget = () => {
         throw new Error(json?.reason || "Failed to fetch matches");
       }
 
+      const now = new Date();
       if (json?.data) {
         const matchData = json.data.slice(0, 10);
         setMatches(matchData);
         setCachedMatches(matchData);
+        setLastUpdated(now);
       } else {
         setMatches([]);
+        setLastUpdated(now);
       }
     } catch (error) {
       console.error("Error fetching matches:", error);
@@ -146,6 +152,20 @@ const CricketScoresWidget = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return "Just now";
+    if (diffMins === 1) return "1 min ago";
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours === 1) return "1 hour ago";
+    return `${diffHours} hours ago`;
   };
 
   const fetchLiveScore = async (matchId: string) => {
@@ -250,14 +270,22 @@ const CricketScoresWidget = () => {
   return (
     <>
       <Card className="w-full bg-card border-border overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-primary to-primary-glow pb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Trophy className="h-6 w-6 text-white" />
+        <CardHeader className="bg-gradient-to-r from-primary to-primary-glow pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
+                <Trophy className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle className="text-2xl font-bold text-white">
+                Live Cricket Matches
+              </CardTitle>
             </div>
-            <CardTitle className="text-2xl font-bold text-white">
-              Live Cricket Matches
-            </CardTitle>
+            {lastUpdated && !loading && (
+              <div className="flex items-center gap-1.5 text-white/70 text-xs">
+                <Clock className="h-3 w-3" />
+                <span>{getRelativeTime(lastUpdated)}</span>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-4">
