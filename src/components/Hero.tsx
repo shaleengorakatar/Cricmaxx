@@ -28,7 +28,7 @@ const Hero = () => {
           />
           
           {/* Mobile-optimized tagline */}
-          <p className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-6 sm:mb-8">
+          <p className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-6 sm:mb-8 -mt-8 sm:-mt-10 md:-mt-16">
             Fast. Live.{" "}
             <span className="text-accent inline-flex items-center gap-1">
               Fun.
