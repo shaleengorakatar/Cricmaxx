@@ -48,9 +48,13 @@ interface MatchInfo {
   }>;
 }
 
+const CACHE_KEY = "cricmaxx_matches_cache";
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 const CricketScoresWidget = () => {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [liveScore, setLiveScore] = useState<LiveScore | null>(null);
   const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
@@ -62,9 +66,45 @@ const CricketScoresWidget = () => {
     fetchMatches();
   }, []);
 
+  const getCachedMatches = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, timestamp } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_TTL) {
+          return data;
+        }
+      }
+    } catch {
+      // Ignore cache errors
+    }
+    return null;
+  };
+
+  const setCachedMatches = (data: Match[]) => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data,
+        timestamp: Date.now()
+      }));
+    } catch {
+      // Ignore cache errors
+    }
+  };
+
   const fetchMatches = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      // Check cache first
+      const cached = getCachedMatches();
+      if (cached) {
+        setMatches(cached);
+        setLoading(false);
+        return;
+      }
+
       const url = new URL(`${CRICAPI_BASE_URL}/currentMatches`);
       url.searchParams.set("apikey", CRICAPI_KEY);
       url.searchParams.set("offset", "0");
@@ -72,17 +112,37 @@ const CricketScoresWidget = () => {
       const response = await fetch(url.toString());
       const json = await response.json();
 
+      // Check for rate limit or API failure
+      if (json?.status === "failure") {
+        const reason = json?.reason || "API error";
+        if (reason.toLowerCase().includes("blocked") || reason.toLowerCase().includes("limit")) {
+          setError("Rate limited - try again in a few minutes");
+        } else {
+          setError(reason);
+        }
+        // Try to use stale cache if available
+        const staleCache = localStorage.getItem(CACHE_KEY);
+        if (staleCache) {
+          const { data } = JSON.parse(staleCache);
+          setMatches(data);
+        }
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(json?.reason || "Failed to fetch matches");
       }
 
       if (json?.data) {
-        setMatches(json.data.slice(0, 10));
+        const matchData = json.data.slice(0, 10);
+        setMatches(matchData);
+        setCachedMatches(matchData);
       } else {
         setMatches([]);
       }
     } catch (error) {
       console.error("Error fetching matches:", error);
+      setError("Failed to load matches");
     } finally {
       setLoading(false);
     }
@@ -205,6 +265,14 @@ const CricketScoresWidget = () => {
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
               <p className="text-muted-foreground text-sm">Loading matches...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Activity className="h-12 w-12 text-destructive/50" />
+              <p className="text-muted-foreground text-center">{error}</p>
+              <Button variant="outline" size="sm" onClick={fetchMatches}>
+                Retry
+              </Button>
             </div>
           ) : matches.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-3">
