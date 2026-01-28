@@ -13,6 +13,10 @@ serve(async (req) => {
   }
 
   try {
+    // Parse request body for country selection
+    const body = await req.json().catch(() => ({}));
+    const country = body.country === "CA" ? "CA" : "US"; // Default to US, allow CA
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -52,9 +56,10 @@ serve(async (req) => {
     if (!accountId) {
       const account = await stripe.accounts.create({
         type: "express",
-        country: "US",
+        country: country,
         business_type: "individual",
         email: profile.email,
+        default_currency: "usd",
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },

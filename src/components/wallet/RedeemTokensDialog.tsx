@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2, AlertCircle, Wallet, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
@@ -26,6 +27,7 @@ const RedeemTokensDialog = ({
 }: RedeemTokensDialogProps) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<"US" | "CA">("US");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const { status, isLoading: isLoadingStatus, startOnboarding, isConnecting, requestPayout } = useStripeConnect();
@@ -100,8 +102,26 @@ const RedeemTokensDialog = ({
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label className="text-sm text-muted-foreground">Select your country</Label>
+          <RadioGroup
+            value={selectedCountry}
+            onValueChange={(value) => setSelectedCountry(value as "US" | "CA")}
+            className="flex gap-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="US" id="country-us" />
+              <Label htmlFor="country-us" className="cursor-pointer">🇺🇸 United States</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="CA" id="country-ca" />
+              <Label htmlFor="country-ca" className="cursor-pointer">🇨🇦 Canada</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
         <Button 
-          onClick={startOnboarding} 
+          onClick={() => startOnboarding(selectedCountry)} 
           disabled={isConnecting}
           className="w-full h-12"
         >
