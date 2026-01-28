@@ -42,12 +42,14 @@ export function useStripeConnect() {
     fetchStatus();
   }, [fetchStatus]);
 
-  const startOnboarding = useCallback(async () => {
+  const startOnboarding = useCallback(async (country: "US" | "CA" = "US") => {
     setIsConnecting(true);
     setError(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect-onboard");
+      const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
+        body: { country },
+      });
 
       if (error) throw error;
 

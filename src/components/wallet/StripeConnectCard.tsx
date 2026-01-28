@@ -60,7 +60,7 @@ const StripeConnectCard = () => {
 
     if (status?.status === "pending" || status?.status === "pending_verification") {
       return (
-        <Button onClick={startOnboarding} disabled={isConnecting} size="sm">
+        <Button onClick={() => startOnboarding()} disabled={isConnecting} size="sm">
           {isConnecting ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -77,7 +77,7 @@ const StripeConnectCard = () => {
     }
 
     return (
-      <Button onClick={startOnboarding} disabled={isConnecting}>
+      <Button onClick={() => startOnboarding()} disabled={isConnecting}>
         {isConnecting ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
