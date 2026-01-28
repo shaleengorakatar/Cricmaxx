@@ -95,8 +95,8 @@ Deno.serve(async (req) => {
       //     setup_future_usage: 'on_session',
       //   },
       // },
-      success_url: `${origin}/wallet?payment=success&session_id={CHECKOUT_SESSION_ID}&amount=${amount}`,
-      cancel_url: `${origin}/wallet?payment=cancelled`,
+      success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}&amount=${amount}`,
+      cancel_url: `${origin}/dashboard?payment=cancelled`,
       metadata: {
         user_id: user.id,
         token_amount: amount.toString(),
