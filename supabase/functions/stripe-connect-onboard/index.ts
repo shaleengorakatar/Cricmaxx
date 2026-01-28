@@ -52,6 +52,8 @@ serve(async (req) => {
     if (!accountId) {
       const account = await stripe.accounts.create({
         type: "express",
+        country: "US",
+        business_type: "individual",
         email: profile.email,
         capabilities: {
           card_payments: { requested: true },
