@@ -54,6 +54,7 @@ serve(async (req) => {
         type: "express",
         email: profile.email,
         capabilities: {
+          card_payments: { requested: true },
           transfers: { requested: true },
         },
         metadata: {
