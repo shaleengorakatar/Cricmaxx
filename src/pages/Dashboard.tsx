@@ -11,10 +11,11 @@ import TransactionHistory from "@/components/dashboard/TransactionHistory";
 import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Position {
   id: string;
@@ -40,12 +41,39 @@ interface Transaction {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
   const { isAuthenticated, profile, loading, user } = useAuth();
   const [balance, setBalance] = useState(profile?.balance || 0);
   const [profitLoss, setProfitLoss] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
+
+  // Handle payment success/cancel URL params
+  useEffect(() => {
+    const paymentStatus = searchParams.get("payment");
+    const amount = searchParams.get("amount");
+    
+    if (paymentStatus === "success") {
+      toast({
+        title: "🎉 Payment Successful!",
+        description: `${amount || ''} tokens have been added to your wallet.`,
+      });
+      // Clear the URL params
+      setSearchParams({});
+      // Refresh balance
+      fetchBalance();
+      fetchTransactions();
+    } else if (paymentStatus === "cancelled") {
+      toast({
+        title: "Payment Cancelled",
+        description: "Your payment was cancelled. No tokens were added.",
+        variant: "destructive",
+      });
+      setSearchParams({});
+    }
+  }, [searchParams]);
 
   // Fetch real-time balance from database
   const fetchBalance = async () => {
