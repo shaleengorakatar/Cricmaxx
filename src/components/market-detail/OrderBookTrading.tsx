@@ -54,8 +54,8 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Simple mode state
-  const [investAmount, setInvestAmount] = useState("");
+  // Simple mode state - contracts-first model (each contract = $1 payout)
+  const [contractCount, setContractCount] = useState("");
   
   // Advanced mode state
   const [limitPrice, setLimitPrice] = useState("");
@@ -203,13 +203,16 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       return;
     }
 
-    const amount = parseFloat(investAmount);
-    if (!amount || amount <= 0) {
-      toast({ title: "Enter a valid amount", variant: "destructive" });
+    const contracts = parseInt(contractCount);
+    if (!contracts || contracts <= 0) {
+      toast({ title: "Enter a valid number of contracts", variant: "destructive" });
       return;
     }
 
-    if (amount > userBalance) {
+    const currentPrice = side === "yes" ? yesPrice : noPrice;
+    const totalCost = contracts * currentPrice;
+
+    if (totalCost > userBalance) {
       toast({ title: "Insufficient balance", variant: "destructive" });
       return;
     }
@@ -217,16 +220,13 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
     setIsSubmitting(true);
 
     try {
-      const bestPrice = side === "yes" ? yesPrice : noPrice;
-      const estimatedShares = Math.floor(amount / Math.max(bestPrice, 0.01));
-
       const { data, error } = await supabase.functions.invoke('order-book', {
         body: {
           action: 'place',
           marketId,
           side,
           orderType: 'market',
-          quantity: estimatedShares
+          quantity: contracts
         }
       });
 
@@ -235,11 +235,11 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       toast({
         title: "Prediction placed!",
         description: data.order?.filledQuantity > 0 
-          ? `You now own ${data.order.filledQuantity} ${side.toUpperCase()} shares`
+          ? `You now own ${data.order.filledQuantity} ${side.toUpperCase()} contracts`
           : "Order added to book",
       });
 
-      setInvestAmount("");
+      setContractCount("");
       fetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
@@ -339,9 +339,12 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
     }
   };
 
+  // Contracts-first calculations
   const currentPrice = side === "yes" ? yesPrice : noPrice;
-  const estimatedShares = investAmount ? Math.floor(parseFloat(investAmount) / Math.max(currentPrice, 0.01)) : 0;
-  const potentialProfit = estimatedShares * (1 - currentPrice);
+  const contracts = contractCount ? parseInt(contractCount) : 0;
+  const totalCost = contracts * currentPrice;
+  const totalPayout = contracts; // Each contract = $1 payout
+  const potentialProfit = totalPayout - totalCost;
   const advancedCost = quantity && limitPrice ? parseFloat(quantity) * parseFloat(limitPrice) : 0;
 
   return (
@@ -361,14 +364,14 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold">{userPosition.size}</span>
-            <span className="text-muted-foreground">shares</span>
+            <span className="text-muted-foreground">contracts</span>
           </div>
           <div className="flex justify-between mt-2 text-sm">
-            <span className="text-muted-foreground">Avg price:</span>
+            <span className="text-muted-foreground">Avg price paid:</span>
             <span className="font-medium">${Number(userPosition.entry_price).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Potential payout:</span>
+            <span className="text-muted-foreground">Payout if correct:</span>
             <span className="font-medium text-green-600">${userPosition.size.toFixed(2)}</span>
           </div>
         </div>
@@ -430,20 +433,25 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
 
           <div>
             <Label className="text-sm text-muted-foreground mb-2 block">
-              How much do you want to invest?
+              How much do you want to win?
             </Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Each contract pays $1 if you're right
+            </p>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
               <Input
                 type="number"
-                placeholder="10.00"
-                value={investAmount}
-                onChange={(e) => setInvestAmount(e.target.value)}
-                className="pl-7 h-12 text-lg"
-                min="0"
+                placeholder="10"
+                value={contractCount}
+                onChange={(e) => setContractCount(e.target.value)}
+                className="h-12 text-lg"
+                min="1"
                 step="1"
                 disabled={!marketOrdersEnabled}
               />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                contracts
+              </span>
             </div>
             <div className="flex gap-2 mt-2">
               {[5, 10, 25, 50].map((amt) => (
@@ -452,37 +460,43 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => setInvestAmount(amt.toString())}
+                  onClick={() => setContractCount(amt.toString())}
                   disabled={!marketOrdersEnabled}
                 >
-                  ${amt}
+                  {amt}
                 </Button>
               ))}
             </div>
           </div>
 
-          {investAmount && parseFloat(investAmount) > 0 && marketOrdersEnabled && (
+          {contracts > 0 && marketOrdersEnabled && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">You'll get approximately</span>
-                <span className="text-xl font-bold">{estimatedShares} shares</span>
+              {/* Primary: What you pay → What you get */}
+              <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase">You Pay</div>
+                  <div className="text-xl font-bold">${totalCost.toFixed(2)}</div>
+                </div>
+                <div className="text-2xl text-muted-foreground">→</div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
+                  <div className="text-xl font-bold text-green-600">${totalPayout.toFixed(2)}</div>
+                </div>
               </div>
-              <div className="border-t border-border/50 my-2"></div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total cost:</span>
-                <span className="font-medium">${parseFloat(investAmount).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total payout if {side.toUpperCase()} wins:</span>
-                <span className="font-bold text-foreground">${estimatedShares.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total profit:</span>
-                <span className="font-bold text-green-600">+${potentialProfit.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                <span className="font-medium text-red-600">-${investAmount} loss</span>
+
+              <div className="border-t border-border/50 pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Contracts:</span>
+                  <span className="font-medium">{contracts} × ${currentPrice.toFixed(2)} each</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Profit if correct:</span>
+                  <span className="font-bold text-green-600">+${potentialProfit.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                  <span className="font-medium text-red-600">-${totalCost.toFixed(2)} (you lose your cost)</span>
+                </div>
               </div>
             </div>
           )}
@@ -490,25 +504,25 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           <Button
             className="w-full h-12 text-lg"
             onClick={handleSimpleTrade}
-            disabled={isSubmitting || !investAmount || parseFloat(investAmount) <= 0 || !marketOrdersEnabled}
+            disabled={isSubmitting || contracts <= 0 || !marketOrdersEnabled}
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : null}
             {marketOrdersEnabled 
-              ? `Predict ${side.toUpperCase()}` 
+              ? `Buy ${contracts || 0} ${side.toUpperCase()} contracts` 
               : 'Use "Set Your Price" Instead'}
           </Button>
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-4">
           <p className="text-sm text-muted-foreground mb-2">
-            Set your own price and wait for someone to match, or trade instantly from the pool.
+            Set your own price per contract. Each contract pays $1 if correct.
           </p>
           
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">Shares</Label>
+              <Label className="text-sm text-muted-foreground mb-2 block">Contracts</Label>
               <Input
                 type="number"
                 placeholder="10"
@@ -520,7 +534,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
             </div>
             <div>
               <Label className="text-sm text-muted-foreground mb-2 block">
-                Price (¢ per share)
+                Price per contract (¢)
               </Label>
               <Input
                 type="number"
@@ -539,24 +553,31 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </div>
 
           {advancedCost > 0 && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total cost:</span>
-                <span className="font-medium">${advancedCost.toFixed(2)}</span>
+            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+              {/* Primary: What you pay → What you get */}
+              <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase">You Pay</div>
+                  <div className="text-xl font-bold">${advancedCost.toFixed(2)}</div>
+                </div>
+                <div className="text-2xl text-muted-foreground">→</div>
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
+                  <div className="text-xl font-bold text-green-600">${parseFloat(quantity).toFixed(2)}</div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total payout if {side.toUpperCase()} wins:</span>
-                <span className="font-bold text-lg">${parseFloat(quantity).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total profit:</span>
-                <span className="font-medium text-green-600">
-                  +${(parseFloat(quantity) - advancedCost).toFixed(2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                <span className="font-medium text-red-600">-${advancedCost.toFixed(2)} loss</span>
+
+              <div className="border-t border-border/50 pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Profit if correct:</span>
+                  <span className="font-medium text-green-600">
+                    +${(parseFloat(quantity) - advancedCost).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                  <span className="font-medium text-red-600">-${advancedCost.toFixed(2)}</span>
+                </div>
               </div>
             </div>
           )}
@@ -583,7 +604,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     orderBook.yes.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
                         <span>{(level.price * 100).toFixed(0)}¢</span>
-                        <span>{level.quantity} shares</span>
+                        <span>{level.quantity} contracts</span>
                       </div>
                     ))
                   ) : (
@@ -596,7 +617,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     orderBook.no.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
                         <span>{(level.price * 100).toFixed(0)}¢</span>
-                        <span>{level.quantity} shares</span>
+                        <span>{level.quantity} contracts</span>
                       </div>
                     ))
                   ) : (
