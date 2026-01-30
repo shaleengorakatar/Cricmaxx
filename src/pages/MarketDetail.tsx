@@ -157,167 +157,101 @@ const MarketDetail = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-20 pb-8">
-        <div className="container mx-auto px-4">
-          {/* Compact header row */}
-          <div className="flex items-center justify-between mb-3">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate('/markets')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-            
-            <div className="flex items-center gap-2">
+      <main className="flex-1 pt-20 pb-6">
+        <div className="container mx-auto px-4 max-w-5xl">
+          {/* Back button */}
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => navigate('/markets')}
+            className="mb-3 -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+
+          {/* Market Header */}
+          <MarketHeader market={market} />
+          
+          {/* Inline Stats */}
+          <div className="flex flex-wrap items-center gap-4 mt-3 mb-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Yes:</span>
+              <LivePrice 
+                price={market.yesPrice} 
+                previousPrice={previousPricesRef.current?.yes}
+                className="font-semibold text-primary"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">No:</span>
+              <LivePrice 
+                price={market.noPrice} 
+                previousPrice={previousPricesRef.current?.no}
+                className="font-semibold text-destructive"
+              />
+            </div>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">Vol: <span className="text-foreground font-medium">{market.volume.toLocaleString()}</span></span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">Fee: <span className="text-foreground font-medium">3%</span></span>
+            <div className="ml-auto">
               <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
-              <UserRatingBadge />
             </div>
           </div>
 
-          {/* Market Header - Compact */}
-          <MarketHeader market={market} />
-          
-          {/* Compact Stats Bar */}
-          <Card className="my-4 p-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Yes:</span>
-                <LivePrice 
-                  price={market.yesPrice} 
-                  previousPrice={previousPricesRef.current?.yes}
-                  className="font-semibold text-primary"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">No:</span>
-                <LivePrice 
-                  price={market.noPrice} 
-                  previousPrice={previousPricesRef.current?.no}
-                  className="font-semibold text-destructive"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Volume:</span>
-                <span className="font-semibold">{market.volume.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Fee:</span>
-                <span className="font-semibold">3%</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Payout:</span>
-                <span className="font-semibold">$1.00/share</span>
-              </div>
+          {/* Two column layout: Trading + Position */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Trading Panel - Takes more space */}
+            <div className="lg:col-span-3">
+              <Card className="p-4">
+                <Tabs defaultValue="trade" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 h-9">
+                    <TabsTrigger value="trade" className="text-xs sm:text-sm">Trade</TabsTrigger>
+                    <TabsTrigger value="book" className="text-xs sm:text-sm">Book</TabsTrigger>
+                    <TabsTrigger value="chart" className="text-xs sm:text-sm">Chart</TabsTrigger>
+                    <TabsTrigger value="rules" className="text-xs sm:text-sm">Rules</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="trade" className="mt-3">
+                    <OrderBookTrading
+                      marketId={market.id}
+                      yesPrice={market.yesPrice}
+                      noPrice={market.noPrice}
+                      userBalance={profile?.balance || 0}
+                    />
+                  </TabsContent>
+                  <TabsContent value="book" className="mt-3">
+                    <OrderBook marketId={market.id} />
+                  </TabsContent>
+                  <TabsContent value="chart" className="mt-3">
+                    <PriceChart data={priceHistory} />
+                  </TabsContent>
+                  <TabsContent value="rules" className="mt-3">
+                    <ResolutionRules 
+                      marketId={market.id}
+                      expiryTime={market.expiryTime}
+                      status={marketStatus}
+                      outcome={marketOutcome}
+                    />
+                  </TabsContent>
+                </Tabs>
+              </Card>
             </div>
-          </Card>
 
-          {/* Main Grid - Trading + Position side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Trading Panel */}
+            {/* Sidebar - Position only */}
             <div className="lg:col-span-2">
-              <Tabs defaultValue="trade" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 h-9">
-                  <TabsTrigger value="trade" className="text-xs sm:text-sm">Trade</TabsTrigger>
-                  <TabsTrigger value="feed" className="text-xs sm:text-sm">Feed</TabsTrigger>
-                  <TabsTrigger value="calculator" className="text-xs sm:text-sm">Calc</TabsTrigger>
-                  <TabsTrigger value="alerts" className="text-xs sm:text-sm">Alerts</TabsTrigger>
-                </TabsList>
-                <TabsContent value="trade" className="mt-3">
-                  <OrderBookTrading
-                    marketId={market.id}
-                    yesPrice={market.yesPrice}
-                    noPrice={market.noPrice}
-                    userBalance={profile?.balance || 0}
-                  />
-                </TabsContent>
-                <TabsContent value="feed" className="mt-3">
-                  <LiveTradeFeed marketId={market.id} maxHeight="280px" />
-                </TabsContent>
-                <TabsContent value="calculator" className="mt-3">
-                  <MarketCalculator
-                    yesPrice={market.yesPrice}
-                    noPrice={market.noPrice}
-                  />
-                </TabsContent>
-                <TabsContent value="alerts" className="mt-3">
-                  <PriceAlerts
-                    marketId={market.id}
-                    currentYesPrice={market.yesPrice}
-                    currentNoPrice={market.noPrice}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Sidebar - Position & Info */}
-            <div className="space-y-4">
               <UserPositionCard 
                 marketId={market.id}
                 currentYesPrice={market.yesPrice}
                 currentNoPrice={market.noPrice}
               />
-              <MarketCreatorInfo marketId={market.id} />
             </div>
           </div>
 
-          {/* Order Book + Price Chart - Side by Side on Desktop */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-            {/* Order Book */}
-            <Card className="overflow-hidden">
-              <button
-                onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                className="md:hidden w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
-              >
-                <h3 className="text-sm font-semibold text-foreground">Order Book</h3>
-                {orderBookExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-              <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                <OrderBook marketId={market.id} />
-              </div>
-            </Card>
-
-            {/* Price Chart */}
-            <Card className="overflow-hidden">
-              <button
-                onClick={() => setChartExpanded(!chartExpanded)}
-                className="md:hidden w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
-              >
-                <h3 className="text-sm font-semibold text-foreground">Price History</h3>
-                {chartExpanded ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-              <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
-                <PriceChart data={priceHistory} />
-              </div>
-            </Card>
-          </div>
-
-          {/* Resolution Rules - Collapsible at bottom */}
-          <div className="mt-4">
-            <ResolutionRules 
-              marketId={market.id}
-              expiryTime={market.expiryTime}
-              status={marketStatus}
-              outcome={marketOutcome}
-            />
-          </div>
-
-          {/* CFTC Disclaimer - Compact */}
-          <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
-            <p>
-              CFTC-regulated event contracts. Pays $1.00 if correct, $0.00 if incorrect.
-            </p>
-          </div>
+          {/* Compact disclaimer */}
+          <p className="mt-4 text-xs text-muted-foreground text-center">
+            CFTC-regulated event contracts • Pays $1.00 if correct, $0.00 if incorrect
+          </p>
         </div>
       </main>
 
