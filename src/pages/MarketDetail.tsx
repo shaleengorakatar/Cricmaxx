@@ -12,6 +12,7 @@ import MarketCalculator from "@/components/market-detail/MarketCalculator";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LiveTradeFeed from "@/components/market-detail/LiveTradeFeed";
+import UserPositionCard from "@/components/market-detail/UserPositionCard";
 import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -230,6 +231,13 @@ const MarketDetail = () => {
 
             {/* Trading Section - Always visible on mobile, sticky on desktop */}
             <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
+              {/* User's Position Card - Shows if user has positions */}
+              <UserPositionCard 
+                marketId={market.id}
+                currentYesPrice={market.yesPrice}
+                currentNoPrice={market.noPrice}
+              />
+
               <Tabs defaultValue="trade" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="trade">Trade</TabsTrigger>
