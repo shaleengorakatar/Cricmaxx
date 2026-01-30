@@ -55,31 +55,57 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   }, [marketId]);
 
   const fetchOrders = async () => {
-    // Use the aggregated order book view for privacy-preserving market transparency
-    // This view shows order depth without exposing individual user trading patterns
+    // Fetch all orders from the aggregated view
     const { data: aggregatedData } = await supabase
       .from('order_book_aggregated')
       .select('side, price, total_quantity')
       .eq('market_id', marketId);
 
+    // Kalshi-style dual display:
+    // Each order appears on BOTH sides at complementary prices
+    // YES order at X appears as: YES @ X and NO @ (1-X)
+    // NO order at Y appears as: NO @ Y and YES @ (1-Y)
+    
     const yesLevels: OrderLevel[] = [];
     const noLevels: OrderLevel[] = [];
 
     for (const row of aggregatedData || []) {
-      const level = { price: Number(row.price), quantity: Number(row.total_quantity) };
+      const price = Number(row.price);
+      const quantity = Number(row.total_quantity);
+      
       if (row.side === 'yes') {
-        yesLevels.push(level);
+        // YES order at price X
+        yesLevels.push({ price, quantity });
+        // Also shows as NO opportunity at (1 - X)
+        noLevels.push({ price: 1 - price, quantity });
       } else {
-        noLevels.push(level);
+        // NO order at price Y
+        noLevels.push({ price, quantity });
+        // Also shows as YES opportunity at (1 - Y)
+        yesLevels.push({ price: 1 - price, quantity });
       }
     }
 
-    // Sort and limit to top 5 price levels
-    yesLevels.sort((a, b) => b.price - a.price);
-    noLevels.sort((a, b) => b.price - a.price);
+    // Aggregate same price levels (in case YES and NO orders create same effective price)
+    const aggregateByPrice = (levels: OrderLevel[]): OrderLevel[] => {
+      const priceMap = new Map<number, number>();
+      for (const level of levels) {
+        const roundedPrice = Math.round(level.price * 100) / 100; // Round to 2 decimals
+        priceMap.set(roundedPrice, (priceMap.get(roundedPrice) || 0) + level.quantity);
+      }
+      return Array.from(priceMap.entries()).map(([price, quantity]) => ({ price, quantity }));
+    };
 
-    setYesOrders(yesLevels.slice(0, 5));
-    setNoOrders(noLevels.slice(0, 5));
+    const aggregatedYes = aggregateByPrice(yesLevels);
+    const aggregatedNo = aggregateByPrice(noLevels);
+
+    // Sort: YES orders by price descending (best/highest first)
+    // NO orders by price descending (best/highest first)
+    aggregatedYes.sort((a, b) => b.price - a.price);
+    aggregatedNo.sort((a, b) => b.price - a.price);
+
+    setYesOrders(aggregatedYes.slice(0, 5));
+    setNoOrders(aggregatedNo.slice(0, 5));
     setLoading(false);
   };
 
