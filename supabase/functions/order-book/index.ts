@@ -89,6 +89,8 @@ serve(async (req) => {
       return await placeOrder(supabase, user.id, body);
     } else if (action === 'cancel' && req.method === 'POST') {
       return await cancelOrder(supabase, user.id, body);
+    } else if (action === 'sell' && req.method === 'POST') {
+      return await sellPosition(supabase, user.id, body);
     } else if (action === 'depth' && req.method === 'GET') {
       const marketId = url.searchParams.get('marketId');
       return await getMarketDepth(supabase, marketId);
@@ -1016,6 +1018,230 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
       yes: totalYesLiquidity,
       no: totalNoLiquidity
     }
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Sell position - close out an existing position by selling contracts
+async function sellPosition(supabase: any, userId: string, request: { marketId: string; side: 'yes' | 'no'; quantity: number; minPrice?: number }) {
+  const { marketId, side, quantity, minPrice } = request;
+
+  if (!marketId || !side || !quantity || quantity <= 0) {
+    return new Response(JSON.stringify({ error: 'Invalid sell parameters' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Get user's position in this market
+  const { data: positions, error: posError } = await supabase
+    .from('positions')
+    .select('*')
+    .eq('market_id', marketId)
+    .eq('user_id', userId)
+    .eq('side', side)
+    .eq('status', 'open');
+
+  if (posError) {
+    console.error('Position fetch error:', posError);
+    return new Response(JSON.stringify({ error: 'Failed to fetch position' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const totalPositionSize = positions?.reduce((sum: number, p: any) => sum + p.size, 0) || 0;
+
+  if (totalPositionSize < quantity) {
+    return new Response(JSON.stringify({ 
+      error: `Insufficient position. You have ${totalPositionSize} ${side.toUpperCase()} contracts, tried to sell ${quantity}` 
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // To sell YES contracts, we need to find buyers for YES (i.e., NO orders that imply YES buying)
+  // In Kalshi-style: NO order at price P = willing to buy NO at P = willing to sell YES at (1-P)
+  // So to sell YES, look for NO orders where (1-P) >= minPrice (if specified)
+  const oppositeSide = side === 'yes' ? 'no' : 'yes';
+  
+  let matchQuery = supabase
+    .from('orders')
+    .select('*')
+    .eq('market_id', marketId)
+    .eq('side', oppositeSide)
+    .in('status', ['pending', 'partial'])
+    .neq('user_id', userId);
+
+  if (minPrice) {
+    // For selling YES at minPrice, we need NO orders at (1 - minPrice) or higher
+    // Because NO at P means they'll buy YES at (1-P)
+    // We want (1-P) >= minPrice, so P <= (1 - minPrice)
+    const maxOppositePrice = 1 - minPrice;
+    matchQuery = matchQuery.lte('price', maxOppositePrice);
+  }
+
+  matchQuery = matchQuery.order('price', { ascending: true }).order('created_at', { ascending: true });
+
+  const { data: matchingOrders, error: matchError } = await matchQuery;
+
+  if (matchError) {
+    console.error('Match query error:', matchError);
+    return new Response(JSON.stringify({ error: 'Failed to find matching orders' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!matchingOrders || matchingOrders.length === 0) {
+    return new Response(JSON.stringify({ 
+      error: 'No buyers available at this price. Try placing a limit sell order instead.' 
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  let remainingToSell = quantity;
+  let totalProceeds = 0;
+  let soldQuantity = 0;
+  const trades: any[] = [];
+
+  // Get market fees
+  const { data: market } = await supabase
+    .from('markets')
+    .select('platform_fee_percent, creator_fee_percent, created_by')
+    .eq('id', marketId)
+    .single();
+
+  const platformFeePercent = market?.platform_fee_percent || 3;
+  const creatorFeePercent = market?.creator_fee_percent || 0;
+
+  // Process matches
+  for (const matchOrder of matchingOrders) {
+    if (remainingToSell <= 0) break;
+
+    const availableQuantity = matchOrder.quantity - matchOrder.filled_quantity;
+    const fillQuantity = Math.min(remainingToSell, availableQuantity);
+    
+    // Calculate sale price (from the seller's perspective)
+    // matchOrder.side is opposite (e.g., 'no' if we're selling 'yes')
+    // NO order at price P means buyer gets YES at (1-P)
+    const salePrice = 1 - matchOrder.price;
+
+    // Create trade record
+    const { data: trade, error: tradeError } = await supabase
+      .from('trades')
+      .insert({
+        market_id: marketId,
+        buy_order_id: matchOrder.id,
+        sell_order_id: matchOrder.id, // Using same order for both since this is a direct sale
+        price: salePrice,
+        quantity: fillQuantity,
+        buyer_id: matchOrder.user_id, // The order placer is now buying our contracts
+        seller_id: userId, // We're the seller
+        buyer_side: side // The buyer is getting our side
+      })
+      .select()
+      .single();
+
+    if (tradeError) {
+      console.error('Trade creation error:', tradeError);
+      continue;
+    }
+
+    trades.push(trade);
+
+    // Update matched order
+    const newMatchedFilled = matchOrder.filled_quantity + fillQuantity;
+    const matchedStatus = newMatchedFilled >= matchOrder.quantity ? 'filled' : 'partial';
+    
+    await supabase
+      .from('orders')
+      .update({ 
+        filled_quantity: newMatchedFilled, 
+        status: matchedStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', matchOrder.id);
+
+    // The buyer gets the position
+    await createPosition(supabase, matchOrder.user_id, marketId, side, fillQuantity, salePrice);
+
+    // Calculate fees
+    const grossProceeds = fillQuantity * salePrice;
+    const feePercent = (platformFeePercent + creatorFeePercent) / 100;
+    const fees = grossProceeds * feePercent;
+    const netProceeds = grossProceeds - fees;
+
+    // Pay the seller
+    await supabase.rpc('process_wallet_operation', {
+      _user_id: userId,
+      _operation: 'deposit',
+      _amount: netProceeds,
+      _metadata: { 
+        type: 'position_sale', 
+        side, 
+        quantity: fillQuantity, 
+        price: salePrice,
+        gross: grossProceeds,
+        fees,
+        trade_id: trade.id
+      }
+    });
+
+    // The matched order already had funds reserved, just charge fees
+    // The difference is handled by the order reserve system
+    
+    totalProceeds += netProceeds;
+    soldQuantity += fillQuantity;
+    remainingToSell -= fillQuantity;
+
+    console.log(`Sold ${fillQuantity} ${side.toUpperCase()} @ ${salePrice.toFixed(4)} = $${netProceeds.toFixed(2)} net`);
+  }
+
+  // Reduce user's position
+  let remainingToReduce = soldQuantity;
+  for (const position of positions || []) {
+    if (remainingToReduce <= 0) break;
+    
+    const reduceAmount = Math.min(remainingToReduce, position.size);
+    const newSize = position.size - reduceAmount;
+    
+    if (newSize <= 0) {
+      // Close the position entirely
+      await supabase
+        .from('positions')
+        .update({ 
+          size: 0, 
+          status: 'closed',
+          closed_at: new Date().toISOString(),
+          pnl: totalProceeds - (position.entry_price * reduceAmount)
+        })
+        .eq('id', position.id);
+    } else {
+      // Reduce the position
+      await supabase
+        .from('positions')
+        .update({ size: newSize })
+        .eq('id', position.id);
+    }
+    
+    remainingToReduce -= reduceAmount;
+  }
+
+  // Update market prices
+  await updateMarketPrices(supabase, marketId);
+
+  return new Response(JSON.stringify({
+    success: true,
+    sold: soldQuantity,
+    totalProceeds,
+    avgPrice: soldQuantity > 0 ? totalProceeds / soldQuantity : 0,
+    remaining: quantity - soldQuantity,
+    trades
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
