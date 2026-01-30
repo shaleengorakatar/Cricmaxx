@@ -76,8 +76,8 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
     side: "yes" | "no";
   } | null>(null);
   
-  // Simple mode state - toggle between contracts and dollars input
-  const [inputMode, setInputMode] = useState<"contracts" | "dollars">("contracts");
+  // Simple mode state - toggle between contracts and dollars input (dollars first for UX)
+  const [inputMode, setInputMode] = useState<"contracts" | "dollars">("dollars");
   const [contractCount, setContractCount] = useState("");
   const [dollarAmount, setDollarAmount] = useState("");
   
