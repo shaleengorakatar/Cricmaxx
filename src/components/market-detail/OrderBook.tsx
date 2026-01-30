@@ -61,10 +61,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       .select('side, price, total_quantity')
       .eq('market_id', marketId);
 
-    // Kalshi-style dual display:
-    // Each order appears on BOTH sides at complementary prices
-    // YES order at X appears as: YES @ X and NO @ (1-X)
-    // NO order at Y appears as: NO @ Y and YES @ (1-Y)
+    // Kalshi-style order book display:
+    // - YES column shows prices where you can BUY YES (from NO bidders)
+    // - NO column shows prices where you can BUY NO (from YES bidders)
+    //
+    // A YES order at X = "I want to buy YES at X" = "I'm selling NO at (1-X)"
+    //   → Shows ONLY in NO column at (1-X) as a buy opportunity
+    // A NO order at Y = "I want to buy NO at Y" = "I'm selling YES at (1-Y)"
+    //   → Shows ONLY in YES column at (1-Y) as a buy opportunity
     
     const yesLevels: OrderLevel[] = [];
     const noLevels: OrderLevel[] = [];
@@ -74,23 +78,23 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       const quantity = Number(row.total_quantity);
       
       if (row.side === 'yes') {
-        // YES order at price X
-        yesLevels.push({ price, quantity });
-        // Also shows as NO opportunity at (1 - X)
+        // YES order at price X means someone is BUYING YES
+        // They are implicitly SELLING NO at (1-X)
+        // So you can BUY NO at (1-X) from them
         noLevels.push({ price: 1 - price, quantity });
       } else {
-        // NO order at price Y
-        noLevels.push({ price, quantity });
-        // Also shows as YES opportunity at (1 - Y)
+        // NO order at price Y means someone is BUYING NO
+        // They are implicitly SELLING YES at (1-Y)
+        // So you can BUY YES at (1-Y) from them
         yesLevels.push({ price: 1 - price, quantity });
       }
     }
 
-    // Aggregate same price levels (in case YES and NO orders create same effective price)
+    // Aggregate same price levels
     const aggregateByPrice = (levels: OrderLevel[]): OrderLevel[] => {
       const priceMap = new Map<number, number>();
       for (const level of levels) {
-        const roundedPrice = Math.round(level.price * 100) / 100; // Round to 2 decimals
+        const roundedPrice = Math.round(level.price * 100) / 100;
         priceMap.set(roundedPrice, (priceMap.get(roundedPrice) || 0) + level.quantity);
       }
       return Array.from(priceMap.entries()).map(([price, quantity]) => ({ price, quantity }));
