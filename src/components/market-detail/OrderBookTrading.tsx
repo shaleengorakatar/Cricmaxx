@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Loader2, Info, X, Lock, AlertTriangle, BookOpen } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -77,10 +77,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   
-  // Market order eligibility
-  const [totalYesOrders, setTotalYesOrders] = useState(0);
-  const [totalNoOrders, setTotalNoOrders] = useState(0);
-  const marketOrdersEnabled = totalYesOrders >= 5 && totalNoOrders >= 5;
 
   useEffect(() => {
     fetchOrderBook();
@@ -140,10 +136,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       .eq('side', 'no')
       .in('status', ['pending', 'partial'])
       .order('price', { ascending: false });
-
-    // Count total orders for market order eligibility
-    setTotalYesOrders(yesOrders?.length || 0);
-    setTotalNoOrders(noOrders?.length || 0);
 
     const aggregateOrders = (orders: any[]) => {
       const levels: Record<string, number> = {};
@@ -205,14 +197,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       return;
     }
 
-    if (!marketOrdersEnabled) {
-      toast({ 
-        title: "Market orders not yet available", 
-        description: "Please use a limit order until more orders are placed.",
-        variant: "destructive" 
-      });
-      return;
-    }
 
     // Calculate contracts based on input mode
     const currentPrice = side === "yes" ? yesPrice : noPrice;
@@ -441,29 +425,11 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
         <TabsList className="grid w-full grid-cols-2 mb-4">
           <TabsTrigger value="simple" className="relative">
             Quick Predict
-            {!marketOrdersEnabled && (
-              <Lock className="h-3 w-3 ml-1 text-muted-foreground" />
-            )}
           </TabsTrigger>
           <TabsTrigger value="advanced">Set Your Price</TabsTrigger>
         </TabsList>
 
         <TabsContent value="simple" className="space-y-4">
-          {/* Market order lock notice */}
-          {!marketOrdersEnabled && (
-            <Alert className="bg-amber-50 dark:bg-amber-950/20 border-amber-500">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-sm">
-                <strong>Quick predictions unlock after 5 orders on each side.</strong>
-                <br />
-                <span className="text-muted-foreground">
-                  Currently: {totalYesOrders} YES, {totalNoOrders} NO orders. 
-                  Use "Set Your Price" to place limit orders now.
-                </span>
-              </AlertDescription>
-            </Alert>
-          )}
-
           {/* Input Mode Toggle + Amount Entry */}
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -474,7 +440,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
               <button
                 onClick={() => setInputMode(inputMode === "contracts" ? "dollars" : "contracts")}
                 className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                disabled={!marketOrdersEnabled}
               >
                 {inputMode === "contracts" ? "Contracts" : "Dollars"}
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -497,7 +462,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     className="h-12 text-lg pr-24"
                     min="1"
                     step="1"
-                    disabled={!marketOrdersEnabled}
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
                     contracts
@@ -511,7 +475,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       size="sm"
                       className="flex-1"
                       onClick={() => setContractCount(amt.toString())}
-                      disabled={!marketOrdersEnabled}
                     >
                       {amt}
                     </Button>
@@ -530,7 +493,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     className="h-12 text-lg pl-8"
                     min="0.01"
                     step="0.01"
-                    disabled={!marketOrdersEnabled}
                   />
                 </div>
                 <div className="flex gap-2 mt-2">
@@ -541,7 +503,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       size="sm"
                       className="flex-1"
                       onClick={() => setDollarAmount(amt.toString())}
-                      disabled={!marketOrdersEnabled}
                     >
                       ${amt}
                     </Button>
@@ -551,7 +512,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
             )}
           </div>
 
-          {hasValidInput && marketOrdersEnabled && (
+          {hasValidInput && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               {/* Primary: What you pay → What you get */}
               <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
@@ -586,14 +547,12 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           <Button
             className="w-full h-12 text-lg"
             onClick={handleSimpleTrade}
-            disabled={isSubmitting || !hasValidInput || !marketOrdersEnabled}
+            disabled={isSubmitting || !hasValidInput}
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : null}
-            {marketOrdersEnabled 
-              ? `Buy ${contracts || 0} ${side.toUpperCase()} contracts` 
-              : 'Use "Set Your Price" Instead'}
+            Buy {contracts || 0} {side.toUpperCase()} contracts
           </Button>
         </TabsContent>
 
@@ -681,7 +640,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
               <h4 className="text-sm font-medium mb-3">Current Orders</h4>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <div className="text-green-600 font-medium mb-1">YES Orders ({totalYesOrders})</div>
+                  <div className="text-green-600 font-medium mb-1">YES Orders ({orderBook.yes.length})</div>
                   {orderBook.yes.length > 0 ? (
                     orderBook.yes.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
@@ -694,7 +653,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                   )}
                 </div>
                 <div>
-                  <div className="text-red-600 font-medium mb-1">NO Orders ({totalNoOrders})</div>
+                  <div className="text-red-600 font-medium mb-1">NO Orders ({orderBook.no.length})</div>
                   {orderBook.no.length > 0 ? (
                     orderBook.no.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
