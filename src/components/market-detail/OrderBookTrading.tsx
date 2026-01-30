@@ -54,8 +54,10 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Simple mode state - contracts-first model (each contract = $1 payout)
+  // Simple mode state - toggle between contracts and dollars input
+  const [inputMode, setInputMode] = useState<"contracts" | "dollars">("contracts");
   const [contractCount, setContractCount] = useState("");
+  const [dollarAmount, setDollarAmount] = useState("");
   
   // Advanced mode state
   const [limitPrice, setLimitPrice] = useState("");
@@ -203,16 +205,19 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       return;
     }
 
-    const contracts = parseInt(contractCount);
-    if (!contracts || contracts <= 0) {
-      toast({ title: "Enter a valid number of contracts", variant: "destructive" });
+    // Calculate contracts based on input mode
+    const currentPrice = side === "yes" ? yesPrice : noPrice;
+    const contractsToTrade = inputMode === "contracts"
+      ? parseInt(contractCount)
+      : Math.floor(parseFloat(dollarAmount) / Math.max(currentPrice, 0.01));
+
+    if (!contractsToTrade || contractsToTrade <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" });
       return;
     }
 
-    const currentPrice = side === "yes" ? yesPrice : noPrice;
-    const totalCost = contracts * currentPrice;
-
-    if (totalCost > userBalance) {
+    const cost = contractsToTrade * currentPrice;
+    if (cost > userBalance) {
       toast({ title: "Insufficient balance", variant: "destructive" });
       return;
     }
@@ -226,7 +231,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           marketId,
           side,
           orderType: 'market',
-          quantity: contracts
+          quantity: contractsToTrade
         }
       });
 
@@ -240,6 +245,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       });
 
       setContractCount("");
+      setDollarAmount("");
       fetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
@@ -339,13 +345,24 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
     }
   };
 
-  // Contracts-first calculations
+  // Unified calculations based on input mode
   const currentPrice = side === "yes" ? yesPrice : noPrice;
-  const contracts = contractCount ? parseInt(contractCount) : 0;
-  const totalCost = contracts * currentPrice;
+  
+  // Calculate contracts and cost based on input mode
+  const contracts = inputMode === "contracts" 
+    ? (contractCount ? parseInt(contractCount) : 0)
+    : (dollarAmount ? Math.floor(parseFloat(dollarAmount) / Math.max(currentPrice, 0.01)) : 0);
+  
+  const totalCost = inputMode === "contracts"
+    ? contracts * currentPrice
+    : (dollarAmount ? parseFloat(dollarAmount) : 0);
+    
   const totalPayout = contracts; // Each contract = $1 payout
   const potentialProfit = totalPayout - totalCost;
   const advancedCost = quantity && limitPrice ? parseFloat(quantity) * parseFloat(limitPrice) : 0;
+  
+  // For display consistency
+  const hasValidInput = inputMode === "contracts" ? contracts > 0 : (dollarAmount && parseFloat(dollarAmount) > 0);
 
   return (
     <Card className="p-4 sm:p-6">
@@ -431,45 +448,94 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
             </Alert>
           )}
 
+          {/* Input Mode Toggle + Amount Entry */}
           <div>
-            <Label className="text-sm text-muted-foreground mb-2 block">
-              How much do you want to win?
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm text-muted-foreground">
+                {inputMode === "contracts" ? "How much do you want to win?" : "How much do you want to spend?"}
+              </Label>
+              {/* Dropdown toggle like Kalshi */}
+              <button
+                onClick={() => setInputMode(inputMode === "contracts" ? "dollars" : "contracts")}
+                className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                disabled={!marketOrdersEnabled}
+              >
+                {inputMode === "contracts" ? "Contracts" : "Dollars"}
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground mb-2">
               Each contract pays $1 if you're right
             </p>
-            <div className="relative">
-              <Input
-                type="number"
-                placeholder="10"
-                value={contractCount}
-                onChange={(e) => setContractCount(e.target.value)}
-                className="h-12 text-lg"
-                min="1"
-                step="1"
-                disabled={!marketOrdersEnabled}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                contracts
-              </span>
-            </div>
-            <div className="flex gap-2 mt-2">
-              {[5, 10, 25, 50].map((amt) => (
-                <Button
-                  key={amt}
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setContractCount(amt.toString())}
-                  disabled={!marketOrdersEnabled}
-                >
-                  {amt}
-                </Button>
-              ))}
-            </div>
+            
+            {inputMode === "contracts" ? (
+              <>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="10"
+                    value={contractCount}
+                    onChange={(e) => setContractCount(e.target.value)}
+                    className="h-12 text-lg pr-24"
+                    min="1"
+                    step="1"
+                    disabled={!marketOrdersEnabled}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                    contracts
+                  </span>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {[5, 10, 25, 50].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setContractCount(amt.toString())}
+                      disabled={!marketOrdersEnabled}
+                    >
+                      {amt}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
+                  <Input
+                    type="number"
+                    placeholder="10.00"
+                    value={dollarAmount}
+                    onChange={(e) => setDollarAmount(e.target.value)}
+                    className="h-12 text-lg pl-8"
+                    min="0.01"
+                    step="0.01"
+                    disabled={!marketOrdersEnabled}
+                  />
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {[5, 10, 25, 50].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setDollarAmount(amt.toString())}
+                      disabled={!marketOrdersEnabled}
+                    >
+                      ${amt}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
-          {contracts > 0 && marketOrdersEnabled && (
+          {hasValidInput && marketOrdersEnabled && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               {/* Primary: What you pay → What you get */}
               <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
@@ -504,7 +570,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           <Button
             className="w-full h-12 text-lg"
             onClick={handleSimpleTrade}
-            disabled={isSubmitting || contracts <= 0 || !marketOrdersEnabled}
+            disabled={isSubmitting || !hasValidInput || !marketOrdersEnabled}
           >
             {isSubmitting ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
