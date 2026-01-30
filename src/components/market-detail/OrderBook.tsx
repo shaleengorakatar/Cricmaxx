@@ -23,12 +23,15 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   const { profile, isAuthenticated } = useAuth();
   const [yesOrders, setYesOrders] = useState<OrderLevel[]>([]);
   const [noOrders, setNoOrders] = useState<OrderLevel[]>([]);
+  const [rawYesOrders, setRawYesOrders] = useState<OrderLevel[]>([]);
+  const [rawNoOrders, setRawNoOrders] = useState<OrderLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [selectedSide, setSelectedSide] = useState<"yes" | "no">("yes");
   const [selectedPrice, setSelectedPrice] = useState(0);
   const [buyQuantity, setBuyQuantity] = useState(10);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [viewMode, setViewMode] = useState<"buy" | "sell">("buy");
 
   useEffect(() => {
     fetchOrders();
@@ -61,36 +64,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       .select('side, price, total_quantity')
       .eq('market_id', marketId);
 
-    // Kalshi-style order book display:
-    // - YES column shows prices where you can BUY YES (from NO bidders)
-    // - NO column shows prices where you can BUY NO (from YES bidders)
-    //
-    // A YES order at X = "I want to buy YES at X" = "I'm selling NO at (1-X)"
-    //   → Shows ONLY in NO column at (1-X) as a buy opportunity
-    // A NO order at Y = "I want to buy NO at Y" = "I'm selling YES at (1-Y)"
-    //   → Shows ONLY in YES column at (1-Y) as a buy opportunity
-    
-    const yesLevels: OrderLevel[] = [];
-    const noLevels: OrderLevel[] = [];
-
-    for (const row of aggregatedData || []) {
-      const price = Number(row.price);
-      const quantity = Number(row.total_quantity);
-      
-      if (row.side === 'yes') {
-        // YES order at price X means someone is BUYING YES
-        // They are implicitly SELLING NO at (1-X)
-        // So you can BUY NO at (1-X) from them
-        noLevels.push({ price: 1 - price, quantity });
-      } else {
-        // NO order at price Y means someone is BUYING NO
-        // They are implicitly SELLING YES at (1-Y)
-        // So you can BUY YES at (1-Y) from them
-        yesLevels.push({ price: 1 - price, quantity });
-      }
-    }
-
-    // Aggregate same price levels
+    // Aggregate same price levels helper
     const aggregateByPrice = (levels: OrderLevel[]): OrderLevel[] => {
       const priceMap = new Map<number, number>();
       for (const level of levels) {
@@ -100,18 +74,59 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       return Array.from(priceMap.entries()).map(([price, quantity]) => ({ price, quantity }));
     };
 
-    const aggregatedYes = aggregateByPrice(yesLevels);
-    const aggregatedNo = aggregateByPrice(noLevels);
+    // BUY MODE: Kalshi-style order book display
+    // - YES column shows prices where you can BUY YES (from NO bidders)
+    // - NO column shows prices where you can BUY NO (from YES bidders)
+    const yesLevelsBuy: OrderLevel[] = [];
+    const noLevelsBuy: OrderLevel[] = [];
 
-    // Sort: YES orders by price descending (best/highest first)
-    // NO orders by price descending (best/highest first)
-    aggregatedYes.sort((a, b) => b.price - a.price);
-    aggregatedNo.sort((a, b) => b.price - a.price);
+    // SELL MODE: Raw orders as placed (no conversion)
+    // - YES column shows YES buy orders (people buying YES = you can sell YES to them)
+    // - NO column shows NO buy orders (people buying NO = you can sell NO to them)
+    const yesLevelsSell: OrderLevel[] = [];
+    const noLevelsSell: OrderLevel[] = [];
 
-    setYesOrders(aggregatedYes.slice(0, 5));
-    setNoOrders(aggregatedNo.slice(0, 5));
+    for (const row of aggregatedData || []) {
+      const price = Number(row.price);
+      const quantity = Number(row.total_quantity);
+      
+      if (row.side === 'yes') {
+        // YES order at price X means someone is BUYING YES at X
+        // BUY MODE: They are implicitly SELLING NO at (1-X), so you can BUY NO at (1-X)
+        noLevelsBuy.push({ price: 1 - price, quantity });
+        // SELL MODE: Show as YES buyers at X (you can sell YES to them at X)
+        yesLevelsSell.push({ price, quantity });
+      } else {
+        // NO order at price Y means someone is BUYING NO at Y
+        // BUY MODE: They are implicitly SELLING YES at (1-Y), so you can BUY YES at (1-Y)
+        yesLevelsBuy.push({ price: 1 - price, quantity });
+        // SELL MODE: Show as NO buyers at Y (you can sell NO to them at Y)
+        noLevelsSell.push({ price, quantity });
+      }
+    }
+
+    // Aggregate and sort BUY mode orders
+    const aggregatedYesBuy = aggregateByPrice(yesLevelsBuy);
+    const aggregatedNoBuy = aggregateByPrice(noLevelsBuy);
+    aggregatedYesBuy.sort((a, b) => b.price - a.price);
+    aggregatedNoBuy.sort((a, b) => b.price - a.price);
+
+    // Aggregate and sort SELL mode orders (highest price first = best sell price)
+    const aggregatedYesSell = aggregateByPrice(yesLevelsSell);
+    const aggregatedNoSell = aggregateByPrice(noLevelsSell);
+    aggregatedYesSell.sort((a, b) => b.price - a.price);
+    aggregatedNoSell.sort((a, b) => b.price - a.price);
+
+    setYesOrders(aggregatedYesBuy.slice(0, 5));
+    setNoOrders(aggregatedNoBuy.slice(0, 5));
+    setRawYesOrders(aggregatedYesSell.slice(0, 5));
+    setRawNoOrders(aggregatedNoSell.slice(0, 5));
     setLoading(false);
   };
+
+  // Get the appropriate orders based on view mode
+  const displayYesOrders = viewMode === "buy" ? yesOrders : rawYesOrders;
+  const displayNoOrders = viewMode === "buy" ? noOrders : rawNoOrders;
 
   const openBuyDialog = (side: "yes" | "no", price: number, maxQty: number) => {
     if (!isAuthenticated) {
@@ -192,8 +207,8 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     }
   };
 
-  const bestYesBid = yesOrders[0];
-  const bestNoAsk = noOrders[0];
+  const bestYesBid = displayYesOrders[0];
+  const bestNoAsk = displayNoOrders[0];
 
   const cost = buyQuantity * selectedPrice;
   const payout = buyQuantity;
@@ -213,32 +228,67 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     );
   }
 
-  const hasOrders = yesOrders.length > 0 || noOrders.length > 0;
+  const hasOrders = displayYesOrders.length > 0 || displayNoOrders.length > 0;
 
   return (
     <TooltipProvider>
       <div className="p-0 md:p-6">
-        <div className="flex items-center gap-2 mb-4 px-4 md:px-0 hidden md:flex">
-          <h3 className="text-base sm:text-lg font-semibold text-foreground">Order Book</h3>
-          <Tooltip>
-            <TooltipTrigger>
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <p className="text-sm">
-                The order book shows open limit orders from other traders. 
-                Click "Buy" to instantly purchase shares at the listed price.
-                If you're right, each share pays $1.
-              </p>
-            </TooltipContent>
-          </Tooltip>
+        <div className="flex items-center justify-between mb-4 px-4 md:px-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-semibold text-foreground hidden md:block">Order Book</h3>
+            <Tooltip>
+              <TooltipTrigger>
+                <HelpCircle className="h-4 w-4 text-muted-foreground hidden md:block" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm">
+                  {viewMode === "buy" 
+                    ? "Buy mode shows where you can purchase shares. Orders are converted to show buying opportunities."
+                    : "Sell mode shows raw orders as placed. Use this to see buyers you can sell your positions to."}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          
+          {/* Buy/Sell Toggle */}
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("buy")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "buy" 
+                  ? "bg-background text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Buy
+            </button>
+            <button
+              onClick={() => setViewMode("sell")}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "sell" 
+                  ? "bg-background text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Sell
+            </button>
+          </div>
         </div>
         
         <div className="space-y-4 px-4 md:px-0 pb-4 md:pb-0">
+          {/* Mode description */}
+          <p className="text-xs text-muted-foreground text-center">
+            {viewMode === "buy" 
+              ? "Showing prices where you can buy shares (dual-sided matching)"
+              : "Showing raw orders — sell your position to these buyers"}
+          </p>
+          
           {/* Best Prices Summary */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
-              <p className="text-xs text-muted-foreground mb-1">Best YES Price</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {viewMode === "buy" ? "Best YES Buy Price" : "YES Buyers"}
+              </p>
               {bestYesBid ? (
                 <>
                   <p className="text-xl sm:text-lg font-bold text-green-600 dark:text-green-500">
@@ -247,11 +297,13 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                   <p className="text-xs text-muted-foreground">{bestYesBid.quantity} shares</p>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">No bids yet</p>
+                <p className="text-sm text-muted-foreground">No orders</p>
               )}
             </div>
             <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
-              <p className="text-xs text-muted-foreground mb-1">Best NO Price</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                {viewMode === "buy" ? "Best NO Buy Price" : "NO Buyers"}
+              </p>
               {bestNoAsk ? (
                 <>
                   <p className="text-xl sm:text-lg font-bold text-red-600 dark:text-red-500">
@@ -278,20 +330,23 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-foreground">YES Orders</h4>
+                    <h4 className="text-sm font-semibold text-foreground">
+                      {viewMode === "buy" ? "YES Orders" : "YES Buyers"}
+                    </h4>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="text-sm">
-                          Buy YES shares if you think the event will happen. 
-                          Pay the listed price per share, get $1 back if correct.
+                          {viewMode === "buy"
+                            ? "Buy YES shares if you think the event will happen. Pay the listed price per share, get $1 back if correct."
+                            : "These are buyers wanting YES shares. You can sell your YES position to them at the listed price."}
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {yesOrders.length > 0 && (
+                  {viewMode === "buy" && displayYesOrders.length > 0 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
@@ -309,12 +364,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                   )}
                 </div>
                 <div className="space-y-1">
-                  {yesOrders.length > 0 ? (
-                    yesOrders.map((order, idx) => (
+                  {displayYesOrders.length > 0 ? (
+                    displayYesOrders.map((order, idx) => (
                       <div 
                         key={idx} 
-                        className="flex justify-between items-center text-xs p-2 bg-green-50 dark:bg-green-950/10 rounded hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer transition-colors"
-                        onClick={() => openBuyDialog("yes", order.price, order.quantity)}
+                        className={`flex justify-between items-center text-xs p-2 bg-green-50 dark:bg-green-950/10 rounded transition-colors ${
+                          viewMode === "buy" ? "hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer" : ""
+                        }`}
+                        onClick={viewMode === "buy" ? () => openBuyDialog("yes", order.price, order.quantity) : undefined}
                       >
                         <span className="font-medium text-green-600 dark:text-green-500">
                           {(order.price * 100).toFixed(0)}¢
@@ -332,20 +389,23 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-foreground">NO Orders</h4>
+                    <h4 className="text-sm font-semibold text-foreground">
+                      {viewMode === "buy" ? "NO Orders" : "NO Buyers"}
+                    </h4>
                     <Tooltip>
                       <TooltipTrigger>
                         <Info className="h-3.5 w-3.5 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="text-sm">
-                          Buy NO shares if you think the event will NOT happen. 
-                          Pay the listed price per share, get $1 back if correct.
+                          {viewMode === "buy"
+                            ? "Buy NO shares if you think the event will NOT happen. Pay the listed price per share, get $1 back if correct."
+                            : "These are buyers wanting NO shares. You can sell your NO position to them at the listed price."}
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {noOrders.length > 0 && (
+                  {viewMode === "buy" && displayNoOrders.length > 0 && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
@@ -364,12 +424,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                   )}
                 </div>
                 <div className="space-y-1">
-                  {noOrders.length > 0 ? (
-                    noOrders.map((order, idx) => (
+                  {displayNoOrders.length > 0 ? (
+                    displayNoOrders.map((order, idx) => (
                       <div 
                         key={idx} 
-                        className="flex justify-between items-center text-xs p-2 bg-red-50 dark:bg-red-950/10 rounded hover:bg-red-100 dark:hover:bg-red-950/20 cursor-pointer transition-colors"
-                        onClick={() => openBuyDialog("no", order.price, order.quantity)}
+                        className={`flex justify-between items-center text-xs p-2 bg-red-50 dark:bg-red-950/10 rounded transition-colors ${
+                          viewMode === "buy" ? "hover:bg-red-100 dark:hover:bg-red-950/20 cursor-pointer" : ""
+                        }`}
+                        onClick={viewMode === "buy" ? () => openBuyDialog("no", order.price, order.quantity) : undefined}
                       >
                         <span className="font-medium text-red-600 dark:text-red-500">
                           {(order.price * 100).toFixed(0)}¢
