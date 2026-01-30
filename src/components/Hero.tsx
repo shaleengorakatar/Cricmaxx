@@ -119,29 +119,6 @@ const Hero = () => {
                 Start Predicting
               </Button>
             </motion.div>
-            <motion.div variants={buttonVariants}>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="bg-transparent border-2 border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-                onClick={() => navigate('/creator')}
-              >
-                <Users className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Create a Market
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          {/* Mobile App Link */}
-          <motion.div className="mt-8" variants={itemVariants}>
-            <Button
-              variant="ghost"
-              className="text-primary-foreground/80 hover:text-primary-foreground text-base"
-              onClick={() => navigate('/mobile')}
-            >
-              <Smartphone className="mr-2 h-5 w-5" />
-              Try Mobile App Preview
-            </Button>
           </motion.div>
         </motion.div>
       </div>
