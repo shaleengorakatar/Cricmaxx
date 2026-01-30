@@ -152,6 +152,34 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     });
   }
 
+  // CRITICAL: Reserve funds upfront for limit orders
+  // This prevents users from placing more orders than they can afford
+  if (orderType === 'limit') {
+    const reserveAmount = quantity * price!;
+    const { error: reserveError } = await supabase.rpc('process_wallet_operation', {
+      _user_id: userId,
+      _operation: 'withdrawal',
+      _amount: reserveAmount,
+      _metadata: { 
+        type: 'order_reserve', 
+        order_type: 'limit',
+        side,
+        quantity,
+        price,
+        reserved: true
+      }
+    });
+
+    if (reserveError) {
+      console.error('Failed to reserve funds:', reserveError);
+      return new Response(JSON.stringify({ error: 'Failed to reserve funds' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    console.log(`Reserved $${reserveAmount.toFixed(2)} for limit order`);
+  }
+
   // Create the order
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -169,6 +197,15 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 
   if (orderError) {
     console.error('Order creation error:', orderError);
+    // If order creation fails after reserving, refund the reserved amount
+    if (orderType === 'limit') {
+      await supabase.rpc('process_wallet_operation', {
+        _user_id: userId,
+        _operation: 'deposit',
+        _amount: quantity * price!,
+        _metadata: { type: 'order_reserve_refund', reason: 'order_creation_failed' }
+      });
+    }
     return new Response(JSON.stringify({ error: 'Failed to create order' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -324,6 +361,8 @@ async function matchOrder(supabase: any, order: any) {
     await createPosition(supabase, matchOrder.user_id, market_id, oppositeSide, fillQuantity, 1 - tradePrice);
 
     // Process payments
+    // For limit orders: funds are already reserved at order.price, so we only charge fees
+    // and refund/charge any difference between reserved price and actual trade price
     const userCost = fillQuantity * tradePrice;
     const matchUserCost = fillQuantity * (1 - tradePrice);
     const tradeValue = fillQuantity;
@@ -334,19 +373,71 @@ async function matchOrder(supabase: any, order: any) {
     const userFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
     const matchUserFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
 
-    await supabase.rpc('process_wallet_operation', {
-      _user_id: user_id,
-      _operation: 'withdrawal',
-      _amount: userCost + userFeeShare,
-      _metadata: { type: 'trade', order_id: id, trade_id: trade.id, fee_paid: userFeeShare }
-    });
+    // Current order: if limit order, funds already reserved at 'price'
+    // Only charge the fee (cost was already reserved)
+    if (order_type === 'limit' && price) {
+      const reservedAmount = fillQuantity * price;
+      const actualNeeded = userCost + userFeeShare;
+      const difference = actualNeeded - reservedAmount;
+      
+      if (difference > 0) {
+        // Need to charge more (trade happened at worse price)
+        await supabase.rpc('process_wallet_operation', {
+          _user_id: user_id,
+          _operation: 'withdrawal',
+          _amount: difference,
+          _metadata: { type: 'trade_adjustment', order_id: id, trade_id: trade.id, fee_paid: userFeeShare }
+        });
+      } else if (difference < 0) {
+        // Refund excess (trade happened at better price)
+        await supabase.rpc('process_wallet_operation', {
+          _user_id: user_id,
+          _operation: 'deposit',
+          _amount: Math.abs(difference),
+          _metadata: { type: 'trade_refund', order_id: id, trade_id: trade.id, better_price: true }
+        });
+      }
+      // If difference === 0, no additional action needed
+    } else {
+      // Market order: charge full amount
+      await supabase.rpc('process_wallet_operation', {
+        _user_id: user_id,
+        _operation: 'withdrawal',
+        _amount: userCost + userFeeShare,
+        _metadata: { type: 'trade', order_id: id, trade_id: trade.id, fee_paid: userFeeShare }
+      });
+    }
 
-    await supabase.rpc('process_wallet_operation', {
-      _user_id: matchOrder.user_id,
-      _operation: 'withdrawal',
-      _amount: matchUserCost + matchUserFeeShare,
-      _metadata: { type: 'trade', order_id: matchOrder.id, trade_id: trade.id, fee_paid: matchUserFeeShare }
-    });
+    // Matched order: also has funds reserved (it's always a limit order in the book)
+    if (matchOrder.price) {
+      const matchReservedAmount = fillQuantity * matchOrder.price;
+      const matchActualNeeded = matchUserCost + matchUserFeeShare;
+      const matchDifference = matchActualNeeded - matchReservedAmount;
+      
+      if (matchDifference > 0) {
+        await supabase.rpc('process_wallet_operation', {
+          _user_id: matchOrder.user_id,
+          _operation: 'withdrawal',
+          _amount: matchDifference,
+          _metadata: { type: 'trade_adjustment', order_id: matchOrder.id, trade_id: trade.id, fee_paid: matchUserFeeShare }
+        });
+      } else if (matchDifference < 0) {
+        await supabase.rpc('process_wallet_operation', {
+          _user_id: matchOrder.user_id,
+          _operation: 'deposit',
+          _amount: Math.abs(matchDifference),
+          _metadata: { type: 'trade_refund', order_id: matchOrder.id, trade_id: trade.id, better_price: true }
+        });
+      }
+    } else {
+      // Fallback for any market orders in the book (shouldn't happen)
+      await supabase.rpc('process_wallet_operation', {
+        _user_id: matchOrder.user_id,
+        _operation: 'withdrawal',
+        _amount: matchUserCost + matchUserFeeShare,
+        _metadata: { type: 'trade', order_id: matchOrder.id, trade_id: trade.id, fee_paid: matchUserFeeShare }
+      });
+    }
 
     if (creatorFeeAmount > 0 && creatorId && !creatorIsAdmin) {
       await supabase.rpc('process_wallet_operation', {
@@ -680,6 +771,26 @@ async function cancelOrder(supabase: any, userId: string, request: { orderId: st
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+
+  // Refund reserved funds for unfilled portion of limit orders
+  if (order.order_type === 'limit' && order.price) {
+    const unfilledQuantity = order.quantity - order.filled_quantity;
+    if (unfilledQuantity > 0) {
+      const refundAmount = unfilledQuantity * order.price;
+      await supabase.rpc('process_wallet_operation', {
+        _user_id: userId,
+        _operation: 'deposit',
+        _amount: refundAmount,
+        _metadata: { 
+          type: 'order_cancel_refund', 
+          order_id: orderId,
+          unfilled_quantity: unfilledQuantity,
+          price: order.price
+        }
+      });
+      console.log(`Refunded $${refundAmount.toFixed(2)} for cancelled order`);
+    }
   }
 
   await supabase
