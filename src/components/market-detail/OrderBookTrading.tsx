@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Loader2, Info, X, Lock, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, Info, X, Lock, AlertTriangle, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -53,6 +60,8 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
+  const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   
   // Simple mode state - toggle between contracts and dollars input
   const [inputMode, setInputMode] = useState<"contracts" | "dollars">("contracts");
@@ -236,6 +245,13 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       });
 
       if (error) throw error;
+
+      // Check for no liquidity response
+      if (data?.noLiquidity) {
+        setNoLiquiditySide(side);
+        setShowNoLiquidityDialog(true);
+        return;
+      }
 
       toast({
         title: "Prediction placed!",
@@ -730,6 +746,45 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       <div className="border-t pt-3 mt-4 text-sm text-muted-foreground text-center">
         Available balance: <span className="font-semibold text-foreground">${userBalance.toFixed(2)}</span>
       </div>
+
+      {/* No Liquidity Dialog */}
+      <Dialog open={showNoLiquidityDialog} onOpenChange={setShowNoLiquidityDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-accent" />
+              No Orders in the Book
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p>
+                There are currently no {noLiquiditySide === 'yes' ? 'sellers' : 'buyers'} in the order book to match your market order.
+              </p>
+              <p className="text-sm">
+                You can <strong>place a limit order</strong> using "Set Your Price" to create an order at your desired price.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              onClick={() => {
+                setShowNoLiquidityDialog(false);
+                setTradingMode("advanced");
+              }}
+              className="w-full"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Set Your Price (Limit Order)
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowNoLiquidityDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
