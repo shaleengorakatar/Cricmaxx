@@ -176,7 +176,7 @@ const MarketDetail = () => {
 
           {/* Mobile: Single column layout, Desktop: Grid layout */}
           <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Market Info & Chart Section */}
+            {/* Market Info & Trading Section */}
             <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               <MarketHeader market={market} />
               
@@ -188,56 +188,7 @@ const MarketDetail = () => {
                 outcome={marketOutcome}
               />
               
-              {/* Collapsible Price Chart on Mobile */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setChartExpanded(!chartExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
-                    {chartExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
-                    <PriceChart data={priceHistory} />
-                  </div>
-                </Card>
-              </div>
-              
-              {/* Order Book - collapsible on mobile */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                    {orderBookExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                    <OrderBook marketId={market.id} />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Trading Section - Always visible on mobile, sticky on desktop */}
-            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {/* User's Position Card - Shows if user has positions */}
-              <UserPositionCard 
-                marketId={market.id}
-                currentYesPrice={market.yesPrice}
-                currentNoPrice={market.noPrice}
-              />
-
+              {/* Trading Panel - Now at the top below description */}
               <Tabs defaultValue="trade" className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="trade">Trade</TabsTrigger>
@@ -270,6 +221,56 @@ const MarketDetail = () => {
                   />
                 </TabsContent>
               </Tabs>
+              
+              {/* Order Book - Second */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                    {orderBookExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                    <OrderBook marketId={market.id} />
+                  </div>
+                </Card>
+              </div>
+              
+              {/* Price History - Third */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setChartExpanded(!chartExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
+                    {chartExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
+                    <PriceChart data={priceHistory} />
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Sidebar - Stats and Info */}
+            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
+              {/* User's Position Card - Shows if user has positions */}
+              <UserPositionCard 
+                marketId={market.id}
+                currentYesPrice={market.yesPrice}
+                currentNoPrice={market.noPrice}
+              />
 
               {/* Market Stats - Collapsible on mobile */}
               <Card className="overflow-hidden">
