@@ -4,7 +4,7 @@
  */
 
 // How far into the future to show markets (in days)
-export const MARKET_VISIBILITY_DAYS = 30;
+export const MARKET_VISIBILITY_DAYS = 60;
 
 // Valid market statuses for active markets
 export const ACTIVE_MARKET_STATUSES = ["approved", "open"] as const;
