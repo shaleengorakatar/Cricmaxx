@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { OddsToggle } from "@/components/trading/OddsToggle";
 import { SoundToggle } from "@/components/trading/SoundToggle";
 import { StreakDisplay } from "@/components/trading/StreakDisplay";
 import { triggerConfetti, triggerHaptic, playSound, celebrateStreak } from "@/lib/tradingEffects";
+import { useEstimatedFillPrice } from "@/hooks/useEstimatedFillPrice";
 import {
   Dialog,
   DialogContent,
@@ -49,8 +50,27 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
     predictionStreak 
   } = useTradingPreferences();
 
-  const yesShares = stakeAmount / yesPrice;
-  const noShares = stakeAmount / noPrice;
+  // Get estimated fill prices from order book
+  const { calculateEstimatedFill, hasLiquidity } = useEstimatedFillPrice(marketId);
+
+  // Calculate estimated fills for current stake amount
+  const yesEstimate = useMemo(() => 
+    calculateEstimatedFill("yes", stakeAmount, yesPrice),
+    [calculateEstimatedFill, stakeAmount, yesPrice]
+  );
+  
+  const noEstimate = useMemo(() => 
+    calculateEstimatedFill("no", stakeAmount, noPrice),
+    [calculateEstimatedFill, stakeAmount, noPrice]
+  );
+
+  // Use estimated price if available, otherwise indicative
+  const effectiveYesPrice = yesEstimate?.avgPrice ?? yesPrice;
+  const effectiveNoPrice = noEstimate?.avgPrice ?? noPrice;
+
+  // Calculate shares and payout based on effective prices
+  const yesShares = stakeAmount / effectiveYesPrice;
+  const noShares = stakeAmount / effectiveNoPrice;
   const yesPayout = yesShares; // $1 per share if wins
   const noPayout = noShares;
 
@@ -270,7 +290,20 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
                 <CheckCircle className="h-6 w-6" />
                 <span className="text-lg font-bold">YES</span>
               </div>
-              <p className="text-2xl font-black">{formatOdds(yesPrice)}</p>
+              
+              {/* Price display - show estimated if different from indicative */}
+              {yesEstimate && Math.abs(yesEstimate.avgPrice - yesPrice) > 0.005 ? (
+                <div className="space-y-0.5">
+                  <p className="text-xs line-through opacity-60">{formatOdds(yesPrice)}</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <p className="text-2xl font-black">{formatOdds(yesEstimate.avgPrice)}</p>
+                  </div>
+                  <p className="text-[10px] opacity-70">Est. fill price</p>
+                </div>
+              ) : (
+                <p className="text-2xl font-black">{formatOdds(yesPrice)}</p>
+              )}
               
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
@@ -303,7 +336,20 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
                 <XCircle className="h-6 w-6" />
                 <span className="text-lg font-bold">NO</span>
               </div>
-              <p className="text-2xl font-black">{formatOdds(noPrice)}</p>
+              
+              {/* Price display - show estimated if different from indicative */}
+              {noEstimate && Math.abs(noEstimate.avgPrice - noPrice) > 0.005 ? (
+                <div className="space-y-0.5">
+                  <p className="text-xs line-through opacity-60">{formatOdds(noPrice)}</p>
+                  <div className="flex items-center justify-center gap-1">
+                    <TrendingUp className="h-3.5 w-3.5" />
+                    <p className="text-2xl font-black">{formatOdds(noEstimate.avgPrice)}</p>
+                  </div>
+                  <p className="text-[10px] opacity-70">Est. fill price</p>
+                </div>
+              ) : (
+                <p className="text-2xl font-black">{formatOdds(noPrice)}</p>
+              )}
               
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
