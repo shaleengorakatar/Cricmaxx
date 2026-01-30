@@ -724,20 +724,75 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
 }
 
 async function updateMarketPrices(supabase: any, marketId: string) {
-  const { data: market } = await supabase
-    .from('markets')
-    .select('pool_yes_shares, pool_no_shares')
-    .eq('id', marketId)
+  // Kalshi-style pricing: use last trade price, or best bid/ask midpoint as fallback
+  
+  // 1. Try to get the last trade price
+  const { data: lastTrade } = await supabase
+    .from('trades')
+    .select('price, buyer_side')
+    .eq('market_id', marketId)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single();
 
-  if (market) {
-    const poolYes = Number(market.pool_yes_shares);
-    const poolNo = Number(market.pool_no_shares);
-    const total = poolYes + poolNo;
-    
-    const yesPrice = poolNo / total;
-    const noPrice = poolYes / total;
-    
+  let yesPrice: number | null = null;
+  let noPrice: number | null = null;
+
+  if (lastTrade) {
+    // Last trade determines the price
+    // If buyer_side is 'yes', the trade price IS the yes price
+    // If buyer_side is 'no', we need to interpret differently
+    // In our system, price is always from YES perspective
+    yesPrice = Number(lastTrade.price);
+    noPrice = 1 - yesPrice;
+    console.log(`Price from last trade: YES=${yesPrice}, NO=${noPrice}`);
+  } else {
+    // 2. No trades yet - use best bid/ask midpoint
+    const { data: bestYesBid } = await supabase
+      .from('orders')
+      .select('price')
+      .eq('market_id', marketId)
+      .eq('side', 'yes')
+      .in('status', ['pending', 'partial'])
+      .order('price', { ascending: false })
+      .limit(1)
+      .single();
+
+    const { data: bestNoBid } = await supabase
+      .from('orders')
+      .select('price')
+      .eq('market_id', marketId)
+      .eq('side', 'no')
+      .in('status', ['pending', 'partial'])
+      .order('price', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (bestYesBid && bestNoBid) {
+      // Midpoint between best YES bid and implied YES ask (1 - best NO bid)
+      const bestYesBidPrice = Number(bestYesBid.price);
+      const impliedYesAsk = 1 - Number(bestNoBid.price);
+      yesPrice = (bestYesBidPrice + impliedYesAsk) / 2;
+      noPrice = 1 - yesPrice;
+      console.log(`Price from bid/ask midpoint: YES=${yesPrice}, NO=${noPrice}`);
+    } else if (bestYesBid) {
+      // Only YES bids exist
+      yesPrice = Number(bestYesBid.price);
+      noPrice = 1 - yesPrice;
+      console.log(`Price from YES bid only: YES=${yesPrice}, NO=${noPrice}`);
+    } else if (bestNoBid) {
+      // Only NO bids exist
+      noPrice = Number(bestNoBid.price);
+      yesPrice = 1 - noPrice;
+      console.log(`Price from NO bid only: YES=${yesPrice}, NO=${noPrice}`);
+    } else {
+      // 3. No trades, no orders - keep current price or default to 0.50
+      console.log('No trades or orders - keeping current price');
+      return; // Don't update if no market activity
+    }
+  }
+
+  if (yesPrice !== null && noPrice !== null) {
     await supabase
       .from('markets')
       .update({
