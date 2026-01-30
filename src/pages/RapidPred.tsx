@@ -17,6 +17,7 @@ import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters"
 import { useHaptics } from "@/hooks/useHaptics";
 import { WinLossAnimation } from "@/components/mobile/WinLossAnimation";
 import { triggerConfetti } from "@/lib/tradingEffects";
+import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 
 interface SessionTrade {
   id: string;
@@ -35,6 +36,7 @@ const STAKE_OPTIONS = [5, 10, 25, 50];
 const RapidPred = () => {
   const { profile, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { formatOdds } = useTradingPreferences();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [stakeAmount, setStakeAmount] = useState(10);
@@ -299,8 +301,6 @@ const RapidPred = () => {
   const noTotal = noShares;
   const yesProfit = yesTotal - stakeAmount;
   const noProfit = noTotal - stakeAmount;
-  const yesOdds = 1 / currentMarket.yesPrice;
-  const noOdds = 1 / currentMarket.noPrice;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -453,7 +453,7 @@ const RapidPred = () => {
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-black">Get ${yesTotal.toFixed(2)}</p>
-                      <p className="text-xs opacity-80 mt-0.5">{yesOdds.toFixed(1)}x odds</p>
+                      <p className="text-xs opacity-80 mt-0.5">{formatOdds(currentMarket.yesPrice)} odds</p>
                       <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
                     </div>
                   </>
@@ -476,7 +476,7 @@ const RapidPred = () => {
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-black">Get ${noTotal.toFixed(2)}</p>
-                      <p className="text-xs opacity-80 mt-0.5">{noOdds.toFixed(1)}x odds</p>
+                      <p className="text-xs opacity-80 mt-0.5">{formatOdds(currentMarket.noPrice)} odds</p>
                       <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
                     </div>
                   </>
@@ -503,11 +503,11 @@ const RapidPred = () => {
                   </div>
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">Yes odds</span>
-                    <span className="font-medium">{yesOdds.toFixed(2)}x</span>
+                    <span className="font-medium">{formatOdds(currentMarket.yesPrice)}</span>
                   </div>
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">No odds</span>
-                    <span className="font-medium">{noOdds.toFixed(2)}x</span>
+                    <span className="font-medium">{formatOdds(currentMarket.noPrice)}</span>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
