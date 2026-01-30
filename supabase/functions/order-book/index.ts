@@ -6,22 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// === CONSTANTS ===
+const MAX_YES_PRICE = 0.99;  // Safety cap for market orders - never pay more than this for YES
+const MIN_YES_PRICE = 0.01;  // Safety cap for market orders - never sell YES for less than this
+const DEFAULT_MAX_SLIPPAGE = 0.10; // 10% slippage tolerance for market orders
+
 interface PlaceOrderRequest {
   marketId: string;
   side: 'yes' | 'no';
   orderType: 'market' | 'limit';
   quantity: number;
   price?: number;
-}
-
-// Pool exposure tracking - orders created by pool fills that are waiting for counterparty
-interface PoolExposure {
-  orderId: string;
-  marketId: string;
-  side: string;
-  quantity: number;
-  price: number;
-  createdAt: Date;
+  maxSlippage?: number; // Optional slippage tolerance for market orders (0-1)
 }
 
 serve(async (req) => {
@@ -115,7 +111,7 @@ serve(async (req) => {
 });
 
 async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequest) {
-  const { marketId, side, orderType, quantity, price } = request;
+  const { marketId, side, orderType, quantity, price, maxSlippage } = request;
 
   if (!marketId || !side || !orderType || !quantity || quantity <= 0) {
     return new Response(JSON.stringify({ error: 'Invalid order parameters' }), {
@@ -145,7 +141,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     });
   }
 
-  const maxCost = orderType === 'limit' ? quantity * price! : quantity * 0.99;
+  const maxCost = orderType === 'limit' ? quantity * price! : quantity * MAX_YES_PRICE;
   
   if (profile.balance < maxCost) {
     return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
@@ -216,8 +212,9 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 
   console.log(`Order created: ${order.id} - ${side} ${quantity} @ ${price || 'market'}`);
 
-  // Try to match the order
-  const matchResult = await matchOrder(supabase, order);
+  // Try to match the order with slippage protection for market orders
+  const effectiveMaxSlippage = maxSlippage ?? DEFAULT_MAX_SLIPPAGE;
+  const matchResult = await matchOrder(supabase, order, effectiveMaxSlippage);
 
   // Update market best prices based on order book + pool
   await updateMarketPrices(supabase, marketId);
@@ -238,6 +235,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
       filledQuantity: matchResult.filledQuantity,
       avgFillPrice: matchResult.avgFillPrice,
       trades: matchResult.trades,
+      cancelledDueToSlippage: matchResult.cancelledDueToSlippage || false,
       // Position info for UI
       position: {
         side,
@@ -253,7 +251,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
   });
 }
 
-async function matchOrder(supabase: any, order: any) {
+async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAULT_MAX_SLIPPAGE) {
   const { id, market_id, user_id, side, order_type, price, quantity } = order;
   
   // Get market info
@@ -286,23 +284,37 @@ async function matchOrder(supabase: any, order: any) {
   
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
-  // Kalshi-style matching: 
-  // A YES order at price X can match with:
-  //   1. NO orders at price >= (1-X) - they want NO, you provide it by taking YES
-  //   2. YES orders at price <= (1-X) from the opposite perspective - complementary matching
-  // 
-  // Key insight: In prediction markets, YES at X = offering NO at (1-X)
-  // So a YES bid at $0.20 matches with NO bids at $0.80+ 
-  // (because NO bid at $0.80 = willing to pay $0.80 for NO = implies YES at $0.20)
+  // === SLIPPAGE PROTECTION FOR MARKET ORDERS ===
+  // Calculate worst acceptable price based on current market price and slippage tolerance
+  let worstAcceptableYesPrice: number;
+  let worstAcceptableNoPrice: number;
   
+  if (order_type === 'market') {
+    const currentYesPrice = Number(market.yes_price) || 0.5;
+    const currentNoPrice = Number(market.no_price) || 0.5;
+    
+    if (side === 'yes') {
+      // Buying YES: worst case is paying more than current + slippage
+      worstAcceptableYesPrice = Math.min(MAX_YES_PRICE, currentYesPrice * (1 + maxSlippage));
+    } else {
+      // Buying NO: worst case is paying more than current + slippage
+      worstAcceptableNoPrice = Math.min(MAX_YES_PRICE, currentNoPrice * (1 + maxSlippage));
+      // Convert to YES price for comparison
+      worstAcceptableYesPrice = 1 - worstAcceptableNoPrice;
+    }
+    console.log(`Market order slippage cap: max YES price = ${worstAcceptableYesPrice.toFixed(4)}`);
+  }
+  
+  // === QUERY MATCHING ORDERS ===
   // Look for matching orders on OPPOSITE side (traditional matching)
+  // IMPORTANT: Exclude user's own orders for self-trade prevention
   let oppositeMatchQuery = supabase
     .from('orders')
     .select('*')
     .eq('market_id', market_id)
     .eq('side', oppositeSide)
     .in('status', ['pending', 'partial'])
-    .neq('user_id', user_id);
+    .neq('user_id', user_id); // SELF-TRADE PREVENTION: exclude user's own orders
 
   if (order_type === 'limit') {
     // For a YES order at price X, match NO orders where their price >= (1-X)
@@ -313,6 +325,7 @@ async function matchOrder(supabase: any, order: any) {
     oppositeMatchQuery = oppositeMatchQuery.gte('price', minOppositePrice);
   }
 
+  // === PRICE-TIME PRIORITY: Order by price DESC (best first), then created_at ASC (oldest first) ===
   oppositeMatchQuery = oppositeMatchQuery.order('price', { ascending: false }).order('created_at', { ascending: true });
 
   const { data: oppositeOrders, error: oppositeError } = await oppositeMatchQuery;
@@ -321,8 +334,7 @@ async function matchOrder(supabase: any, order: any) {
     console.error('Opposite match query error:', oppositeError);
   }
   
-  // Combine all matching orders
-  // Transform opposite-side orders to have a virtual "from_opposite_side" flag
+  // Transform opposite-side orders with effective YES price
   const matchingOrders = (oppositeOrders || []).map((o: any) => ({
     ...o,
     from_opposite_side: true,
@@ -330,54 +342,77 @@ async function matchOrder(supabase: any, order: any) {
     effective_yes_price: o.side === 'no' ? (1 - o.price) : o.price
   }));
   
-  // Sort by best price for the current order (lowest effective price for YES buyer)
+  // Sort by best price for the current order (price-time priority)
   matchingOrders.sort((a: any, b: any) => {
-    // For a YES buyer, we want lowest effective_yes_price first
-    // For a NO buyer, we want highest effective_yes_price first (which = lowest NO price)
+    // Primary: best price first
+    let priceDiff: number;
     if (side === 'yes') {
-      return a.effective_yes_price - b.effective_yes_price;
+      // For a YES buyer, we want lowest effective_yes_price first
+      priceDiff = a.effective_yes_price - b.effective_yes_price;
     } else {
-      return b.effective_yes_price - a.effective_yes_price;
+      // For a NO buyer, we want highest effective_yes_price first (which = lowest NO price)
+      priceDiff = b.effective_yes_price - a.effective_yes_price;
     }
+    // Secondary: time priority (oldest first)
+    if (priceDiff === 0) {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    return priceDiff;
   });
 
   console.log(`Found ${matchingOrders.length} matching orders for ${side} @ ${price || 'market'}`);
   matchingOrders.forEach((o: any) => {
-    console.log(`  - ${o.side} order @ ${o.price} (effective YES: ${o.effective_yes_price})`);
+    console.log(`  - ${o.side} order @ ${o.price} (effective YES: ${o.effective_yes_price}) by user ${o.user_id.slice(0,8)}`);
   });
 
   let remainingQuantity = quantity;
   let totalFillValue = 0;
   let filledQuantity = 0;
   const trades: any[] = [];
+  let cancelledDueToSlippage = false;
 
-  // Match with existing orders (now includes complementary matching)
+  // Match with existing orders (with slippage protection)
   for (const matchOrder of matchingOrders || []) {
     if (remainingQuantity <= 0) break;
+
+    // === SLIPPAGE CHECK FOR MARKET ORDERS ===
+    if (order_type === 'market') {
+      const effectiveYesPrice = matchOrder.effective_yes_price;
+      
+      if (side === 'yes' && effectiveYesPrice > worstAcceptableYesPrice!) {
+        console.log(`Slippage cap hit: ${effectiveYesPrice.toFixed(4)} > ${worstAcceptableYesPrice!.toFixed(4)}. Stopping match.`);
+        cancelledDueToSlippage = true;
+        break;
+      }
+      if (side === 'no' && effectiveYesPrice < (1 - worstAcceptableYesPrice!)) {
+        console.log(`Slippage cap hit for NO: effective YES ${effectiveYesPrice.toFixed(4)} too low. Stopping match.`);
+        cancelledDueToSlippage = true;
+        break;
+      }
+      
+      // Hard safety cap: never pay more than $0.99 or sell for less than $0.01
+      if (effectiveYesPrice > MAX_YES_PRICE || effectiveYesPrice < MIN_YES_PRICE) {
+        console.log(`Hard price cap hit: ${effectiveYesPrice.toFixed(4)}. Stopping match.`);
+        cancelledDueToSlippage = true;
+        break;
+      }
+    }
 
     const availableQuantity = matchOrder.quantity - matchOrder.filled_quantity;
     const fillQuantity = Math.min(remainingQuantity, availableQuantity);
     
     // Calculate trade price (always from YES perspective for consistency)
-    // The effective_yes_price tells us what YES price this order represents
     let tradePrice: number;
     if (order_type === 'market') {
       // Market order takes whatever price is available
       tradePrice = matchOrder.effective_yes_price;
     } else {
       // Limit order: trade at the match order's effective price (price improvement for taker)
-      // In Kalshi, the resting order's price is honored
       tradePrice = matchOrder.effective_yes_price;
     }
     
     // Determine who is buying YES and who is buying NO
-    // Current user: buying 'side'
-    // Match user: originally placed order for matchOrder.side
     const currentUserBuysYes = side === 'yes';
-    const matchUserBuysYes = matchOrder.side === 'yes';
-    
-    // In a complementary match, both might have placed YES orders (or both NO)
-    // One becomes the YES holder, one becomes the NO holder
     const yesBuyerId = currentUserBuysYes ? user_id : matchOrder.user_id;
     const noBuyerId = currentUserBuysYes ? matchOrder.user_id : user_id;
 
@@ -403,6 +438,7 @@ async function matchOrder(supabase: any, order: any) {
 
     trades.push(trade);
 
+    // Update matched order (partial fill handling)
     const newMatchedFilled = matchOrder.filled_quantity + fillQuantity;
     const matchedStatus = newMatchedFilled >= matchOrder.quantity ? 'filled' : 'partial';
     
@@ -411,12 +447,12 @@ async function matchOrder(supabase: any, order: any) {
       .update({ 
         filled_quantity: newMatchedFilled, 
         status: matchedStatus,
+        avg_fill_price: calculateAvgFillPrice(matchOrder, fillQuantity, tradePrice),
         updated_at: new Date().toISOString()
       })
       .eq('id', matchOrder.id);
 
-    // Create positions for both parties based on what they're actually getting
-    // Current user gets 'side', match user gets opposite of what current user gets
+    // Create positions for both parties
     const matchUserActualSide = side === 'yes' ? 'no' : 'yes';
     const currentUserPrice = side === 'yes' ? tradePrice : (1 - tradePrice);
     const matchUserPrice = side === 'yes' ? (1 - tradePrice) : tradePrice;
@@ -427,8 +463,6 @@ async function matchOrder(supabase: any, order: any) {
     console.log(`Trade executed: ${side} ${fillQuantity} @ ${tradePrice.toFixed(4)} (YES price)`);
 
     // Process payments
-    // For limit orders: funds are already reserved at order.price, so we only charge fees
-    // and refund/charge any difference between reserved price and actual trade price
     const userCost = fillQuantity * tradePrice;
     const matchUserCost = fillQuantity * (1 - tradePrice);
     const tradeValue = fillQuantity;
@@ -439,15 +473,13 @@ async function matchOrder(supabase: any, order: any) {
     const userFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
     const matchUserFeeShare = (platformFeeAmount + creatorFeeAmount) / 2;
 
-    // Current order: if limit order, funds already reserved at 'price'
-    // Only charge the fee (cost was already reserved)
+    // Current order payment handling
     if (order_type === 'limit' && price) {
       const reservedAmount = fillQuantity * price;
       const actualNeeded = userCost + userFeeShare;
       const difference = actualNeeded - reservedAmount;
       
       if (difference > 0) {
-        // Need to charge more (trade happened at worse price)
         await supabase.rpc('process_wallet_operation', {
           _user_id: user_id,
           _operation: 'withdrawal',
@@ -455,7 +487,6 @@ async function matchOrder(supabase: any, order: any) {
           _metadata: { type: 'trade_adjustment', order_id: id, trade_id: trade.id, fee_paid: userFeeShare }
         });
       } else if (difference < 0) {
-        // Refund excess (trade happened at better price)
         await supabase.rpc('process_wallet_operation', {
           _user_id: user_id,
           _operation: 'deposit',
@@ -463,7 +494,6 @@ async function matchOrder(supabase: any, order: any) {
           _metadata: { type: 'trade_refund', order_id: id, trade_id: trade.id, better_price: true }
         });
       }
-      // If difference === 0, no additional action needed
     } else {
       // Market order: charge full amount
       await supabase.rpc('process_wallet_operation', {
@@ -474,7 +504,7 @@ async function matchOrder(supabase: any, order: any) {
       });
     }
 
-    // Matched order: also has funds reserved (it's always a limit order in the book)
+    // Matched order payment handling (always a limit order in the book)
     if (matchOrder.price) {
       const matchReservedAmount = fillQuantity * matchOrder.price;
       const matchActualNeeded = matchUserCost + matchUserFeeShare;
@@ -496,7 +526,6 @@ async function matchOrder(supabase: any, order: any) {
         });
       }
     } else {
-      // Fallback for any market orders in the book (shouldn't happen)
       await supabase.rpc('process_wallet_operation', {
         _user_id: matchOrder.user_id,
         _operation: 'withdrawal',
@@ -505,6 +534,7 @@ async function matchOrder(supabase: any, order: any) {
       });
     }
 
+    // Creator fee
     if (creatorFeeAmount > 0 && creatorId && !creatorIsAdmin) {
       await supabase.rpc('process_wallet_operation', {
         _user_id: creatorId,
@@ -536,8 +566,8 @@ async function matchOrder(supabase: any, order: any) {
     console.log(`Matched with real order: ${fillQuantity} shares @ ${tradePrice.toFixed(4)}`);
   }
 
-  // If remaining and pool enabled, use hybrid pool fill
-  if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true) {
+  // If remaining and pool enabled, use hybrid pool fill (with slippage check)
+  if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true && !cancelledDueToSlippage) {
     console.log(`Filling ${remainingQuantity} from pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
     
     const poolResult = await fillFromPoolHybrid(
@@ -577,6 +607,7 @@ async function matchOrder(supabase: any, order: any) {
     finalStatus = 'cancelled';
   }
 
+  // Update order with fill info
   await supabase
     .from('orders')
     .update({ 
@@ -591,8 +622,20 @@ async function matchOrder(supabase: any, order: any) {
     filledQuantity,
     avgFillPrice: filledQuantity > 0 ? totalFillValue / filledQuantity : null,
     trades,
-    finalStatus
+    finalStatus,
+    cancelledDueToSlippage
   };
+}
+
+// Helper to calculate weighted average fill price
+function calculateAvgFillPrice(order: any, newFillQuantity: number, newFillPrice: number): number {
+  const previousFilled = order.filled_quantity || 0;
+  const previousAvgPrice = order.avg_fill_price || 0;
+  const totalFilled = previousFilled + newFillQuantity;
+  
+  if (totalFilled === 0) return 0;
+  
+  return (previousFilled * previousAvgPrice + newFillQuantity * newFillPrice) / totalFilled;
 }
 
 /**
@@ -601,7 +644,6 @@ async function matchOrder(supabase: any, order: any) {
  * 1. Instantly fills user's order from pool at current price
  * 2. Creates a limit order on opposite side for counterparty matching
  * 3. When someone takes opposite side, they match with this order
- * 4. Pool exposure tracked until matched
  */
 async function fillFromPoolHybrid(
   supabase: any,
@@ -725,7 +767,6 @@ async function fillFromPoolHybrid(
     .single();
   
   // KEY: Create opposite limit order for counterparty matching
-  // This order sits in book waiting for someone to take opposite side
   const oppositePrice = Math.round((1 - avgPrice) * 100) / 100;
   
   const { data: poolBackedOrder, error: poolOrderError } = await supabase
@@ -764,6 +805,7 @@ async function createPosition(supabase: any, userId: string, marketId: string, s
     .maybeSingle();
 
   if (existing) {
+    // Weighted average for entry price on position increase
     const newSize = existing.size + size;
     const newAvgPrice = (existing.size * existing.entry_price + size * entryPrice) / newSize;
     
@@ -805,10 +847,7 @@ async function updateMarketPrices(supabase: any, marketId: string) {
   let noPrice: number | null = null;
 
   if (lastTrade) {
-    // Last trade determines the price
-    // If buyer_side is 'yes', the trade price IS the yes price
-    // If buyer_side is 'no', we need to interpret differently
-    // In our system, price is always from YES perspective
+    // Last trade determines the price (price is always from YES perspective)
     yesPrice = Number(lastTrade.price);
     noPrice = 1 - yesPrice;
     console.log(`Price from last trade: YES=${yesPrice}, NO=${noPrice}`);
@@ -842,19 +881,16 @@ async function updateMarketPrices(supabase: any, marketId: string) {
       noPrice = 1 - yesPrice;
       console.log(`Price from bid/ask midpoint: YES=${yesPrice}, NO=${noPrice}`);
     } else if (bestYesBid) {
-      // Only YES bids exist
       yesPrice = Number(bestYesBid.price);
       noPrice = 1 - yesPrice;
       console.log(`Price from YES bid only: YES=${yesPrice}, NO=${noPrice}`);
     } else if (bestNoBid) {
-      // Only NO bids exist
       noPrice = Number(bestNoBid.price);
       yesPrice = 1 - noPrice;
       console.log(`Price from NO bid only: YES=${yesPrice}, NO=${noPrice}`);
     } else {
-      // 3. No trades, no orders - keep current price or default to 0.50
       console.log('No trades or orders - keeping current price');
-      return; // Don't update if no market activity
+      return;
     }
   }
 
@@ -999,7 +1035,6 @@ async function getMarketDepth(supabase: any, marketId: string | null) {
     .eq('id', marketId)
     .single();
 
-  // Calculate total pool exposure (unmatched pool-backed orders)
   const yesDepth = aggregateOrders(yesOrders);
   const noDepth = aggregateOrders(noOrders);
   const totalYesLiquidity = yesDepth.reduce((sum, l) => sum + l.quantity, 0);
@@ -1063,8 +1098,7 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
   }
 
   // To sell YES contracts, we need to find buyers for YES (i.e., NO orders that imply YES buying)
-  // In Kalshi-style: NO order at price P = willing to buy NO at P = willing to sell YES at (1-P)
-  // So to sell YES, look for NO orders where (1-P) >= minPrice (if specified)
+  // IMPORTANT: Exclude user's own orders for self-trade prevention
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
   let matchQuery = supabase
@@ -1073,16 +1107,14 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
     .eq('market_id', marketId)
     .eq('side', oppositeSide)
     .in('status', ['pending', 'partial'])
-    .neq('user_id', userId);
+    .neq('user_id', userId); // SELF-TRADE PREVENTION
 
   if (minPrice) {
-    // For selling YES at minPrice, we need NO orders at (1 - minPrice) or higher
-    // Because NO at P means they'll buy YES at (1-P)
-    // We want (1-P) >= minPrice, so P <= (1 - minPrice)
     const maxOppositePrice = 1 - minPrice;
     matchQuery = matchQuery.lte('price', maxOppositePrice);
   }
 
+  // Price-time priority: best price first (ascending for opposite), then oldest first
   matchQuery = matchQuery.order('price', { ascending: true }).order('created_at', { ascending: true });
 
   const { data: matchingOrders, error: matchError } = await matchQuery;
@@ -1119,16 +1151,14 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
   const platformFeePercent = market?.platform_fee_percent || 3;
   const creatorFeePercent = market?.creator_fee_percent || 0;
 
-  // Process matches
+  // Process matches with price-time priority
   for (const matchOrder of matchingOrders) {
     if (remainingToSell <= 0) break;
 
     const availableQuantity = matchOrder.quantity - matchOrder.filled_quantity;
     const fillQuantity = Math.min(remainingToSell, availableQuantity);
     
-    // Calculate sale price (from the seller's perspective)
-    // matchOrder.side is opposite (e.g., 'no' if we're selling 'yes')
-    // NO order at price P means buyer gets YES at (1-P)
+    // Calculate sale price
     const salePrice = 1 - matchOrder.price;
 
     // Create trade record
@@ -1137,12 +1167,12 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
       .insert({
         market_id: marketId,
         buy_order_id: matchOrder.id,
-        sell_order_id: matchOrder.id, // Using same order for both since this is a direct sale
+        sell_order_id: matchOrder.id,
         price: salePrice,
         quantity: fillQuantity,
-        buyer_id: matchOrder.user_id, // The order placer is now buying our contracts
-        seller_id: userId, // We're the seller
-        buyer_side: side // The buyer is getting our side
+        buyer_id: matchOrder.user_id,
+        seller_id: userId,
+        buyer_side: side
       })
       .select()
       .single();
@@ -1154,7 +1184,7 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
 
     trades.push(trade);
 
-    // Update matched order
+    // Update matched order (partial fill handling)
     const newMatchedFilled = matchOrder.filled_quantity + fillQuantity;
     const matchedStatus = newMatchedFilled >= matchOrder.quantity ? 'filled' : 'partial';
     
@@ -1163,6 +1193,7 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
       .update({ 
         filled_quantity: newMatchedFilled, 
         status: matchedStatus,
+        avg_fill_price: calculateAvgFillPrice(matchOrder, fillQuantity, 1 - salePrice),
         updated_at: new Date().toISOString()
       })
       .eq('id', matchOrder.id);
@@ -1192,9 +1223,6 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
       }
     });
 
-    // The matched order already had funds reserved, just charge fees
-    // The difference is handled by the order reserve system
-    
     totalProceeds += netProceeds;
     soldQuantity += fillQuantity;
     remainingToSell -= fillQuantity;
@@ -1211,7 +1239,6 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
     const newSize = position.size - reduceAmount;
     
     if (newSize <= 0) {
-      // Close the position entirely
       await supabase
         .from('positions')
         .update({ 
@@ -1222,7 +1249,6 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
         })
         .eq('id', position.id);
     } else {
-      // Reduce the position
       await supabase
         .from('positions')
         .update({ size: newSize })
