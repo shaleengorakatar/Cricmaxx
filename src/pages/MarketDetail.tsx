@@ -157,76 +157,52 @@ const MarketDetail = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-20 pb-6">
-        <div className="container mx-auto px-4 max-w-5xl">
-          {/* Back button */}
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => navigate('/markets')}
-            className="mb-3 -ml-2"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Back
-          </Button>
-
-          {/* Market Header */}
-          <MarketHeader market={market} />
-          
-          {/* Inline Stats */}
-          <div className="flex flex-wrap items-center gap-4 mt-3 mb-4 text-sm">
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Yes:</span>
-              <LivePrice 
-                price={market.yesPrice} 
-                previousPrice={previousPricesRef.current?.yes}
-                className="font-semibold text-primary"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">No:</span>
-              <LivePrice 
-                price={market.noPrice} 
-                previousPrice={previousPricesRef.current?.no}
-                className="font-semibold text-destructive"
-              />
-            </div>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">Vol: <span className="text-foreground font-medium">{market.volume.toLocaleString()}</span></span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">Fee: <span className="text-foreground font-medium">3%</span></span>
-            <div className="ml-auto">
-              <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
-            </div>
+      <main className="flex-1 pt-20 pb-8">
+        <div className="container mx-auto px-4">
+          {/* Back button row */}
+          <div className="flex items-center justify-between mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/markets')}
+              className="-ml-2"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
           </div>
 
-          {/* Two column layout: Trading + Position */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Trading Panel - Takes more space */}
-            <div className="lg:col-span-3">
-              <Card className="p-4">
-                <Tabs defaultValue="trade" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 h-9">
-                    <TabsTrigger value="trade" className="text-xs sm:text-sm">Trade</TabsTrigger>
-                    <TabsTrigger value="book" className="text-xs sm:text-sm">Book</TabsTrigger>
-                    <TabsTrigger value="chart" className="text-xs sm:text-sm">Chart</TabsTrigger>
-                    <TabsTrigger value="rules" className="text-xs sm:text-sm">Rules</TabsTrigger>
+          {/* Market Header - Compact */}
+          <MarketHeader market={market} />
+
+          {/* Main 2-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            {/* Left column - Trading */}
+            <div className="lg:col-span-2 space-y-4">
+              {/* Trading Card */}
+              <OrderBookTrading
+                marketId={market.id}
+                yesPrice={market.yesPrice}
+                noPrice={market.noPrice}
+                userBalance={profile?.balance || 0}
+              />
+              
+              {/* Order Book & Chart in tabs for space efficiency */}
+              <Card>
+                <Tabs defaultValue="orderbook" className="w-full">
+                  <TabsList className="w-full grid grid-cols-3 rounded-b-none">
+                    <TabsTrigger value="orderbook">Order Book</TabsTrigger>
+                    <TabsTrigger value="chart">Price Chart</TabsTrigger>
+                    <TabsTrigger value="rules">Rules</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="trade" className="mt-3">
-                    <OrderBookTrading
-                      marketId={market.id}
-                      yesPrice={market.yesPrice}
-                      noPrice={market.noPrice}
-                      userBalance={profile?.balance || 0}
-                    />
-                  </TabsContent>
-                  <TabsContent value="book" className="mt-3">
+                  <TabsContent value="orderbook" className="m-0">
                     <OrderBook marketId={market.id} />
                   </TabsContent>
-                  <TabsContent value="chart" className="mt-3">
+                  <TabsContent value="chart" className="m-0">
                     <PriceChart data={priceHistory} />
                   </TabsContent>
-                  <TabsContent value="rules" className="mt-3">
+                  <TabsContent value="rules" className="m-0 p-4">
                     <ResolutionRules 
                       marketId={market.id}
                       expiryTime={market.expiryTime}
@@ -238,8 +214,40 @@ const MarketDetail = () => {
               </Card>
             </div>
 
-            {/* Sidebar - Position only */}
-            <div className="lg:col-span-2">
+            {/* Right column - Stats & Position */}
+            <div className="space-y-4">
+              {/* Quick Stats Card */}
+              <Card className="p-4">
+                <h3 className="text-sm font-semibold mb-3">Market Stats</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Yes Price</span>
+                    <LivePrice 
+                      price={market.yesPrice} 
+                      previousPrice={previousPricesRef.current?.yes}
+                      className="font-semibold text-lg text-primary"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">No Price</span>
+                    <LivePrice 
+                      price={market.noPrice} 
+                      previousPrice={previousPricesRef.current?.no}
+                      className="font-semibold text-lg text-destructive"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Volume</span>
+                    <span className="font-semibold">{market.volume.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-xs">Fee</span>
+                    <span className="font-semibold">3%</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Position Card */}
               <UserPositionCard 
                 marketId={market.id}
                 currentYesPrice={market.yesPrice}
@@ -247,11 +255,6 @@ const MarketDetail = () => {
               />
             </div>
           </div>
-
-          {/* Compact disclaimer */}
-          <p className="mt-4 text-xs text-muted-foreground text-center">
-            CFTC-regulated event contracts • Pays $1.00 if correct, $0.00 if incorrect
-          </p>
         </div>
       </main>
 
