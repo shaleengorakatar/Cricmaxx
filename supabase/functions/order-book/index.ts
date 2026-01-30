@@ -224,6 +224,23 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
   const maxWin = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * (1 - fillPrice) : 0;
   const risk = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * fillPrice : 0;
 
+  // If no liquidity, return specific response to guide user to place limit order
+  if (matchResult.noLiquidity) {
+    return new Response(JSON.stringify({
+      success: false,
+      noLiquidity: true,
+      message: 'No orders available in the book. Place a limit order to provide liquidity.',
+      order: {
+        id: order.id,
+        status: 'cancelled',
+        side: order.side,
+        quantity: order.quantity
+      }
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   return new Response(JSON.stringify({
     success: true,
     order: {
@@ -566,34 +583,9 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     console.log(`Matched with real order: ${fillQuantity} shares @ ${tradePrice.toFixed(4)}`);
   }
 
-  // If remaining and pool enabled, use hybrid pool fill (with slippage check)
-  if (remainingQuantity > 0 && market.liquidity_pool > 0 && market.pool_enabled === true && !cancelledDueToSlippage) {
-    console.log(`Filling ${remainingQuantity} from pool. Pool: YES=${market.pool_yes_shares}, NO=${market.pool_no_shares}`);
-    
-    const poolResult = await fillFromPoolHybrid(
-      supabase, 
-      market_id, 
-      user_id, 
-      id, 
-      side, 
-      remainingQuantity, 
-      market,
-      effectivePlatformFee,
-      effectiveCreatorFee,
-      creatorId,
-      creatorIsAdmin
-    );
-    
-    if (poolResult.filled > 0) {
-      filledQuantity += poolResult.filled;
-      totalFillValue += poolResult.filled * poolResult.avgPrice;
-      remainingQuantity -= poolResult.filled;
-      
-      if (poolResult.trade) {
-        trades.push(poolResult.trade);
-      }
-    }
-  }
+  // Pool is disabled - if no matches found, order cannot be filled
+  // Return specific "no liquidity" indicator for market orders with empty book
+  const noLiquidity = order_type === 'market' && filledQuantity === 0 && matchingOrders.length === 0;
 
   // Update order status
   let finalStatus: string;
@@ -618,12 +610,17 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     })
     .eq('id', id);
 
+  if (noLiquidity) {
+    console.log(`No liquidity available for market order ${id}. Order cancelled.`);
+  }
+
   return {
     filledQuantity,
     avgFillPrice: filledQuantity > 0 ? totalFillValue / filledQuantity : null,
     trades,
     finalStatus,
-    cancelledDueToSlippage
+    cancelledDueToSlippage,
+    noLiquidity
   };
 }
 

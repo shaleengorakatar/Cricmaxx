@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -13,23 +13,34 @@ import { OddsToggle } from "@/components/trading/OddsToggle";
 import { SoundToggle } from "@/components/trading/SoundToggle";
 import { StreakDisplay } from "@/components/trading/StreakDisplay";
 import { triggerConfetti, triggerHaptic, playSound, celebrateStreak } from "@/lib/tradingEffects";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface SimpleTradingCardProps {
   marketId: string;
   yesPrice: number;
   noPrice: number;
   userBalance: number;
+  onScrollToOrderBook?: () => void;
 }
 
 const STAKE_OPTIONS = [5, 10, 25, 50, 100];
 const QUICK_AMOUNTS = [1, 5, 10];
 
-const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleTradingCardProps) => {
+const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollToOrderBook }: SimpleTradingCardProps) => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [stakeAmount, setStakeAmount] = useState(10);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
   const [lastTradeSide, setLastTradeSide] = useState<"yes" | "no" | null>(null);
+  const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
+  const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   
   const { 
     formatOdds, 
@@ -81,8 +92,20 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
         },
       });
 
-      if (response.error || response.data?.error) {
-        throw new Error(response.error?.message || response.data?.error);
+      if (response.error) {
+        throw new Error(response.error?.message || 'Trade failed');
+      }
+
+      // Check for no liquidity response
+      if (response.data?.noLiquidity) {
+        setNoLiquiditySide(side);
+        setShowNoLiquidityDialog(true);
+        if (soundEnabled) playSound('error');
+        return;
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
       }
 
       const orderData = response.data?.order;
@@ -337,6 +360,45 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance }: SimpleT
           </div>
         )}
       </CardContent>
+
+      {/* No Liquidity Dialog */}
+      <Dialog open={showNoLiquidityDialog} onOpenChange={setShowNoLiquidityDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-accent" />
+              No Orders in the Book
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-2">
+              <p>
+                There are currently no {noLiquiditySide === 'yes' ? 'sellers' : 'buyers'} in the order book to match your market order.
+              </p>
+              <p className="text-sm">
+                You can <strong>place a limit order</strong> to set your own price and wait for someone to take the other side.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-4">
+            <Button 
+              onClick={() => {
+                setShowNoLiquidityDialog(false);
+                onScrollToOrderBook?.();
+              }}
+              className="w-full"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              Go to Order Book
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowNoLiquidityDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
