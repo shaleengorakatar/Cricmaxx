@@ -157,15 +157,17 @@ const MarketDetail = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-20 pb-12">
+      <main className="flex-1 pt-20 pb-8">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
+          {/* Compact header row */}
+          <div className="flex items-center justify-between mb-3">
             <Button 
               variant="ghost" 
+              size="sm"
               onClick={() => navigate('/markets')}
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Markets
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
             </Button>
             
             <div className="flex items-center gap-2">
@@ -174,29 +176,55 @@ const MarketDetail = () => {
             </div>
           </div>
 
-          {/* Mobile: Single column layout, Desktop: Grid layout */}
-          <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Market Info & Trading Section */}
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-              <MarketHeader market={market} />
-              
-              {/* Resolution Rules Accordion */}
-              <ResolutionRules 
-                marketId={market.id}
-                expiryTime={market.expiryTime}
-                status={marketStatus}
-                outcome={marketOutcome}
-              />
-              
-              {/* Trading Panel - Now at the top below description */}
+          {/* Market Header - Compact */}
+          <MarketHeader market={market} />
+          
+          {/* Compact Stats Bar */}
+          <Card className="my-4 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Yes:</span>
+                <LivePrice 
+                  price={market.yesPrice} 
+                  previousPrice={previousPricesRef.current?.yes}
+                  className="font-semibold text-primary"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">No:</span>
+                <LivePrice 
+                  price={market.noPrice} 
+                  previousPrice={previousPricesRef.current?.no}
+                  className="font-semibold text-destructive"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Volume:</span>
+                <span className="font-semibold">{market.volume.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Fee:</span>
+                <span className="font-semibold">3%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Payout:</span>
+                <span className="font-semibold">$1.00/share</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Main Grid - Trading + Position side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Trading Panel */}
+            <div className="lg:col-span-2">
               <Tabs defaultValue="trade" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="trade">Trade</TabsTrigger>
-                  <TabsTrigger value="feed">Feed</TabsTrigger>
-                  <TabsTrigger value="calculator">Calc</TabsTrigger>
-                  <TabsTrigger value="alerts">Alerts</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-4 h-9">
+                  <TabsTrigger value="trade" className="text-xs sm:text-sm">Trade</TabsTrigger>
+                  <TabsTrigger value="feed" className="text-xs sm:text-sm">Feed</TabsTrigger>
+                  <TabsTrigger value="calculator" className="text-xs sm:text-sm">Calc</TabsTrigger>
+                  <TabsTrigger value="alerts" className="text-xs sm:text-sm">Alerts</TabsTrigger>
                 </TabsList>
-                <TabsContent value="trade" className="mt-4">
+                <TabsContent value="trade" className="mt-3">
                   <OrderBookTrading
                     marketId={market.id}
                     yesPrice={market.yesPrice}
@@ -204,16 +232,16 @@ const MarketDetail = () => {
                     userBalance={profile?.balance || 0}
                   />
                 </TabsContent>
-                <TabsContent value="feed" className="mt-4">
-                  <LiveTradeFeed marketId={market.id} maxHeight="350px" />
+                <TabsContent value="feed" className="mt-3">
+                  <LiveTradeFeed marketId={market.id} maxHeight="280px" />
                 </TabsContent>
-                <TabsContent value="calculator" className="mt-4">
+                <TabsContent value="calculator" className="mt-3">
                   <MarketCalculator
                     yesPrice={market.yesPrice}
                     noPrice={market.noPrice}
                   />
                 </TabsContent>
-                <TabsContent value="alerts" className="mt-4">
+                <TabsContent value="alerts" className="mt-3">
                   <PriceAlerts
                     marketId={market.id}
                     currentYesPrice={market.yesPrice}
@@ -221,124 +249,74 @@ const MarketDetail = () => {
                   />
                 </TabsContent>
               </Tabs>
-              
-              {/* Market Stats - Above Order Book */}
-              <Card className="overflow-hidden">
-                <button
-                  onClick={() => setStatsExpanded(!statsExpanded)}
-                  className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <h3 className="text-sm font-semibold text-foreground">Market Statistics</h3>
-                  {statsExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </button>
-                <div className={`${statsExpanded ? 'block' : 'hidden'} md:block p-4 sm:p-6 space-y-3`}>
-                  <h3 className="text-sm font-semibold text-foreground mb-3 hidden md:block">Market Statistics</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Yes Price:</span>
-                      <LivePrice 
-                        price={market.yesPrice} 
-                        previousPrice={previousPricesRef.current?.yes}
-                        className="font-semibold"
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">No Price:</span>
-                      <LivePrice 
-                        price={market.noPrice} 
-                        previousPrice={previousPricesRef.current?.no}
-                        className="font-semibold"
-                      />
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total Volume:</span>
-                      <span className="font-semibold text-foreground">
-                        {market.volume.toLocaleString()} shares
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Market Type:</span>
-                      <span className="font-semibold text-foreground">Order Book</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Platform Fee:</span>
-                      <span className="font-semibold text-foreground">3%</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Settlement:</span>
-                      <span className="font-semibold text-foreground">$1.00 per winning share</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Order Book */}
-              <Card className="overflow-hidden">
-                <button
-                  onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                  className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                  {orderBookExpanded ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </button>
-                <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                  <OrderBook marketId={market.id} />
-                </div>
-              </Card>
-              
-              {/* Price History - Third */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setChartExpanded(!chartExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
-                    {chartExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
-                    <PriceChart data={priceHistory} />
-                  </div>
-                </Card>
-              </div>
             </div>
 
-            {/* Sidebar - Stats and Info */}
-            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {/* User's Position Card - Shows if user has positions */}
+            {/* Sidebar - Position & Info */}
+            <div className="space-y-4">
               <UserPositionCard 
                 marketId={market.id}
                 currentYesPrice={market.yesPrice}
                 currentNoPrice={market.noPrice}
               />
-
-              {/* Creator Info Card */}
               <MarketCreatorInfo marketId={market.id} />
-
-              {/* CFTC Disclaimer */}
-              <Card className="p-4 bg-muted/30">
-                <div className="flex gap-2">
-                  <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground">
-                    Shariz offers fixed-payout event contracts regulated by CFTC. 
-                    If your prediction is correct, you receive $1.00 per share. 
-                    If incorrect, your shares expire worthless. This is not gambling.
-                  </p>
-                </div>
-              </Card>
             </div>
+          </div>
+
+          {/* Order Book + Price Chart - Side by Side on Desktop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+            {/* Order Book */}
+            <Card className="overflow-hidden">
+              <button
+                onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                className="md:hidden w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Order Book</h3>
+                {orderBookExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                <OrderBook marketId={market.id} />
+              </div>
+            </Card>
+
+            {/* Price Chart */}
+            <Card className="overflow-hidden">
+              <button
+                onClick={() => setChartExpanded(!chartExpanded)}
+                className="md:hidden w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+              >
+                <h3 className="text-sm font-semibold text-foreground">Price History</h3>
+                {chartExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
+                <PriceChart data={priceHistory} />
+              </div>
+            </Card>
+          </div>
+
+          {/* Resolution Rules - Collapsible at bottom */}
+          <div className="mt-4">
+            <ResolutionRules 
+              marketId={market.id}
+              expiryTime={market.expiryTime}
+              status={marketStatus}
+              outcome={marketOutcome}
+            />
+          </div>
+
+          {/* CFTC Disclaimer - Compact */}
+          <div className="mt-4 flex items-start gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+            <p>
+              CFTC-regulated event contracts. Pays $1.00 if correct, $0.00 if incorrect.
+            </p>
           </div>
         </div>
       </main>
