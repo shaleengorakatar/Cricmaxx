@@ -222,57 +222,7 @@ const MarketDetail = () => {
                 </TabsContent>
               </Tabs>
               
-              {/* Order Book - Second */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setOrderBookExpanded(!orderBookExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Order Book</h3>
-                    {orderBookExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
-                    <OrderBook marketId={market.id} />
-                  </div>
-                </Card>
-              </div>
-              
-              {/* Price History - Third */}
-              <div className="md:block">
-                <Card className="overflow-hidden">
-                  <button
-                    onClick={() => setChartExpanded(!chartExpanded)}
-                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                  >
-                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
-                    {chartExpanded ? (
-                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </button>
-                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
-                    <PriceChart data={priceHistory} />
-                  </div>
-                </Card>
-              </div>
-            </div>
-
-            {/* Sidebar - Stats and Info */}
-            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
-              {/* User's Position Card - Shows if user has positions */}
-              <UserPositionCard 
-                marketId={market.id}
-                currentYesPrice={market.yesPrice}
-                currentNoPrice={market.noPrice}
-              />
-
-              {/* Market Stats - Collapsible on mobile */}
+              {/* Market Stats - Above Order Book */}
               <Card className="overflow-hidden">
                 <button
                   onClick={() => setStatsExpanded(!statsExpanded)}
@@ -325,6 +275,54 @@ const MarketDetail = () => {
                   </div>
                 </div>
               </Card>
+
+              {/* Order Book */}
+              <Card className="overflow-hidden">
+                <button
+                  onClick={() => setOrderBookExpanded(!orderBookExpanded)}
+                  className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                >
+                  <h3 className="text-base font-semibold text-foreground">Order Book</h3>
+                  {orderBookExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </button>
+                <div className={`${orderBookExpanded ? 'block' : 'hidden'} md:block`}>
+                  <OrderBook marketId={market.id} />
+                </div>
+              </Card>
+              
+              {/* Price History - Third */}
+              <div className="md:block">
+                <Card className="overflow-hidden">
+                  <button
+                    onClick={() => setChartExpanded(!chartExpanded)}
+                    className="md:hidden w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                  >
+                    <h3 className="text-base font-semibold text-foreground">Price History</h3>
+                    {chartExpanded ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </button>
+                  <div className={`${chartExpanded ? 'block' : 'hidden'} md:block`}>
+                    <PriceChart data={priceHistory} />
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Sidebar - Stats and Info */}
+            <div className="space-y-4 sm:space-y-6 lg:sticky lg:top-24 lg:self-start">
+              {/* User's Position Card - Shows if user has positions */}
+              <UserPositionCard 
+                marketId={market.id}
+                currentYesPrice={market.yesPrice}
+                currentNoPrice={market.noPrice}
+              />
 
               {/* Creator Info Card */}
               <MarketCreatorInfo marketId={market.id} />
