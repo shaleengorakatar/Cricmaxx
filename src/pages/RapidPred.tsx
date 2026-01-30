@@ -189,6 +189,8 @@ const RapidPred = () => {
 
       const maxWin = position?.maxWin || filledQty * (1 - fillPrice);
       const risk = position?.risk || filledQty * fillPrice;
+      const actualCost = filledQty * fillPrice;
+      const requestedCost = stakeAmount * price;
 
       const newTrade: SessionTrade = {
         id: orderData?.id || Date.now().toString(),
@@ -209,12 +211,30 @@ const RapidPred = () => {
         return updated;
       });
 
+      // Check for partial fill vs full fill
+      const isPartialFill = filledQty > 0 && filledQty < stakeAmount && (requestedCost - actualCost) > 0.01;
+
       if (filledQty > 0) {
         setWinLossType("win");
         triggerConfetti();
+        
+        if (isPartialFill) {
+          const fillPercent = ((filledQty / stakeAmount) * 100).toFixed(0);
+          toast({
+            title: "⚠️ Partial fill",
+            description: `${fillPercent}% filled — Got ${filledQty.toFixed(1)} ${side.toUpperCase()} (low liquidity)`,
+          });
+        } else {
+          toast({
+            title: "🎉 Prediction placed!",
+            description: `${side.toUpperCase()} — Potential win: $${maxWin.toFixed(2)}`,
+          });
+        }
+      } else if (response.data?.noLiquidity) {
         toast({
-          title: "🎉 Prediction placed!",
-          description: `${side.toUpperCase()} — Potential win: $${maxWin.toFixed(2)}`,
+          title: "No liquidity",
+          description: "No orders in the book for this market",
+          variant: "destructive",
         });
       }
 

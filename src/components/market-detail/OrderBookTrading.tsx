@@ -23,6 +23,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LiquidityWarning, LiquidityIndicator } from "./LiquidityWarning";
+import { EstimatedFillPreview } from "./EstimatedFillPreview";
+import { PartialFillDialog } from "./PartialFillDialog";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -62,6 +65,16 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
+  
+  // Partial fill dialog state
+  const [showPartialFillDialog, setShowPartialFillDialog] = useState(false);
+  const [partialFillData, setPartialFillData] = useState<{
+    requestedAmount: number;
+    filledQuantity: number;
+    avgFillPrice: number;
+    unfilledAmount: number;
+    side: "yes" | "no";
+  } | null>(null);
   
   // Simple mode state - toggle between contracts and dollars input
   const [inputMode, setInputMode] = useState<"contracts" | "dollars">("contracts");
@@ -237,12 +250,29 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
         return;
       }
 
-      toast({
-        title: "Prediction placed!",
-        description: data.order?.filledQuantity > 0 
-          ? `You now own ${data.order.filledQuantity} ${side.toUpperCase()} contracts`
-          : "Order added to book",
-      });
+      const filledQty = data.order?.filledQuantity || 0;
+      const avgPrice = data.order?.avgFillPrice || currentPrice;
+      const actualCost = filledQty * avgPrice;
+      const unfilledAmount = cost - actualCost;
+
+      // Check for partial fill
+      if (filledQty > 0 && filledQty < contractsToTrade && unfilledAmount > 0.01) {
+        setPartialFillData({
+          requestedAmount: cost,
+          filledQuantity: filledQty,
+          avgFillPrice: avgPrice,
+          unfilledAmount: unfilledAmount,
+          side: side,
+        });
+        setShowPartialFillDialog(true);
+      } else {
+        toast({
+          title: "Prediction placed!",
+          description: filledQty > 0 
+            ? `You now own ${filledQty} ${side.toUpperCase()} contracts`
+            : "Order added to book",
+        });
+      }
 
       setContractCount("");
       setDollarAmount("");
@@ -389,35 +419,41 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Payout if correct:</span>
-            <span className="font-medium text-green-600">${userPosition.size.toFixed(2)}</span>
+            <span className="font-medium text-primary">${userPosition.size.toFixed(2)}</span>
           </div>
         </div>
       )}
 
       {/* Side Selection */}
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <Button
-          variant={side === "yes" ? "default" : "outline"}
-          className={`h-16 ${side === "yes" ? "bg-green-600 hover:bg-green-700" : ""}`}
-          onClick={() => setSide("yes")}
-        >
-          <TrendingUp className="h-5 w-5 mr-2" />
-          <div className="text-left">
-            <div className="font-bold text-lg">YES</div>
-            <div className="text-xs opacity-80">{(yesPrice * 100).toFixed(0)}¢</div>
-          </div>
-        </Button>
-        <Button
-          variant={side === "no" ? "default" : "outline"}
-          className={`h-16 ${side === "no" ? "bg-red-600 hover:bg-red-700" : ""}`}
-          onClick={() => setSide("no")}
-        >
-          <TrendingDown className="h-5 w-5 mr-2" />
-          <div className="text-left">
-            <div className="font-bold text-lg">NO</div>
-            <div className="text-xs opacity-80">{(noPrice * 100).toFixed(0)}¢</div>
-          </div>
-        </Button>
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Choose outcome</span>
+          <LiquidityIndicator marketId={marketId} />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant={side === "yes" ? "default" : "outline"}
+            className={`h-16 ${side === "yes" ? "bg-primary hover:bg-primary/90" : ""}`}
+            onClick={() => setSide("yes")}
+          >
+            <TrendingUp className="h-5 w-5 mr-2" />
+            <div className="text-left">
+              <div className="font-bold text-lg">YES</div>
+              <div className="text-xs opacity-80">{(yesPrice * 100).toFixed(0)}¢</div>
+            </div>
+          </Button>
+          <Button
+            variant={side === "no" ? "default" : "outline"}
+            className={`h-16 ${side === "no" ? "bg-destructive hover:bg-destructive/90" : ""}`}
+            onClick={() => setSide("no")}
+          >
+            <TrendingDown className="h-5 w-5 mr-2" />
+            <div className="text-left">
+              <div className="font-bold text-lg">NO</div>
+              <div className="text-xs opacity-80">{(noPrice * 100).toFixed(0)}¢</div>
+            </div>
+          </Button>
+        </div>
       </div>
 
       {/* Trading Mode Tabs */}
@@ -512,6 +548,26 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
             )}
           </div>
 
+          {/* Liquidity Warning */}
+          {hasValidInput && (
+            <LiquidityWarning
+              marketId={marketId}
+              side={side}
+              stakeAmount={totalCost}
+              indicativePrice={currentPrice}
+            />
+          )}
+
+          {/* Estimated Fill Preview */}
+          {hasValidInput && (
+            <EstimatedFillPreview
+              marketId={marketId}
+              side={side}
+              stakeAmount={totalCost}
+              indicativePrice={currentPrice}
+            />
+          )}
+
           {hasValidInput && (
             <div className="bg-muted/50 rounded-lg p-4 space-y-3">
               {/* Primary: What you pay → What you get */}
@@ -523,7 +579,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                 <div className="text-2xl text-muted-foreground">→</div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
-                  <div className="text-xl font-bold text-green-600">${totalPayout.toFixed(2)}</div>
+                  <div className="text-xl font-bold text-primary">${totalPayout.toFixed(2)}</div>
                 </div>
               </div>
 
@@ -534,11 +590,11 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-bold text-green-600">+${potentialProfit.toFixed(2)}</span>
+                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                  <span className="font-medium text-red-600">-${totalCost.toFixed(2)} (you lose your cost)</span>
+                  <span className="font-medium text-destructive">-${totalCost.toFixed(2)} (you lose your cost)</span>
                 </div>
               </div>
             </div>
@@ -604,20 +660,20 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                 <div className="text-2xl text-muted-foreground">→</div>
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
-                  <div className="text-xl font-bold text-green-600">${parseFloat(quantity).toFixed(2)}</div>
+                  <div className="text-xl font-bold text-primary">${parseFloat(quantity).toFixed(2)}</div>
                 </div>
               </div>
 
               <div className="border-t border-border/50 pt-3 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-primary">
                     +${(parseFloat(quantity) - advancedCost).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                  <span className="font-medium text-red-600">-${advancedCost.toFixed(2)}</span>
+                  <span className="font-medium text-destructive">-${advancedCost.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -640,7 +696,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
               <h4 className="text-sm font-medium mb-3">Current Orders</h4>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div>
-                  <div className="text-green-600 font-medium mb-1">YES Orders ({orderBook.yes.length})</div>
+                  <div className="text-primary font-medium mb-1">YES Orders ({orderBook.yes.length})</div>
                   {orderBook.yes.length > 0 ? (
                     orderBook.yes.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
@@ -653,7 +709,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                   )}
                 </div>
                 <div>
-                  <div className="text-red-600 font-medium mb-1">NO Orders ({orderBook.no.length})</div>
+                  <div className="text-destructive font-medium mb-1">NO Orders ({orderBook.no.length})</div>
                   {orderBook.no.length > 0 ? (
                     orderBook.no.slice(0, 3).map((level, i) => (
                       <div key={i} className="flex justify-between py-0.5 text-muted-foreground">
@@ -744,6 +800,49 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Partial Fill Dialog */}
+      {partialFillData && (
+        <PartialFillDialog
+          open={showPartialFillDialog}
+          onOpenChange={setShowPartialFillDialog}
+          side={partialFillData.side}
+          requestedAmount={partialFillData.requestedAmount}
+          filledQuantity={partialFillData.filledQuantity}
+          avgFillPrice={partialFillData.avgFillPrice}
+          unfilledAmount={partialFillData.unfilledAmount}
+          onPlaceLimitOrder={async (price, quantity) => {
+            try {
+              const { data, error } = await supabase.functions.invoke('order-book', {
+                body: {
+                  action: 'place',
+                  marketId,
+                  side: partialFillData.side,
+                  orderType: 'limit',
+                  quantity,
+                  price
+                }
+              });
+
+              if (error) throw error;
+
+              toast({
+                title: "Limit order placed",
+                description: `${quantity} ${partialFillData.side.toUpperCase()} contracts @ ${(price * 100).toFixed(0)}¢`,
+              });
+
+              fetchOrderBook();
+              fetchUserOrders();
+            } catch (error: any) {
+              toast({
+                title: "Order failed",
+                description: error.message || "Failed to place limit order",
+                variant: "destructive",
+              });
+            }
+          }}
+        />
+      )}
     </Card>
   );
 };
