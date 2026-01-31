@@ -176,6 +176,15 @@ const MarketDetail = () => {
           {/* Market Header - Compact */}
           <MarketHeader market={market} />
 
+          {/* User Position Card - Show at top when user has a position */}
+          {isAuthenticated && (
+            <UserPositionCard 
+              marketId={market.id}
+              currentYesPrice={market.yesPrice}
+              currentNoPrice={market.noPrice}
+            />
+          )}
+
           {/* Main 2-column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
             {/* Left column - Trading */}
@@ -214,7 +223,7 @@ const MarketDetail = () => {
               </Card>
             </div>
 
-            {/* Right column - Stats & Position */}
+            {/* Right column - Stats */}
             <div className="space-y-4">
               {/* Quick Stats Card */}
               <Card className="p-4">
@@ -246,13 +255,6 @@ const MarketDetail = () => {
                   </div>
                 </div>
               </Card>
-
-              {/* Position Card */}
-              <UserPositionCard 
-                marketId={market.id}
-                currentYesPrice={market.yesPrice}
-                currentNoPrice={market.noPrice}
-              />
             </div>
           </div>
         </div>
