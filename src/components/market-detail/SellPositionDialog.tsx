@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, TrendingDown, AlertCircle, Zap, BookOpen, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useHaptics } from "@/hooks/useHaptics";
 import {
   Tooltip,
   TooltipContent,
@@ -40,6 +41,7 @@ const SellPositionDialog = ({
   const [sellQuantity, setSellQuantity] = useState(positionSize);
   const [limitPrice, setLimitPrice] = useState((currentPrice * 100).toFixed(0));
   const [isSelling, setIsSelling] = useState(false);
+  const { trigger: haptic } = useHaptics();
 
   // Market sell calculations
   const marketProceeds = sellQuantity * currentPrice;
@@ -91,11 +93,13 @@ const SellPositionDialog = ({
       if (sold > 0) {
         if (sold < sellQuantity) {
           // Partial fill
+          haptic('warning');
           toast({
             title: "⚠️ Partial sell",
             description: `Sold ${sold}/${sellQuantity} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}`,
           });
         } else {
+          haptic('success');
           toast({
             title: "🎉 Position sold!",
             description: `Sold ${sold} ${side.toUpperCase()} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}`,
@@ -104,6 +108,7 @@ const SellPositionDialog = ({
         onSellComplete();
         onOpenChange(false);
       } else {
+        haptic('error');
         toast({
           title: "No buyers found",
           description: "There are no matching orders at this price. Try a limit order instead.",
@@ -112,6 +117,7 @@ const SellPositionDialog = ({
       }
     } catch (error: any) {
       console.error("Sell error:", error);
+      haptic('error');
       toast({
         title: "Sell failed",
         description: error.message || "Could not sell position",
@@ -171,16 +177,19 @@ const SellPositionDialog = ({
       const remaining = sellQuantity - filledQty;
 
       if (filledQty > 0 && remaining === 0) {
+        haptic('success');
         toast({
           title: "🎉 Limit sell filled!",
           description: `Sold ${filledQty} ${side.toUpperCase()} contracts @ ${(limitPriceNum * 100).toFixed(0)}¢`,
         });
       } else if (filledQty > 0) {
+        haptic('warning');
         toast({
           title: "Partially filled",
           description: `Sold ${filledQty}/${sellQuantity} contracts. ${remaining} in order book.`,
         });
       } else {
+        haptic('success');
         toast({
           title: "Order placed",
           description: `${sellQuantity} ${side.toUpperCase()} sell order @ ${(limitPriceNum * 100).toFixed(0)}¢ added to book`,
@@ -191,6 +200,7 @@ const SellPositionDialog = ({
       onOpenChange(false);
     } catch (error: any) {
       console.error("Limit sell error:", error);
+      haptic('error');
       toast({
         title: "Order failed",
         description: error.message || "Could not place limit order",
@@ -252,7 +262,7 @@ const SellPositionDialog = ({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => setSellQuantity(Math.floor(positionSize / 4))}
+                onClick={() => { setSellQuantity(Math.floor(positionSize / 4)); haptic('light'); }}
               >
                 25%
               </Button>
@@ -260,7 +270,7 @@ const SellPositionDialog = ({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => setSellQuantity(Math.floor(positionSize / 2))}
+                onClick={() => { setSellQuantity(Math.floor(positionSize / 2)); haptic('light'); }}
               >
                 50%
               </Button>
@@ -268,7 +278,7 @@ const SellPositionDialog = ({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => setSellQuantity(Math.floor(positionSize * 0.75))}
+                onClick={() => { setSellQuantity(Math.floor(positionSize * 0.75)); haptic('light'); }}
               >
                 75%
               </Button>
@@ -276,7 +286,7 @@ const SellPositionDialog = ({
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                onClick={() => setSellQuantity(positionSize)}
+                onClick={() => { setSellQuantity(positionSize); haptic('light'); }}
               >
                 Max
               </Button>
