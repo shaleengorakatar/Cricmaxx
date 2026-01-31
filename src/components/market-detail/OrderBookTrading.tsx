@@ -82,8 +82,10 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [dollarAmount, setDollarAmount] = useState("");
   
   // Advanced mode state
+  const [advancedInputMode, setAdvancedInputMode] = useState<"contracts" | "dollars">("dollars");
   const [limitPrice, setLimitPrice] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [advancedDollarAmount, setAdvancedDollarAmount] = useState("");
   
   // Order book state
   const [orderBook, setOrderBook] = useState<{ yes: OrderBookLevel[]; no: OrderBookLevel[] }>({ yes: [], no: [] });
@@ -585,40 +587,149 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
         </TabsContent>
 
         <TabsContent value="advanced" className="space-y-4">
-          <p className="text-sm text-muted-foreground mb-2">
-            Set your own price per contract. Each contract pays $1 if correct.
-          </p>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">Contracts</Label>
-              <Input
-                type="number"
-                placeholder="10"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="h-12"
-                min="1"
-              />
-            </div>
-            <div>
-              <Label className="text-sm text-muted-foreground mb-2 block">
-                Price per contract (¢)
+          {/* Input Mode Toggle */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-sm text-muted-foreground">
+                {advancedInputMode === "contracts" ? "How many contracts?" : "How much do you want to spend?"}
               </Label>
-              <Input
-                type="number"
-                placeholder="50"
-                value={limitPrice ? (parseFloat(limitPrice) * 100).toString() : ''}
-                onChange={(e) => {
-                  const cents = parseFloat(e.target.value) || 0;
-                  setLimitPrice((cents / 100).toFixed(2));
-                }}
-                className="h-12"
-                min="1"
-                max="99"
-                step="1"
-              />
+              <button
+                onClick={() => setAdvancedInputMode(advancedInputMode === "contracts" ? "dollars" : "contracts")}
+                className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                {advancedInputMode === "contracts" ? "Contracts" : "Dollars"}
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
             </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Set your own price. Each contract pays $1 if correct.
+            </p>
+
+            {advancedInputMode === "contracts" ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Contracts</Label>
+                    <Input
+                      type="number"
+                      placeholder="10"
+                      value={quantity}
+                      onChange={(e) => setQuantity(e.target.value)}
+                      className="h-12"
+                      min="1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      Price (¢ each)
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="50"
+                      value={limitPrice ? (parseFloat(limitPrice) * 100).toString() : ''}
+                      onChange={(e) => {
+                        const cents = parseFloat(e.target.value) || 0;
+                        setLimitPrice((cents / 100).toFixed(2));
+                      }}
+                      className="h-12"
+                      min="1"
+                      max="99"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {[5, 10, 25, 50].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setQuantity(amt.toString())}
+                    >
+                      {amt}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">Amount ($)</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                      <Input
+                        type="number"
+                        placeholder="10.00"
+                        value={advancedDollarAmount}
+                        onChange={(e) => {
+                          setAdvancedDollarAmount(e.target.value);
+                          // Auto-calculate contracts based on price
+                          if (limitPrice && parseFloat(limitPrice) > 0) {
+                            const contracts = Math.floor(parseFloat(e.target.value) / parseFloat(limitPrice));
+                            setQuantity(contracts > 0 ? contracts.toString() : '');
+                          }
+                        }}
+                        className="h-12 pl-8"
+                        min="0.01"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      Price (¢ each)
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="50"
+                      value={limitPrice ? (parseFloat(limitPrice) * 100).toString() : ''}
+                      onChange={(e) => {
+                        const cents = parseFloat(e.target.value) || 0;
+                        const price = cents / 100;
+                        setLimitPrice(price.toFixed(2));
+                        // Recalculate contracts when price changes
+                        if (advancedDollarAmount && price > 0) {
+                          const contracts = Math.floor(parseFloat(advancedDollarAmount) / price);
+                          setQuantity(contracts > 0 ? contracts.toString() : '');
+                        }
+                      }}
+                      className="h-12"
+                      min="1"
+                      max="99"
+                      step="1"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {[5, 10, 25, 50].map((amt) => (
+                    <Button
+                      key={amt}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => {
+                        setAdvancedDollarAmount(amt.toString());
+                        if (limitPrice && parseFloat(limitPrice) > 0) {
+                          const contracts = Math.floor(amt / parseFloat(limitPrice));
+                          setQuantity(contracts > 0 ? contracts.toString() : '');
+                        }
+                      }}
+                    >
+                      ${amt}
+                    </Button>
+                  ))}
+                </div>
+                {quantity && parseFloat(quantity) > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    = {quantity} contracts @ {limitPrice ? (parseFloat(limitPrice) * 100).toFixed(0) : '??'}¢ each
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {advancedCost > 0 && (
