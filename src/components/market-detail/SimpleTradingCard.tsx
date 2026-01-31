@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -81,7 +81,9 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
         description: "Please sign in to make predictions",
         variant: "destructive",
       });
-      navigate("/auth?mode=login");
+      // Store current location for redirect after login
+      const currentPath = window.location.pathname + window.location.search;
+      navigate(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -169,6 +171,53 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
     await handleTrade(side);
     setStakeAmount(originalAmount);
   };
+
+  // Get current path for redirect
+  const currentPath = window.location.pathname + window.location.search;
+
+  // Show auth prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <Card className="overflow-hidden border-2 border-primary/20 bg-card">
+        {/* Header gradient */}
+        <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
+        
+        <CardContent className="p-6 space-y-5">
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              <h3 className="text-lg font-bold">Quick Predict</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Sign in to start making predictions
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={() => navigate(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`)}
+              className="h-12 gap-2"
+              variant="default"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign In
+            </Button>
+            <Button
+              onClick={() => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(currentPath)}`)}
+              className="h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <UserPlus className="h-4 w-4" />
+              Sign Up
+            </Button>
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            New to CricMaxx? Create a free account to get started!
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="overflow-hidden border-2 border-primary/20 bg-card">

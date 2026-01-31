@@ -96,7 +96,7 @@ const Navigation = () => {
           </nav>
 
           <div className="flex items-center gap-2 lg:gap-3">
-            {/* Balance Display - Mobile */}
+            {/* Balance Display - Mobile (authenticated) */}
             {isAuthenticated && profile && (
               <Link 
                 to="/dashboard" 
@@ -107,6 +107,18 @@ const Navigation = () => {
                   {Math.floor(profile.balance ?? 0).toLocaleString()}
                 </span>
               </Link>
+            )}
+
+            {/* Mobile Sign In Button (unauthenticated) */}
+            {!isAuthenticated && (
+              <Button 
+                variant="default"
+                size="sm"
+                className="lg:hidden bg-accent text-accent-foreground hover:bg-accent/90"
+                onClick={() => navigate('/auth?mode=login')}
+              >
+                Sign In
+              </Button>
             )}
 
             {/* Mobile Menu Toggle */}
