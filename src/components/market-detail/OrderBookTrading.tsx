@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen } f
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useHaptics } from "@/hooks/useHaptics";
 import {
   Tooltip,
   TooltipContent,
@@ -60,6 +61,7 @@ interface UserPosition {
 const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBookTradingProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { trigger: haptic } = useHaptics();
   const cardRef = useRef<HTMLDivElement>(null);
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"yes" | "no">("yes");
@@ -658,6 +660,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                         onClick={() => {
                           const marketPrice = side === "yes" ? yesPrice : noPrice;
                           setLimitPrice(marketPrice.toFixed(2));
+                          haptic('light');
                         }}
                         className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
                       >
@@ -726,6 +729,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                         onClick={() => {
                           const marketPrice = side === "yes" ? yesPrice : noPrice;
                           setLimitPrice(marketPrice.toFixed(2));
+                          haptic('light');
                           // Recalculate contracts if dollar amount is set
                           if (advancedDollarAmount && marketPrice > 0) {
                             const contracts = Math.floor(parseFloat(advancedDollarAmount) / marketPrice);
