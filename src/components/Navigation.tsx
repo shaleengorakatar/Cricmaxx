@@ -130,6 +130,36 @@ const Navigation = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[350px] overflow-y-auto">
                 <div className="flex flex-col gap-4 mt-8 pb-8">
+                  {/* Prominent Auth Section at Top for Guests */}
+                  {!isAuthenticated && (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-2">
+                      <p className="text-sm font-medium text-foreground mb-3">
+                        Join CricMaxx to start predicting!
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
+                          onClick={() => {
+                            navigate('/auth?mode=signup');
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          Sign Up
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => {
+                            navigate('/auth?mode=login');
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          Sign In
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   <NavLink 
                     to="/"
                     onClick={() => setMobileMenuOpen(false)}
