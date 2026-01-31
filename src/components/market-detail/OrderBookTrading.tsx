@@ -651,9 +651,19 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">
-                      Price (¢ each)
-                    </Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label className="text-xs text-muted-foreground">Price (¢ each)</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const marketPrice = side === "yes" ? yesPrice : noPrice;
+                          setLimitPrice(marketPrice.toFixed(2));
+                        }}
+                        className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        Use {Math.round((side === "yes" ? yesPrice : noPrice) * 100)}¢
+                      </button>
+                    </div>
                     <Input
                       type="number"
                       placeholder="50"
@@ -709,9 +719,24 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                     </div>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">
-                      Price (¢ each)
-                    </Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label className="text-xs text-muted-foreground">Price (¢ each)</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const marketPrice = side === "yes" ? yesPrice : noPrice;
+                          setLimitPrice(marketPrice.toFixed(2));
+                          // Recalculate contracts if dollar amount is set
+                          if (advancedDollarAmount && marketPrice > 0) {
+                            const contracts = Math.floor(parseFloat(advancedDollarAmount) / marketPrice);
+                            setQuantity(contracts > 0 ? contracts.toString() : '');
+                          }
+                        }}
+                        className="text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        Use {Math.round((side === "yes" ? yesPrice : noPrice) * 100)}¢
+                      </button>
+                    </div>
                     <Input
                       type="number"
                       placeholder="50"
