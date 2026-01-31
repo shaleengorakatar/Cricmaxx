@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,11 +60,13 @@ interface UserPosition {
 const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBookTradingProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const cardRef = useRef<HTMLDivElement>(null);
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
+  const [noLiquidityAmount, setNoLiquidityAmount] = useState<number>(0);
   
   // Partial fill dialog state
   const [showPartialFillDialog, setShowPartialFillDialog] = useState(false);
@@ -248,6 +250,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       // Check for no liquidity response
       if (data?.noLiquidity) {
         setNoLiquiditySide(side);
+        setNoLiquidityAmount(totalCost);
         setShowNoLiquidityDialog(true);
         return;
       }
@@ -396,8 +399,34 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   // For display consistency
   const hasValidInput = inputMode === "contracts" ? contracts > 0 : (dollarAmount && parseFloat(dollarAmount) > 0);
 
+  // Handle switching to limit order with pre-filled values
+  const handleSwitchToLimitOrder = () => {
+    const priceToUse = noLiquiditySide === "yes" ? yesPrice : noPrice;
+    const amountToUse = noLiquidityAmount;
+    
+    // Pre-fill the form
+    setAdvancedInputMode("dollars");
+    setAdvancedDollarAmount(amountToUse.toFixed(2));
+    setLimitPrice(priceToUse.toFixed(2));
+    
+    // Calculate contracts
+    if (priceToUse > 0) {
+      const contracts = Math.floor(amountToUse / priceToUse);
+      setQuantity(contracts > 0 ? contracts.toString() : '');
+    }
+    
+    // Close dialog and switch to advanced mode
+    setShowNoLiquidityDialog(false);
+    setTradingMode("advanced");
+    
+    // Scroll to card after a short delay to let state update
+    setTimeout(() => {
+      cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
   return (
-    <Card className="p-4 sm:p-6">
+    <Card ref={cardRef} className="p-4 sm:p-6">
       {/* Side Selection */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
@@ -864,16 +893,13 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-4">
             <Button 
-              onClick={() => {
-                setShowNoLiquidityDialog(false);
-                setTradingMode("advanced");
-              }}
+              onClick={handleSwitchToLimitOrder}
               className="w-full"
             >
               <BookOpen className="h-4 w-4 mr-2" />
               Set Your Price (Limit Order)
             </Button>
-            <Button 
+            <Button
               variant="outline" 
               onClick={() => setShowNoLiquidityDialog(false)}
               className="w-full"
