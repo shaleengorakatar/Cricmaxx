@@ -396,34 +396,6 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
 
   return (
     <Card className="p-4 sm:p-6">
-      {/* User's Current Position - Show prominently if they have one */}
-      {userPosition && (
-        <div className={`mb-4 p-4 rounded-lg border-2 ${
-          userPosition.side === 'yes' 
-            ? 'bg-green-50 dark:bg-green-950/20 border-green-500' 
-            : 'bg-red-50 dark:bg-red-950/20 border-red-500'
-        }`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Your Position</span>
-            <Badge variant={userPosition.side === 'yes' ? 'default' : 'destructive'}>
-              {userPosition.side.toUpperCase()}
-            </Badge>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold">{userPosition.size}</span>
-            <span className="text-muted-foreground">contracts</span>
-          </div>
-          <div className="flex justify-between mt-2 text-sm">
-            <span className="text-muted-foreground">Avg price paid:</span>
-            <span className="font-medium">${Number(userPosition.entry_price).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Payout if correct:</span>
-            <span className="font-medium text-primary">${userPosition.size.toFixed(2)}</span>
-          </div>
-        </div>
-      )}
-
       {/* Side Selection */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
