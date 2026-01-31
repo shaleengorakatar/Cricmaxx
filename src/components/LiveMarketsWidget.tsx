@@ -140,12 +140,6 @@ export default function LiveMarketsWidget() {
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Volume</p>
-                    <p className="text-sm font-semibold">
-                      ${market.volume.toLocaleString()}
-                    </p>
-                  </div>
                 </div>
               </div>
             </Card>

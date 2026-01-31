@@ -105,23 +105,13 @@ export function FeaturedMarket() {
           {market.question}
         </h2>
 
-        {/* Stats row */}
-        <div className="flex flex-wrap items-center gap-4 text-sm">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>{market.prediction_count || 0} predicted</span>
+        {/* Stats row - hidden for now */}
+        {priceData.length > 1 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">24h:</span>
+            <Sparkline data={priceData} width={50} height={16} />
           </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <TrendingUp className="h-4 w-4" />
-            <span>${market.volume.toLocaleString()} volume</span>
-          </div>
-          {priceData.length > 1 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">24h:</span>
-              <Sparkline data={priceData} width={50} height={16} />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Prices */}
         <div className="grid grid-cols-2 gap-4 pt-2">
