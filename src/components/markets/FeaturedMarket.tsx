@@ -144,7 +144,7 @@ export function FeaturedMarket() {
           onClick={() => navigate(`/market/${market.id}`)}
           className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 gap-2"
         >
-          Take a Position
+          Make Your Prediction
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>

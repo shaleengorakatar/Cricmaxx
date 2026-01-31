@@ -16,7 +16,7 @@ const ONBOARDING_SCREENS = [
   {
     icon: Coins,
     title: "Tokens as Collateral",
-    description: "Your tokens are locked as collateral when you take a position. They're released when the market resolves based on the actual outcome.",
+    description: "Your tokens are locked as collateral when you make a prediction. They're released when the market resolves based on the actual outcome.",
     highlight: "1 token = $1 USD value",
   },
   {

@@ -33,7 +33,7 @@ const ActivePositions = ({ positions }: ActivePositionsProps) => {
       
       {positions.length === 0 ? (
         <p className="text-center text-muted-foreground py-8">
-          No positions yet. Take a position in a market to get started.
+          No positions yet. Make a prediction in a market to get started.
         </p>
       ) : (
         <div className="space-y-6">
