@@ -150,18 +150,6 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
             </div>
           )}
           
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <BarChart3 className="h-3.5 w-3.5" />
-            <span className="font-medium">${market.volume.toLocaleString()}</span>
-          </div>
-
-          {/* Prediction count */}
-          {predictionCount > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              <span>{predictionCount} predicted</span>
-            </div>
-          )}
 
           {/* Price sparkline */}
           {priceData.length > 1 && (
