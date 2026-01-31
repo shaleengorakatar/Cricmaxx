@@ -273,6 +273,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
         });
         setShowPartialFillDialog(true);
       } else {
+        haptic('success');
         toast({
           title: "Prediction placed!",
           description: filledQty > 0 
@@ -287,6 +288,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       fetchUserOrders();
       fetchUserPosition();
     } catch (error: any) {
+      haptic('error');
       toast({
         title: "Order failed",
         description: error.message || "Failed to place order",
@@ -341,6 +343,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       const status = data.order?.filledQuantity >= qty ? 'Filled' : 
         data.order?.filledQuantity > 0 ? 'Partially filled' : 'Placed in order book';
 
+      haptic('success');
       toast({
         title: status,
         description: `${data.order?.filledQuantity || 0}/${qty} shares @ $${price.toFixed(2)}`,
@@ -352,6 +355,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       fetchUserOrders();
       fetchUserPosition();
     } catch (error: any) {
+      haptic('error');
       toast({
         title: "Order failed",
         description: error.message || "Failed to place order",
@@ -439,7 +443,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           <Button
             variant={side === "yes" ? "default" : "outline"}
             className={`h-16 ${side === "yes" ? "bg-primary hover:bg-primary/90" : ""}`}
-            onClick={() => setSide("yes")}
+            onClick={() => { setSide("yes"); haptic('light'); }}
           >
             <TrendingUp className="h-5 w-5 mr-2" />
             <div className="text-left">
@@ -450,7 +454,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           <Button
             variant={side === "no" ? "default" : "outline"}
             className={`h-16 ${side === "no" ? "bg-destructive hover:bg-destructive/90" : ""}`}
-            onClick={() => setSide("no")}
+            onClick={() => { setSide("no"); haptic('light'); }}
           >
             <TrendingDown className="h-5 w-5 mr-2" />
             <div className="text-left">
@@ -515,7 +519,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => setContractCount(amt.toString())}
+                      onClick={() => { setContractCount(amt.toString()); haptic('light'); }}
                     >
                       {amt}
                     </Button>
@@ -543,7 +547,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => setDollarAmount(amt.toString())}
+                      onClick={() => { setDollarAmount(amt.toString()); haptic('light'); }}
                     >
                       ${amt}
                     </Button>
@@ -689,7 +693,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       variant="outline"
                       size="sm"
                       className="flex-1"
-                      onClick={() => setQuantity(amt.toString())}
+                      onClick={() => { setQuantity(amt.toString()); haptic('light'); }}
                     >
                       {amt}
                     </Button>
@@ -771,6 +775,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
                       className="flex-1"
                       onClick={() => {
                         setAdvancedDollarAmount(amt.toString());
+                        haptic('light');
                         if (limitPrice && parseFloat(limitPrice) > 0) {
                           const contracts = Math.floor(amt / parseFloat(limitPrice));
                           setQuantity(contracts > 0 ? contracts.toString() : '');
