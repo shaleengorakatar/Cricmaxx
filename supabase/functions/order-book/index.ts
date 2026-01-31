@@ -303,8 +303,8 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
   
   // === SLIPPAGE PROTECTION FOR MARKET ORDERS ===
   // Calculate worst acceptable price based on current market price and slippage tolerance
-  let worstAcceptableYesPrice: number;
-  let worstAcceptableNoPrice: number;
+  let worstAcceptableYesPrice: number | undefined;
+  let worstAcceptableNoPrice: number | undefined;
   
   if (order_type === 'market') {
     const currentYesPrice = Number(market.yes_price) || 0.5;
@@ -313,13 +313,13 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     if (side === 'yes') {
       // Buying YES: worst case is paying more than current + slippage
       worstAcceptableYesPrice = Math.min(MAX_YES_PRICE, currentYesPrice * (1 + maxSlippage));
+      console.log(`Market order slippage cap: max YES price = ${worstAcceptableYesPrice.toFixed(4)}`);
     } else {
       // Buying NO: worst case is paying more than current + slippage
+      // For NO, the effective NO price is (1 - effective_yes_price)
       worstAcceptableNoPrice = Math.min(MAX_YES_PRICE, currentNoPrice * (1 + maxSlippage));
-      // Convert to YES price for comparison
-      worstAcceptableYesPrice = 1 - worstAcceptableNoPrice;
+      console.log(`Market order slippage cap: max NO price = ${worstAcceptableNoPrice.toFixed(4)}`);
     }
-    console.log(`Market order slippage cap: max YES price = ${worstAcceptableYesPrice.toFixed(4)}`);
   }
   
   // === QUERY MATCHING ORDERS ===
@@ -392,19 +392,27 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
   for (const matchOrder of matchingOrders || []) {
     if (remainingQuantity <= 0) break;
 
+    const effectiveYesPrice = matchOrder.effective_yes_price;
+    const effectiveNoPrice = 1 - effectiveYesPrice;
+
     // === SLIPPAGE CHECK FOR MARKET ORDERS ===
     if (order_type === 'market') {
-      const effectiveYesPrice = matchOrder.effective_yes_price;
-      
-      if (side === 'yes' && effectiveYesPrice > worstAcceptableYesPrice!) {
-        console.log(`Slippage cap hit: ${effectiveYesPrice.toFixed(4)} > ${worstAcceptableYesPrice!.toFixed(4)}. Stopping match.`);
-        cancelledDueToSlippage = true;
-        break;
+      if (side === 'yes' && worstAcceptableYesPrice !== undefined) {
+        // YES buyer: check if the YES price exceeds our max
+        if (effectiveYesPrice > worstAcceptableYesPrice) {
+          console.log(`Slippage cap hit for YES: ${effectiveYesPrice.toFixed(4)} > ${worstAcceptableYesPrice.toFixed(4)}. Stopping match.`);
+          cancelledDueToSlippage = true;
+          break;
+        }
       }
-      if (side === 'no' && effectiveYesPrice < (1 - worstAcceptableYesPrice!)) {
-        console.log(`Slippage cap hit for NO: effective YES ${effectiveYesPrice.toFixed(4)} too low. Stopping match.`);
-        cancelledDueToSlippage = true;
-        break;
+      
+      if (side === 'no' && worstAcceptableNoPrice !== undefined) {
+        // NO buyer: check if the NO price exceeds our max
+        if (effectiveNoPrice > worstAcceptableNoPrice) {
+          console.log(`Slippage cap hit for NO: ${effectiveNoPrice.toFixed(4)} > ${worstAcceptableNoPrice.toFixed(4)}. Stopping match.`);
+          cancelledDueToSlippage = true;
+          break;
+        }
       }
       
       // Hard safety cap: never pay more than $0.99 or sell for less than $0.01
