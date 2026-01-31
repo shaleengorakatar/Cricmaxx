@@ -128,8 +128,8 @@ const Navigation = () => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-                <div className="flex flex-col gap-6 mt-8">
+              <SheetContent side="right" className="w-[280px] sm:w-[350px] overflow-y-auto">
+                <div className="flex flex-col gap-4 mt-8 pb-8">
                   <NavLink 
                     to="/"
                     onClick={() => setMobileMenuOpen(false)}
