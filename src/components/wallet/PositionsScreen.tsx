@@ -84,7 +84,7 @@ const PositionsScreen = ({ positions }: PositionsScreenProps) => {
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">No positions yet</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Take a position in a market to get started
+            Make a prediction in a market to get started
           </p>
         </Card>
       )}
