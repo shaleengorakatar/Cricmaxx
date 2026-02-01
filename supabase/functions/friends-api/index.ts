@@ -486,8 +486,13 @@ serve(async (req) => {
         });
       }
 
-      // Search by username or email
-      const { data: users, error: searchError } = await supabaseClient
+      // Search by username or email - use service role to bypass RLS for search
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      const { data: users, error: searchError } = await serviceClient
         .from('profiles')
         .select('id, username, display_name, avatar_url')
         .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
