@@ -929,8 +929,17 @@ async function cancelOrder(supabase: any, userId: string, request: { orderId: st
   }
 
   if (order.status === 'filled' || order.status === 'cancelled') {
-    return new Response(JSON.stringify({ error: 'Order already completed or cancelled' }), {
-      status: 400,
+    // Return success with flag - order was already processed, not an error
+    return new Response(JSON.stringify({ 
+      success: true,
+      alreadyProcessed: true,
+      orderId,
+      status: order.status,
+      message: order.status === 'filled' 
+        ? 'This order has already been filled.' 
+        : 'This order has already been cancelled.'
+    }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
