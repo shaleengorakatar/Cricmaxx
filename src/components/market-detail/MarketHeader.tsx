@@ -31,9 +31,6 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
                 Expires {format(expiryDate, "MMM dd, yyyy")}
               </span>
             </div>
-            
-            {/* Creator info - compact inline */}
-            <MarketCreatorInfo marketId={market.id} compact />
           </div>
         </div>
         
