@@ -422,13 +422,22 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('order-book', {
+      const response = await supabase.functions.invoke('order-book', {
         body: { action: 'cancel', orderId }
       });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
 
-      toast({ title: "Order cancelled" });
+      // Handle already processed orders gracefully
+      if (response.data?.alreadyProcessed) {
+        toast({ 
+          title: response.data.status === 'filled' ? "Order already filled" : "Order already cancelled",
+          description: response.data.message
+        });
+      } else {
+        toast({ title: "Order cancelled" });
+      }
+      
       fetchUserOrders();
       fetchOrderBook();
     } catch (error: any) {
