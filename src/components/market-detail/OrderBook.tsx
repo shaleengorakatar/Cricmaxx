@@ -185,12 +185,38 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
         throw new Error(response.data.error);
       }
 
-      const payout = buyQuantity; // Each share pays $1 if correct
-      const profit = payout - cost;
+      // Check for no liquidity or failed order
+      if (response.data?.noLiquidity || response.data?.success === false) {
+        toast({
+          title: "No liquidity available",
+          description: response.data?.message || "No matching orders in the book. Try placing a limit order instead.",
+          variant: "destructive",
+        });
+        setBuyDialogOpen(false);
+        return;
+      }
+
+      // Check if order was actually filled
+      const filledQty = response.data?.order?.filledQuantity || response.data?.order?.filled_quantity || 0;
+      
+      if (filledQty === 0) {
+        toast({
+          title: "Order not filled",
+          description: "No matching orders available. Try a limit order to provide liquidity.",
+          variant: "destructive",
+        });
+        setBuyDialogOpen(false);
+        return;
+      }
+
+      const avgPrice = response.data?.order?.avgFillPrice || response.data?.order?.avg_fill_price || selectedPrice;
+      const actualCost = filledQty * avgPrice;
+      const payout = filledQty; // Each share pays $1 if correct
+      const profit = payout - actualCost;
 
       toast({
         title: "🎉 Order filled!",
-        description: `Bought ${buyQuantity} ${selectedSide.toUpperCase()} shares @ ${(selectedPrice * 100).toFixed(0)}¢. Potential profit: $${profit.toFixed(2)}`,
+        description: `Bought ${filledQty} ${selectedSide.toUpperCase()} shares @ ${(avgPrice * 100).toFixed(0)}¢. Potential profit: $${profit.toFixed(2)}`,
       });
 
       setBuyDialogOpen(false);
