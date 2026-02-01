@@ -125,11 +125,23 @@ const Auth = () => {
             variant: "destructive",
           });
         } else if (error.message.toLowerCase().includes('weak') || error.message.toLowerCase().includes('password')) {
-          toast({
-            title: "Password not accepted",
-            description: "Please use a stronger password with at least 8 characters, including uppercase, lowercase, numbers, and special characters.",
-            variant: "destructive",
-          });
+          // Check if it's a compromised password (HaveIBeenPwned check)
+          const errorAny = error as any;
+          const reasons = errorAny?.weak_password?.reasons || [];
+          
+          if (reasons.includes('pwned') || error.message.toLowerCase().includes('pwned') || error.message.toLowerCase().includes('compromised') || error.message.toLowerCase().includes('leaked')) {
+            toast({
+              title: "Password found in data breach",
+              description: "This password has appeared in a known data breach. Please choose a different, unique password for your security.",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Password not accepted",
+              description: "Please use a stronger password that hasn't been used before on other websites.",
+              variant: "destructive",
+            });
+          }
         } else {
           toast({
             title: "Sign up failed",

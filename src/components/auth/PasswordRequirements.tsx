@@ -67,10 +67,15 @@ export const PasswordRequirements = ({ password, showRequirements = true }: Pass
         ))}
       </ul>
       {anyTyped && allMet && (
-        <p className="text-xs text-accent font-medium mt-2 flex items-center gap-1">
-          <Check className="h-3.5 w-3.5" />
-          Password meets all requirements!
-        </p>
+        <div className="mt-2 space-y-1">
+          <p className="text-xs text-accent font-medium flex items-center gap-1">
+            <Check className="h-3.5 w-3.5" />
+            Password meets all requirements!
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Note: For security, passwords found in data breaches cannot be used.
+          </p>
+        </div>
       )}
     </div>
   );
