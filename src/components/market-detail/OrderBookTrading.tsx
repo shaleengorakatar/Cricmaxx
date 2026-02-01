@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +61,7 @@ interface UserPosition {
 
 const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBookTradingProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { trigger: haptic } = useHaptics();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -69,6 +71,10 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   const [noLiquidityAmount, setNoLiquidityAmount] = useState<number>(0);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Get current path for redirect after login
+  const currentPath = window.location.pathname + window.location.search;
   
   // Partial fill dialog state
   const [showPartialFillDialog, setShowPartialFillDialog] = useState(false);
@@ -212,7 +218,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
 
   const handleSimpleTrade = async () => {
     if (!user) {
-      toast({ title: "Please sign in to trade", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -301,7 +307,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
 
   const handleAdvancedTrade = async () => {
     if (!user) {
-      toast({ title: "Please sign in to trade", variant: "destructive" });
+      setShowAuthDialog(true);
       return;
     }
 
@@ -986,6 +992,49 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           }}
         />
       )}
+
+      {/* Sign In Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              <Sparkles className="h-6 w-6 text-accent" />
+              Sign In Required
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3 pt-4">
+              <p className="text-base">
+                You need to sign in to make predictions and start trading!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Create a free account to get started with CricMaxx predictions.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => {
+                setShowAuthDialog(false);
+                navigate(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`);
+              }}
+              className="w-full h-12 gap-2"
+            >
+              <LogIn className="h-5 w-5" />
+              Sign In
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowAuthDialog(false);
+                navigate(`/auth?mode=signup&redirect=${encodeURIComponent(currentPath)}`);
+              }}
+              className="w-full h-12 gap-2"
+            >
+              <UserPlus className="h-5 w-5" />
+              Create Account
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
