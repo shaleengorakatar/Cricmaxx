@@ -384,32 +384,6 @@ const Auth = () => {
                   />
                   <PasswordRequirements password={signUpData.password} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="account-type" className="text-sm md:text-base">Account Type</Label>
-                  <Select
-                    value={signUpData.accountType}
-                    onValueChange={(value: 'trader' | 'creator') => 
-                      setSignUpData({ ...signUpData, accountType: value })
-                    }
-                  >
-                    <SelectTrigger id="account-type" className="h-12 text-base">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="trader">Trader (Just Trading)</SelectItem>
-                      <SelectItem value="creator">Creator (Also Create Markets)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {signUpData.accountType === 'creator' && (
-                    <div className="bg-accent/10 border border-accent/20 rounded-lg p-3 mt-2">
-                      <p className="text-xs text-accent font-medium mb-1">📋 Creator Application Required</p>
-                      <p className="text-xs text-muted-foreground">
-                        After signing up, you'll need to submit a creator application with your social media details. 
-                        An admin will review and approve your application before you can create markets.
-                      </p>
-                    </div>
-                  )}
-                </div>
                 <Button 
                   type="submit" 
                   className="w-full h-12 text-base bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
