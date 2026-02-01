@@ -35,12 +35,12 @@ export function LiquidityWarning({
   // Show warning if no liquidity at all
   if (!liquidity) {
     return (
-      <Alert variant="destructive" className="py-2">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="text-xs">
+      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <p className="text-xs">
           <span className="font-medium">No liquidity available.</span> Your order will be placed in the book at your price.
-        </AlertDescription>
-      </Alert>
+        </p>
+      </div>
     );
   }
 
