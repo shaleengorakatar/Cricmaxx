@@ -272,14 +272,14 @@ export default function MobileSwipePreds() {
             </h1>
             <p className="text-xs text-muted-foreground">Swipe to predict</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              ${profile?.balance.toFixed(0) || "0"}
-            </Badge>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 bg-accent/10 text-accent px-3 py-1.5 rounded-full">
+              <span className="text-sm font-semibold">${profile?.balance.toFixed(2) || "0.00"}</span>
+            </div>
             <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9">
-                  <Settings className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+                  <Settings className="h-5 w-5 text-muted-foreground" />
                 </Button>
               </DialogTrigger>
               <DialogContent>
