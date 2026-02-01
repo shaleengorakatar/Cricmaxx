@@ -111,10 +111,10 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {user.display_name || user.username}
+                      {user.display_name || user.username || user.email || 'Unknown User'}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      @{user.username}
+                      {user.username ? `@${user.username}` : user.email || 'No username'}
                     </p>
                   </div>
                 </div>
