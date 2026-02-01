@@ -235,32 +235,7 @@ const AccountSettings = () => {
               </CardContent>
             </Card>
 
-            {/* KYC Status */}
-            <Card>
-              <CardHeader className="px-4 md:px-6">
-                <div className="flex items-center gap-2">
-                  <Key className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg md:text-xl">Verification Status</CardTitle>
-                </div>
-                <CardDescription className="text-sm">Your account verification information</CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 md:px-6">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                    profile.kyc_verified 
-                      ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                      : 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
-                  }`}>
-                    {profile.kyc_verified ? '✓ Verified' : '⚠ Not Verified'}
-                  </div>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    {profile.kyc_verified 
-                      ? 'Your identity has been verified'
-                      : 'Complete KYC verification to enable full trading access'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {/* KYC Status hidden per compliance/kyc-visibility-status */}
           </div>
         </div>
       </main>
