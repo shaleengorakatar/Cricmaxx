@@ -94,10 +94,10 @@ export const useFriends = () => {
     }
   };
 
-  const addFriend = async (username: string) => {
+  const addFriend = async (userId: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('friends-api', {
-        body: { path: '/add-by-username', method: 'POST', username }
+        body: { path: '/add-by-id', method: 'POST', user_id: userId }
       });
 
       if (error) throw error;

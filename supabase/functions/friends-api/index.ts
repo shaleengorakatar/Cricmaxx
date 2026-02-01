@@ -142,44 +142,35 @@ serve(async (req) => {
       });
     }
 
-    // Route: POST /add-by-username - Send friend request by username
-    if (path === '/add-by-username' && method === 'POST') {
-      const { username } = body;
+    // Route: POST /add-by-id - Send friend request by user ID
+    if (path === '/add-by-id' && method === 'POST') {
+      const { user_id: targetUserId } = body;
 
-      // Comprehensive input validation
-      if (!username || typeof username !== 'string') {
-        return new Response(JSON.stringify({ error: 'Username is required' }), {
+      // Input validation
+      if (!targetUserId || typeof targetUserId !== 'string') {
+        return new Response(JSON.stringify({ error: 'User ID is required' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         });
       }
 
-      // Length validation
-      if (username.length < 3 || username.length > 30) {
-        return new Response(JSON.stringify({ 
-          error: 'Username must be between 3 and 30 characters' 
-        }), {
+      if (targetUserId === user.id) {
+        return new Response(JSON.stringify({ error: 'Cannot add yourself' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         });
       }
 
-      // Format validation - only alphanumeric, underscore, hyphen
-      const usernameRegex = /^[a-zA-Z0-9_-]+$/;
-      if (!usernameRegex.test(username)) {
-        return new Response(JSON.stringify({ 
-          error: 'Username can only contain letters, numbers, underscores, and hyphens' 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
+      // Verify target user exists
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
 
-      // Find user by username (case-insensitive)
-      const { data: targetUser, error: userError } = await supabaseClient
+      const { data: targetUser, error: userError } = await serviceClient
         .from('profiles')
         .select('id, username, display_name, avatar_url')
-        .ilike('username', username)
+        .eq('id', targetUserId)
         .single();
 
       if (userError || !targetUser) {
@@ -189,18 +180,11 @@ serve(async (req) => {
         });
       }
 
-      if (targetUser.id === user.id) {
-        return new Response(JSON.stringify({ error: 'Cannot add yourself' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400,
-        });
-      }
-
       // Check if friendship already exists
       const { data: existing } = await supabaseClient
         .from('friendships')
         .select('*')
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUser.id}),and(user_id.eq.${targetUser.id},friend_id.eq.${user.id})`)
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`)
         .maybeSingle();
 
       if (existing) {
@@ -222,7 +206,7 @@ serve(async (req) => {
         .from('friendships')
         .insert({
           user_id: user.id,
-          friend_id: targetUser.id,
+          friend_id: targetUserId,
           status: 'pending'
         });
 
