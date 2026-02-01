@@ -59,22 +59,38 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   }, [marketId, profile?.id]); // Re-fetch when user changes to update self-trade filtering
 
   const fetchOrders = async () => {
-    // Fetch all orders (including user's own) so we can mark them with "(you)"
-    const { data: orderData } = await supabase
-      .from('orders')
-      .select('side, price, quantity, filled_quantity, user_id')
-      .eq('market_id', marketId)
-      .in('status', ['pending', 'partial']);
+    // Fetch aggregated order book data from the public view (shows ALL orders anonymously)
+    const { data: aggregatedOrderBook } = await supabase
+      .from('order_book_aggregated')
+      .select('side, price, total_quantity')
+      .eq('market_id', marketId);
     
-    // Transform raw orders to match the expected format with available quantity
-    // Mark orders that belong to the current user
-    const aggregatedData = (orderData || [])
-      .filter(o => o.quantity - o.filled_quantity > 0)
+    // Fetch user's own orders separately to mark them with "(you)"
+    let userOrderPrices: Set<string> = new Set();
+    if (isAuthenticated && profile?.id) {
+      const { data: userOrders } = await supabase
+        .from('orders')
+        .select('side, price')
+        .eq('market_id', marketId)
+        .eq('user_id', profile.id)
+        .in('status', ['pending', 'partial']);
+      
+      // Create a set of "side:price" keys for user's orders
+      (userOrders || []).forEach(o => {
+        if (o.price !== null) {
+          userOrderPrices.add(`${o.side}:${o.price}`);
+        }
+      });
+    }
+    
+    // Transform aggregated data, marking user's own price levels
+    const aggregatedData = (aggregatedOrderBook || [])
+      .filter(o => o.total_quantity > 0 && o.price !== null)
       .map(o => ({
         side: o.side,
         price: o.price,
-        total_quantity: o.quantity - o.filled_quantity,
-        isOwn: isAuthenticated && profile?.id === o.user_id
+        total_quantity: o.total_quantity,
+        isOwn: userOrderPrices.has(`${o.side}:${o.price}`)
       }));
 
     // Aggregate same price levels helper - track if any order at this level is user's own
