@@ -546,8 +546,8 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
 
       {/* Trading Mode Tabs */}
       <Tabs value={tradingMode} onValueChange={(v) => setTradingMode(v as "simple" | "advanced")}>
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="simple" className="relative flex items-center gap-1.5">
+        <TabsList className="grid w-full grid-cols-2 mb-4 h-10">
+          <TabsTrigger value="simple" className="relative flex items-center justify-center gap-1 text-sm">
             Quick Predict
             <FeatureHelpTooltip
               title="Quick Predict"
@@ -555,7 +555,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
               faqId="quick-predict"
             />
           </TabsTrigger>
-          <TabsTrigger value="advanced" className="flex items-center gap-1.5">
+          <TabsTrigger value="advanced" className="flex items-center justify-center gap-1 text-sm">
             Set Your Price
             <FeatureHelpTooltip
               title="Set Your Price (Limit Order)"
