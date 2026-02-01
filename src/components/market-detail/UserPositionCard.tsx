@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, ExternalLink, Clock, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import SellPositionDialog from "./SellPositionDialog";
 import { toast } from "sonner";
+import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
 
 interface UserPositionCardProps {
   marketId: string;
@@ -222,6 +223,11 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               📊 Your Position
+              <FeatureHelpTooltip
+                title="Your Position"
+                description="This shows your current holdings in this market. You can sell your position anytime before the market resolves to lock in profit or cut losses. If you wait, you'll receive $1 per contract if your prediction is correct, or $0 if incorrect."
+                faqId="view-positions"
+              />
             </CardTitle>
             <Link to="/dashboard">
               <Button variant="ghost" size="sm" className="h-7 text-xs">
@@ -268,15 +274,22 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                   </span>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={() => openSellDialog("yes")}
-                disabled={yesAvailableToSell <= 0}
-              >
-                {yesAvailableToSell > 0 ? `Sell YES (${yesAvailableToSell} available)` : 'All in pending orders'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => openSellDialog("yes")}
+                  disabled={yesAvailableToSell <= 0}
+                >
+                  {yesAvailableToSell > 0 ? `Sell YES (${yesAvailableToSell} available)` : 'All in pending orders'}
+                </Button>
+                <FeatureHelpTooltip
+                  title="Sell Your Position"
+                  description="Sell your shares before the market ends to lock in profit or cut losses. Your shares will be sold to buyers in the order book. This is different from canceling—selling trades your owned shares."
+                  faqId="sell-position"
+                />
+              </div>
             </div>
           )}
 
@@ -316,15 +329,22 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                   </span>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
-                onClick={() => openSellDialog("no")}
-                disabled={noAvailableToSell <= 0}
-              >
-                {noAvailableToSell > 0 ? `Sell NO (${noAvailableToSell} available)` : 'All in pending orders'}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => openSellDialog("no")}
+                  disabled={noAvailableToSell <= 0}
+                >
+                  {noAvailableToSell > 0 ? `Sell NO (${noAvailableToSell} available)` : 'All in pending orders'}
+                </Button>
+                <FeatureHelpTooltip
+                  title="Sell Your Position"
+                  description="Sell your shares before the market ends to lock in profit or cut losses. Your shares will be sold to buyers in the order book."
+                  faqId="sell-position"
+                />
+              </div>
             </div>
           )}
 
@@ -351,6 +371,11 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-amber-500" />
                 <span className="text-sm font-medium">Pending Orders ({pendingOrders.length})</span>
+                <FeatureHelpTooltip
+                  title="Pending Orders"
+                  description="These are your limit orders waiting in the order book. They'll fill when someone agrees to trade at your price. You can cancel unfilled orders anytime to get your tokens back."
+                  faqId="cancel-prediction"
+                />
               </div>
               <div className="space-y-2">
                 {pendingOrders.map((order) => {

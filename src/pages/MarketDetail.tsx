@@ -13,6 +13,7 @@ import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LiveTradeFeed from "@/components/market-detail/LiveTradeFeed";
 import UserPositionCard from "@/components/market-detail/UserPositionCard";
+import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
 import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -201,9 +202,30 @@ const MarketDetail = () => {
               <Card>
                 <Tabs defaultValue="orderbook" className="w-full">
                   <TabsList className="w-full grid grid-cols-3 rounded-b-none">
-                    <TabsTrigger value="orderbook">Order Book</TabsTrigger>
-                    <TabsTrigger value="chart">Price Chart</TabsTrigger>
-                    <TabsTrigger value="rules">Rules</TabsTrigger>
+                    <TabsTrigger value="orderbook" className="flex items-center gap-1">
+                      Order Book
+                      <FeatureHelpTooltip
+                        title="Order Book"
+                        description="View all pending buy orders at different price levels. Click on any price to quickly place an order at that level."
+                        faqId="order-book"
+                      />
+                    </TabsTrigger>
+                    <TabsTrigger value="chart" className="flex items-center gap-1">
+                      Price Chart
+                      <FeatureHelpTooltip
+                        title="Price Chart"
+                        description="Track how the market's probability has changed over time. Price movements reflect changing opinions about the event's likelihood."
+                        faqId="price-meaning"
+                      />
+                    </TabsTrigger>
+                    <TabsTrigger value="rules" className="flex items-center gap-1">
+                      Rules
+                      <FeatureHelpTooltip
+                        title="Resolution Rules"
+                        description="Understand exactly how this market will be resolved—what data sources are used and what conditions determine YES vs NO outcomes."
+                        faqId="market-resolves"
+                      />
+                    </TabsTrigger>
                   </TabsList>
                   <TabsContent value="orderbook" className="m-0">
                     <OrderBook marketId={market.id} />
@@ -227,7 +249,14 @@ const MarketDetail = () => {
             <div className="space-y-4">
               {/* Quick Stats Card */}
               <Card className="p-4">
-                <h3 className="text-sm font-semibold mb-3">Market Stats</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-sm font-semibold">Market Stats</h3>
+                  <FeatureHelpTooltip
+                    title="Market Stats"
+                    description="Current market prices reflect the crowd's estimated probability. YES price of 65¢ means ~65% chance. Volume shows total trading activity."
+                    faqId="price-meaning"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-muted-foreground block text-xs">Yes Price</span>
