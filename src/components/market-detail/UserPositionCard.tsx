@@ -184,6 +184,18 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
     ? noPositions.reduce((sum, p) => sum + p.entry_price * p.size, 0) / totalNoShares
     : 0;
 
+  // Calculate pending sell orders by side
+  const yesPendingSell = pendingOrders
+    .filter(o => o.side === 'yes')
+    .reduce((sum, o) => sum + (o.quantity - o.filled_quantity), 0);
+  const noPendingSell = pendingOrders
+    .filter(o => o.side === 'no')
+    .reduce((sum, o) => sum + (o.quantity - o.filled_quantity), 0);
+  
+  // Available to sell = total position - pending sell orders
+  const yesAvailableToSell = Math.max(0, totalYesShares - yesPendingSell);
+  const noAvailableToSell = Math.max(0, totalNoShares - noPendingSell);
+
   // Calculate current value and P&L
   const yesCurrentValue = totalYesShares * currentYesPrice;
   const noCurrentValue = totalNoShares * currentNoPrice;
@@ -227,7 +239,14 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                 <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-400 dark:border-green-700">
                   YES
                 </Badge>
-                <span className="text-sm font-semibold">{totalYesShares} contracts</span>
+                <div className="text-right">
+                  <span className="text-sm font-semibold">{totalYesShares} contracts</span>
+                  {yesPendingSell > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      ({yesAvailableToSell} available, {yesPendingSell} in orders)
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
@@ -244,7 +263,7 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-muted-foreground">If Correct:</span>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
+                  <span className="font-semibold text-primary">
                     +${yesPotentialProfit.toFixed(2)}
                   </span>
                 </div>
@@ -252,10 +271,11 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full mt-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
+                className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
                 onClick={() => openSellDialog("yes")}
+                disabled={yesAvailableToSell <= 0}
               >
-                Sell YES Position
+                {yesAvailableToSell > 0 ? `Sell YES (${yesAvailableToSell} available)` : 'All in pending orders'}
               </Button>
             </div>
           )}
@@ -267,7 +287,14 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                 <Badge variant="outline" className="bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-400 dark:border-red-700">
                   NO
                 </Badge>
-                <span className="text-sm font-semibold">{totalNoShares} contracts</span>
+                <div className="text-right">
+                  <span className="text-sm font-semibold">{totalNoShares} contracts</span>
+                  {noPendingSell > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      ({noAvailableToSell} available, {noPendingSell} in orders)
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
@@ -284,7 +311,7 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                 </div>
                 <div className="flex items-center gap-1">
                   <span className="text-muted-foreground">If Correct:</span>
-                  <span className="font-semibold text-green-600 dark:text-green-400">
+                  <span className="font-semibold text-primary">
                     +${noPotentialProfit.toFixed(2)}
                   </span>
                 </div>
@@ -292,10 +319,11 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="w-full mt-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:border-red-800 dark:hover:bg-red-950"
+                className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
                 onClick={() => openSellDialog("no")}
+                disabled={noAvailableToSell <= 0}
               >
-                Sell NO Position
+                {noAvailableToSell > 0 ? `Sell NO (${noAvailableToSell} available)` : 'All in pending orders'}
               </Button>
             </div>
           )}
@@ -388,16 +416,19 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
         </CardContent>
       </Card>
 
-      {/* Sell Dialog */}
+      {/* Sell Dialog - pass available amount, not total */}
       <SellPositionDialog
         open={sellDialogOpen}
         onOpenChange={setSellDialogOpen}
         marketId={marketId}
         side={selectedSide}
-        positionSize={selectedSide === "yes" ? totalYesShares : totalNoShares}
+        positionSize={selectedSide === "yes" ? yesAvailableToSell : noAvailableToSell}
         entryPrice={selectedSide === "yes" ? avgYesEntry : avgNoEntry}
         currentPrice={selectedSide === "yes" ? currentYesPrice : currentNoPrice}
-        onSellComplete={fetchPositions}
+        onSellComplete={() => {
+          fetchPositions();
+          fetchPendingOrders();
+        }}
       />
     </>
   );

@@ -1166,9 +1166,36 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
 
   const totalPositionSize = positions?.reduce((sum: number, p: any) => sum + p.size, 0) || 0;
 
-  if (totalPositionSize < quantity) {
+  // === CHECK PENDING SELL ORDERS TO PREVENT OVER-SELLING ===
+  // Get pending limit sell orders that are already reserving shares
+  const { data: pendingSellOrders, error: pendingError } = await supabase
+    .from('orders')
+    .select('quantity, filled_quantity')
+    .eq('market_id', marketId)
+    .eq('user_id', userId)
+    .eq('side', side)
+    .eq('order_type', 'limit')
+    .in('status', ['pending', 'partial']);
+
+  if (pendingError) {
+    console.error('Pending orders fetch error:', pendingError);
+    return new Response(JSON.stringify({ error: 'Failed to validate pending orders' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const pendingSellQuantity = pendingSellOrders?.reduce(
+    (sum: number, o: any) => sum + (Number(o.quantity) - Number(o.filled_quantity)), 0
+  ) || 0;
+
+  const availableToSell = totalPositionSize - pendingSellQuantity;
+
+  console.log(`Market sell validation: position=${totalPositionSize}, pending=${pendingSellQuantity}, available=${availableToSell}, requested=${quantity}`);
+
+  if (availableToSell < quantity) {
     return new Response(JSON.stringify({ 
-      error: `Insufficient position. You have ${totalPositionSize} ${side.toUpperCase()} contracts, tried to sell ${quantity}` 
+      error: `Insufficient available position. You have ${totalPositionSize} ${side.toUpperCase()} contracts, but ${pendingSellQuantity} are in pending sell orders. Available to sell: ${availableToSell}` 
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
