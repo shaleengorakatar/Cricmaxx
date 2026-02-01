@@ -177,6 +177,37 @@ const FAQ = () => {
       ]
     },
     {
+      id: "rapidpred",
+      title: "RapidPred (Swipe Trading)",
+      questions: [
+        {
+          id: "what-is-rapidpred",
+          q: "What is RapidPred?",
+          a: "RapidPred is our mobile-first swipe trading feature. Markets appear as swipeable cards—swipe right for YES, left for NO, or tap the buttons. It's designed for quick, intuitive predictions on the go, perfect for browsing multiple markets rapidly."
+        },
+        {
+          id: "rapidpred-how",
+          q: "How do I use RapidPred?",
+          a: "Open RapidPred from the mobile navigation. You'll see market cards with the question, odds, and your stake amount. Swipe right (or tap the green button) for YES, swipe left (or tap the red button) for NO. Skip markets by tapping the skip button. Your prediction executes instantly at the current price."
+        },
+        {
+          id: "rapidpred-stake",
+          q: "How do I change my stake amount in RapidPred?",
+          a: "Tap the Settings (gear) icon in the top right corner. Use the slider or quick-select buttons ($5, $10, $25, $50, $100) to set your preferred stake. Tap 'Save Preference' to remember it for future sessions."
+        },
+        {
+          id: "rapidpred-payout",
+          q: "How are payouts calculated in RapidPred?",
+          a: "Same as regular trading! If your prediction is correct, each share pays $1.00. Your potential profit is shown on each card. Example: If YES is 40¢ and you stake $10, you'd get ~25 shares. If YES wins, you receive $25 (profit: $15). If NO wins, you lose your $10 stake."
+        },
+        {
+          id: "rapidpred-exact",
+          q: "What if I swipe on a prediction that doesn't happen exactly?",
+          a: "The same rules apply: predictions must happen exactly as stated for YES to win. If the event doesn't occur precisely as described, it resolves to NO. Always read the full question on each card before swiping. RapidPred is fast, but take a moment to understand what you're predicting."
+        },
+      ]
+    },
+    {
       id: "fees-compliance",
       title: "Fees & Compliance",
       questions: [
