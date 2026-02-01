@@ -21,7 +21,7 @@ const FeatureHelpTooltip = ({ title, description, faqId }: FeatureHelpTooltipPro
           <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-help" />
         </button>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80 z-50" align="start">
+      <HoverCardContent className="w-80 max-w-[calc(100vw-2rem)] z-50" align="start" sideOffset={5}>
         <div className="space-y-2">
           <h4 className="text-sm font-semibold">{title}</h4>
           <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
