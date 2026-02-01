@@ -365,24 +365,18 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                       className="bg-muted/50 rounded-lg p-3 space-y-2"
                     >
                       <div className="flex items-center justify-between">
-                        <Badge 
-                          variant="outline" 
-                          className={order.side === 'yes' 
-                            ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-400' 
-                            : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-400'
-                          }
-                        >
-                          {order.side.toUpperCase()}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => cancelOrder(order.id)}
-                          disabled={cancellingOrder === order.id}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Badge 
+                            variant="outline" 
+                            className={order.side === 'yes' 
+                              ? 'bg-green-100 text-green-700 border-green-300 dark:bg-green-900/50 dark:text-green-400' 
+                              : 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/50 dark:text-red-400'
+                            }
+                          >
+                            {order.side.toUpperCase()}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">Limit Order</span>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-3 gap-2 text-xs">
@@ -407,6 +401,17 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                           Partially filled: {order.filled_quantity}/{order.quantity}
                         </p>
                       )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                        onClick={() => cancelOrder(order.id)}
+                        disabled={cancellingOrder === order.id}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        {cancellingOrder === order.id ? 'Cancelling...' : 'Cancel Order'}
+                      </Button>
                     </div>
                   );
                 })}
