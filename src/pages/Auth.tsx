@@ -77,6 +77,17 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // First validate password with our client-side rules
+    const passwordValidation = validatePassword(signUpData.password);
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Password requirements not met",
+        description: passwordValidation.errors[0],
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       const validated = signUpSchema.parse(signUpData);
       setLoading(true);
@@ -106,10 +117,17 @@ const Auth = () => {
       );
 
       if (error) {
+        // Handle specific Supabase error messages
         if (error.message.includes('already registered')) {
           toast({
             title: "Email already in use",
             description: "This email is already registered. Please sign in instead.",
+            variant: "destructive",
+          });
+        } else if (error.message.toLowerCase().includes('weak') || error.message.toLowerCase().includes('password')) {
+          toast({
+            title: "Password not accepted",
+            description: "Please use a stronger password with at least 8 characters, including uppercase, lowercase, numbers, and special characters.",
             variant: "destructive",
           });
         } else {
