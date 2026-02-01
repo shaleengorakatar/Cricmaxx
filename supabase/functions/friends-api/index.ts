@@ -494,7 +494,7 @@ serve(async (req) => {
       
       const { data: users, error: searchError } = await serviceClient
         .from('profiles')
-        .select('id, username, display_name, avatar_url')
+        .select('id, username, display_name, avatar_url, email')
         .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
         .neq('id', user.id)
         .limit(10);

@@ -52,9 +52,10 @@ export interface FriendTrade {
 
 export interface SearchUser {
   id: string;
-  username: string;
+  username: string | null;
   display_name: string | null;
   avatar_url: string | null;
+  email?: string;
   friendship_status: 'none' | 'pending' | 'accepted' | 'blocked';
 }
 
