@@ -488,33 +488,6 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Choose outcome</span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-[10px] px-1.5 py-0 cursor-help ${
-                      priceSource === 'last_trade' ? 'border-primary/50 text-primary' :
-                      priceSource === 'book_midpoint' ? 'border-amber-500/50 text-amber-600' :
-                      'border-muted text-muted-foreground'
-                    }`}
-                  >
-                    {priceSource === 'last_trade' ? 'Last Trade' :
-                     priceSource === 'book_midpoint' ? 'Book Est.' :
-                     'Starting'}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p className="text-xs">
-                    {priceSource === 'last_trade' 
-                      ? "Price based on the most recent trade in this market." 
-                      : priceSource === 'book_midpoint'
-                      ? "Estimated from current order book bids. No trades yet."
-                      : "No trades or orders yet. Starting price is 50/50."}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
           <LiquidityIndicator marketId={marketId} />
         </div>
