@@ -46,6 +46,7 @@ const Dashboard = () => {
   const { isAuthenticated, profile, loading, user } = useAuth();
   const [balance, setBalance] = useState(profile?.balance || 0);
   const [profitLoss, setProfitLoss] = useState(0);
+  const [pendingOrderTokens, setPendingOrderTokens] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
@@ -199,10 +200,31 @@ const Dashboard = () => {
     }
   };
 
+  // Fetch pending order tokens from unfilled orders
+  const fetchPendingOrders = async () => {
+    if (!user?.id) return;
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('quantity, filled_quantity, price')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'partial']);
+
+    if (data && !error) {
+      // Calculate tokens reserved: (quantity - filled_quantity) * price
+      const pendingTokens = data.reduce((sum, order) => {
+        const unfilled = Number(order.quantity) - Number(order.filled_quantity);
+        return sum + Math.round(unfilled * Number(order.price));
+      }, 0);
+      setPendingOrderTokens(pendingTokens);
+    }
+  };
+
   const handleBalanceUpdate = () => {
     fetchBalance();
     fetchTransactions();
     fetchPositions();
+    fetchPendingOrders();
   };
 
   // Redirect if not authenticated
@@ -218,6 +240,7 @@ const Dashboard = () => {
       fetchBalance();
       fetchTransactions();
       fetchPositions();
+      fetchPendingOrders();
     }
   }, [user?.id]);
 
@@ -243,6 +266,7 @@ const Dashboard = () => {
               <PortfolioSummary 
                 balance={balance}
                 profitLoss={profitLoss}
+                pendingOrderTokens={pendingOrderTokens}
                 isVerified={profile.kyc_verified}
               />
               <PLChart data={chartData} />
