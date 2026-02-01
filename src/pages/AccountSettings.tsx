@@ -15,6 +15,7 @@ const AccountSettings = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -22,6 +23,7 @@ const AccountSettings = () => {
   useEffect(() => {
     if (profile) {
       setName(profile.name);
+      setUsername(profile.username || "");
       setMfaEnabled(profile.mfa_enabled);
       setShowOnLeaderboard(profile.show_on_leaderboard ?? true);
     }
@@ -34,9 +36,32 @@ const AccountSettings = () => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     try {
+      // Check if username is taken (if changed)
+      if (username && username !== profile.username) {
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.toLowerCase())
+          .neq('id', user.id)
+          .single();
+
+        if (existingUser) {
+          toast({
+            title: "Username taken",
+            description: "This username is already in use. Please choose another.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({ name })
+        .update({ 
+          name, 
+          username: username.toLowerCase() || null 
+        })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -111,6 +136,19 @@ const AccountSettings = () => {
                     onChange={(e) => setName(e.target.value)}
                     className="h-12 text-base"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-sm md:text-base">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                    placeholder="Choose a unique username"
+                    className="h-12 text-base"
+                  />
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Letters, numbers, and underscores only. Used for friend searches.
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm md:text-base">Email</Label>
