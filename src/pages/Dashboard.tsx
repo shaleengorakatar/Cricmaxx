@@ -237,21 +237,6 @@ const Dashboard = () => {
             <p className="text-sm md:text-base text-muted-foreground">Manage your portfolio and trading activity</p>
           </div>
 
-          {!profile.kyc_verified && (
-            <Alert className="mb-6 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800 dark:text-yellow-200">
-                Account not verified. Please complete KYC to enable full trading capabilities.
-                <Button 
-                  variant="link" 
-                  className="ml-2 p-0 h-auto text-yellow-900 dark:text-yellow-100 underline"
-                  onClick={() => navigate('/kyc-verification')}
-                >
-                  Verify Now
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
             <div className="lg:col-span-2 space-y-4 md:space-y-6">
