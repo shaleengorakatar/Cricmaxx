@@ -180,19 +180,6 @@ const MobileProfile = () => {
           />
         </Card>
 
-        {/* KYC Status */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium text-foreground">KYC Verification</p>
-              <p className="text-sm text-muted-foreground">Complete to unlock all features</p>
-            </div>
-            <Badge variant={profile?.kyc_verified ? "default" : "secondary"}>
-              {profile?.kyc_verified ? "Verified" : "Pending"}
-            </Badge>
-          </div>
-        </Card>
-
         {/* Menu Items */}
         <div className="space-y-2">
           {menuItems.map((item) => {

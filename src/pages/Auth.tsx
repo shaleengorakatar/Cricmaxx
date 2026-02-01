@@ -271,12 +271,11 @@ const Auth = () => {
       {/* Back button */}
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={() => navigate(-1)}
-        className="absolute top-4 left-4 gap-1.5 text-muted-foreground hover:text-foreground"
+        className="absolute top-4 left-4 text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" />
-        Back
+        <ArrowLeft className="h-5 w-5" />
       </Button>
       
       <Card className="w-full max-w-md">
