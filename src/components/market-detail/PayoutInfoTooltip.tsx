@@ -1,4 +1,5 @@
 import { HelpCircle } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -36,11 +37,25 @@ const PayoutInfoTooltip = () => {
             </ul>
           </div>
 
+          <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
+            <p className="text-muted-foreground text-xs">
+              <strong className="text-foreground">Important:</strong> The prediction must happen <em>exactly</em> as stated. 
+              If it doesn't occur precisely as described, the market resolves to NO.{" "}
+              <Link to="/faq#exact-outcome" className="text-accent hover:underline">
+                Learn more →
+              </Link>
+            </p>
+          </div>
+
           <p className="text-muted-foreground italic">
             This is not betting — it's a federally-approved event contract.
           </p>
         </div>
-        <Button onClick={() => {}} className="w-full">Got it</Button>
+        <Link to="/faq#payout-calculation" className="w-full">
+          <Button variant="outline" className="w-full">
+            Read Full FAQ
+          </Button>
+        </Link>
       </DialogContent>
     </Dialog>
   );

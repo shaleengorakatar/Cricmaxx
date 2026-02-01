@@ -143,6 +143,11 @@ const FAQ = () => {
           q: "What if I predicted wrong?",
           a: "If your prediction is incorrect, your shares expire worthless ($0.00 payout). This is the risk of prediction markets—you can lose your entire stake on a position. We recommend only trading with amounts you can afford to lose and diversifying across multiple markets."
         },
+        {
+          id: "exact-outcome",
+          q: "What if the prediction doesn't happen exactly as stated?",
+          a: "Predictions must happen exactly as stated for YES to win. If the event doesn't occur precisely as described in the market question, the market resolves to NO. For example, if a market asks 'Will Player X score 50+ runs?' and they score 49, the outcome is NO. There's no partial credit—it's binary. Always read the full market question and resolution rules carefully before trading."
+        },
       ]
     },
     {

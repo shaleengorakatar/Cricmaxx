@@ -9,6 +9,7 @@ import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
 import { ResolutionRules } from "@/components/market-detail/ResolutionRules";
 import MarketCreatorInfo from "@/components/market-detail/MarketCreatorInfo";
 import MarketCalculator from "@/components/market-detail/MarketCalculator";
+import PayoutInfoTooltip from "@/components/market-detail/PayoutInfoTooltip";
 import PriceAlerts from "@/components/market-detail/PriceAlerts";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LiveTradeFeed from "@/components/market-detail/LiveTradeFeed";
@@ -282,6 +283,9 @@ const MarketDetail = () => {
                     <span className="text-muted-foreground block text-xs">Fee</span>
                     <span className="font-semibold">3%</span>
                   </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-border">
+                  <PayoutInfoTooltip />
                 </div>
               </Card>
             </div>
