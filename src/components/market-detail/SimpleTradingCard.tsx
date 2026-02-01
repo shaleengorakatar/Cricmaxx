@@ -42,6 +42,7 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
   const [lastTradeSide, setLastTradeSide] = useState<"yes" | "no" | null>(null);
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   
   const { 
     formatOdds, 
@@ -76,14 +77,7 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
 
   const handleTrade = async (side: "yes" | "no") => {
     if (!isAuthenticated) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to make predictions",
-        variant: "destructive",
-      });
-      // Store current location for redirect after login
-      const currentPath = window.location.pathname + window.location.search;
-      navigate(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`);
+      setShowAuthDialog(true);
       return;
     }
 
@@ -490,6 +484,49 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
               className="w-full"
             >
               Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sign In Required Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              <Sparkles className="h-6 w-6 text-accent" />
+              Sign In Required
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3 pt-4">
+              <p className="text-base">
+                You need to sign in to make predictions and start trading!
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Create a free account to get started with CricMaxx predictions.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => {
+                setShowAuthDialog(false);
+                navigate(`/auth?mode=login&redirect=${encodeURIComponent(currentPath)}`);
+              }}
+              className="w-full h-12 gap-2"
+            >
+              <LogIn className="h-5 w-5" />
+              Sign In
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowAuthDialog(false);
+                navigate(`/auth?mode=signup&redirect=${encodeURIComponent(currentPath)}`);
+              }}
+              className="w-full h-12 gap-2"
+            >
+              <UserPlus className="h-5 w-5" />
+              Create Account
             </Button>
           </div>
         </DialogContent>
