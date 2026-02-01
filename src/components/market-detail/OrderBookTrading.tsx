@@ -255,16 +255,17 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
 
       if (error) throw error;
 
-      // Check for no liquidity response
-      if (data?.noLiquidity) {
+      // Check for no liquidity response or failed order
+      if (data?.noLiquidity || data?.success === false) {
         setNoLiquiditySide(side);
         setNoLiquidityAmount(totalCost);
         setShowNoLiquidityDialog(true);
+        haptic('warning');
         return;
       }
 
-      const filledQty = data.order?.filledQuantity || 0;
-      const avgPrice = data.order?.avgFillPrice || currentPrice;
+      const filledQty = data.order?.filledQuantity || data.order?.filled_quantity || 0;
+      const avgPrice = data.order?.avgFillPrice || data.order?.avg_fill_price || currentPrice;
       const actualCost = filledQty * avgPrice;
       const unfilledAmount = cost - actualCost;
 
@@ -278,14 +279,25 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           side: side,
         });
         setShowPartialFillDialog(true);
-      } else {
+      } else if (filledQty > 0) {
+        // Only show success if actually filled
         haptic('success');
         toast({
           title: "Prediction placed!",
-          description: filledQty > 0 
-            ? `You now own ${filledQty} ${side.toUpperCase()} contracts`
-            : "Order added to book",
+          description: `You now own ${filledQty} ${side.toUpperCase()} contracts`,
         });
+      } else {
+        // Order was cancelled or no fill happened
+        haptic('warning');
+        toast({
+          title: "No liquidity available",
+          description: "Try placing a limit order instead",
+          variant: "destructive",
+        });
+        setNoLiquiditySide(side);
+        setNoLiquidityAmount(totalCost);
+        setShowNoLiquidityDialog(true);
+        return;
       }
 
       setContractCount("");
