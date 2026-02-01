@@ -150,7 +150,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   const displayYesOrders = viewMode === "buy" ? yesOrders : rawYesOrders;
   const displayNoOrders = viewMode === "buy" ? noOrders : rawNoOrders;
 
-  const openBuyDialog = (side: "yes" | "no", price: number, maxQty: number) => {
+  const openBuyDialog = (side: "yes" | "no", price: number, maxQty: number, isOwnOrder?: boolean) => {
     if (!isAuthenticated) {
       toast({
         title: "Sign in required",
@@ -159,6 +159,17 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       });
       return;
     }
+    
+    // Prevent self-trade: can't buy your own orders
+    if (isOwnOrder) {
+      toast({
+        title: "Can't buy your own order",
+        description: "You cannot trade against your own limit orders. Cancel this order first if you want to change your position.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedSide(side);
     setSelectedPrice(price);
     setBuyQuantity(Math.min(10, maxQty));
@@ -418,19 +429,31 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                 <div className="space-y-1">
                   {displayYesOrders.length > 0 ? (
                     displayYesOrders.map((order, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`flex justify-between items-center text-xs p-2 bg-green-50 dark:bg-green-950/10 rounded transition-colors ${
-                          viewMode === "buy" ? "hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer" : ""
-                        }`}
-                        onClick={viewMode === "buy" ? () => openBuyDialog("yes", order.price, order.quantity) : undefined}
-                      >
-                        <span className="font-medium text-green-600 dark:text-green-500">
-                          {(order.price * 100).toFixed(0)}¢
-                          {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                        </span>
-                        <span className="text-muted-foreground">{order.quantity} shares</span>
-                      </div>
+                      <Tooltip key={idx}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={`flex justify-between items-center text-xs p-2 bg-green-50 dark:bg-green-950/10 rounded transition-colors ${
+                              viewMode === "buy" && !order.isOwn 
+                                ? "hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer" 
+                                : order.isOwn 
+                                  ? "opacity-60 cursor-not-allowed" 
+                                  : ""
+                            }`}
+                            onClick={viewMode === "buy" ? () => openBuyDialog("yes", order.price, order.quantity, order.isOwn) : undefined}
+                          >
+                            <span className="font-medium text-green-600 dark:text-green-500">
+                              {(order.price * 100).toFixed(0)}¢
+                              {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                            </span>
+                            <span className="text-muted-foreground">{order.quantity} shares</span>
+                          </div>
+                        </TooltipTrigger>
+                        {order.isOwn && viewMode === "buy" && (
+                          <TooltipContent>
+                            <p className="text-sm">You can't buy your own order</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
                     ))
                   ) : (
                     <p className="text-xs text-center text-muted-foreground py-2">No orders</p>
@@ -479,19 +502,31 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                 <div className="space-y-1">
                   {displayNoOrders.length > 0 ? (
                     displayNoOrders.map((order, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`flex justify-between items-center text-xs p-2 bg-red-50 dark:bg-red-950/10 rounded transition-colors ${
-                          viewMode === "buy" ? "hover:bg-red-100 dark:hover:bg-red-950/20 cursor-pointer" : ""
-                        }`}
-                        onClick={viewMode === "buy" ? () => openBuyDialog("no", order.price, order.quantity) : undefined}
-                      >
-                        <span className="font-medium text-red-600 dark:text-red-500">
-                          {(order.price * 100).toFixed(0)}¢
-                          {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                        </span>
-                        <span className="text-muted-foreground">{order.quantity} shares</span>
-                      </div>
+                      <Tooltip key={idx}>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={`flex justify-between items-center text-xs p-2 bg-red-50 dark:bg-red-950/10 rounded transition-colors ${
+                              viewMode === "buy" && !order.isOwn 
+                                ? "hover:bg-red-100 dark:hover:bg-red-950/20 cursor-pointer" 
+                                : order.isOwn 
+                                  ? "opacity-60 cursor-not-allowed" 
+                                  : ""
+                            }`}
+                            onClick={viewMode === "buy" ? () => openBuyDialog("no", order.price, order.quantity, order.isOwn) : undefined}
+                          >
+                            <span className="font-medium text-red-600 dark:text-red-500">
+                              {(order.price * 100).toFixed(0)}¢
+                              {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                            </span>
+                            <span className="text-muted-foreground">{order.quantity} shares</span>
+                          </div>
+                        </TooltipTrigger>
+                        {order.isOwn && viewMode === "buy" && (
+                          <TooltipContent>
+                            <p className="text-sm">You can't buy your own order</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
                     ))
                   ) : (
                     <p className="text-xs text-center text-muted-foreground py-2">No orders</p>
