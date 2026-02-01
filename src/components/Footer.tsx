@@ -36,10 +36,10 @@ const Footer = () => {
               Privacy Policy
             </a>
             <a 
-              href="#" 
+              href="/faq" 
               className="text-foreground hover:text-accent transition-colors font-medium"
             >
-              Risk Disclosure
+              FAQ
             </a>
             <a 
               href="#" 
