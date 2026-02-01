@@ -88,7 +88,19 @@ const SellPositionDialog = ({
         throw new Error(response.data.error);
       }
 
-      const { sold, totalProceeds, avgPrice, remaining } = response.data;
+      const { sold, totalProceeds, avgPrice, remaining, noLiquidity } = response.data;
+
+      // Handle no liquidity case gracefully
+      if (noLiquidity || sold === 0) {
+        haptic('warning');
+        toast({
+          title: "No buyers in the order book",
+          description: "Switch to Limit Sell to set your price and wait for buyers.",
+        });
+        // Switch to limit mode automatically
+        setSellMode("limit");
+        return;
+      }
 
       if (sold > 0) {
         if (sold < sellQuantity) {
@@ -96,7 +108,7 @@ const SellPositionDialog = ({
           haptic('warning');
           toast({
             title: "⚠️ Partial sell",
-            description: `Sold ${sold}/${sellQuantity} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}`,
+            description: `Sold ${sold}/${sellQuantity} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}. Remaining ${remaining} contracts.`,
           });
         } else {
           haptic('success');
@@ -107,13 +119,6 @@ const SellPositionDialog = ({
         }
         onSellComplete();
         onOpenChange(false);
-      } else {
-        haptic('error');
-        toast({
-          title: "No buyers found",
-          description: "There are no matching orders at this price. Try a limit order instead.",
-          variant: "destructive",
-        });
       }
     } catch (error: any) {
       console.error("Sell error:", error);

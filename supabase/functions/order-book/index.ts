@@ -1133,10 +1133,18 @@ async function sellPosition(supabase: any, userId: string, request: { marketId: 
   }
 
   if (!matchingOrders || matchingOrders.length === 0) {
+    // Return success with 0 sold - client handles the no-liquidity UI
     return new Response(JSON.stringify({ 
-      error: 'No buyers available at this price. Try placing a limit sell order instead.' 
+      success: false,
+      noLiquidity: true,
+      sold: 0,
+      totalProceeds: 0,
+      avgPrice: 0,
+      remaining: quantity,
+      trades: [],
+      message: 'No buyers available at this price. Place a limit sell order to wait for buyers.'
     }), {
-      status: 400,
+      status: 200, // Not an error - just no liquidity
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
