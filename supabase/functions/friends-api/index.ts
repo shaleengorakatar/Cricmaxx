@@ -486,11 +486,11 @@ serve(async (req) => {
         });
       }
 
-      // Search only by username - do NOT expose email in search results
+      // Search by username or email
       const { data: users, error: searchError } = await supabaseClient
         .from('profiles')
         .select('id, username, display_name, avatar_url')
-        .ilike('username', `%${query}%`)
+        .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
         .neq('id', user.id)
         .limit(10);
 
