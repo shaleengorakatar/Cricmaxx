@@ -982,27 +982,47 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
         <div className="border-t pt-4 mt-4">
           <h4 className="text-sm font-medium mb-3">Your Pending Orders</h4>
           <div className="space-y-2">
-            {userOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between bg-muted/30 rounded p-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge variant={order.side === 'yes' ? 'default' : 'secondary'} className={
-                    order.side === 'yes' ? 'bg-green-600' : 'bg-red-600'
-                  }>
-                    {order.side.toUpperCase()}
-                  </Badge>
-                  <span>
-                    {order.quantity} @ {(Number(order.price) * 100).toFixed(0)}¢
-                  </span>
+      {userOrders.map((order) => {
+              const price = Number(order.price);
+              const quantity = order.quantity;
+              const totalCost = quantity * price;
+              const potentialPayout = quantity; // Each contract pays $1 if correct
+              const potentialProfit = potentialPayout - totalCost;
+              
+              return (
+                <div key={order.id} className="bg-muted/30 rounded-lg p-3 text-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant={order.side === 'yes' ? 'default' : 'secondary'} className={
+                      order.side === 'yes' ? 'bg-green-600' : 'bg-red-600'
+                    }>
+                      {order.side.toUpperCase()}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={() => handleCancelOrder(order.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Cost</p>
+                      <p className="font-semibold">${totalCost.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Price per $1</p>
+                      <p className="font-semibold">{(price * 100).toFixed(0)}¢</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">If correct</p>
+                      <p className="font-semibold text-green-600">+${potentialProfit.toFixed(2)}</p>
+                    </div>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCancelOrder(order.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
