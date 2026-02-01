@@ -12,7 +12,8 @@ import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { OddsToggle } from "@/components/trading/OddsToggle";
 import { SoundToggle } from "@/components/trading/SoundToggle";
 import { StreakDisplay } from "@/components/trading/StreakDisplay";
-import { triggerConfetti, triggerHaptic, playSound, celebrateStreak } from "@/lib/tradingEffects";
+import { TradeStatusOverlay, TradeStatus } from "@/components/trading/TradeStatusOverlay";
+import { triggerConfetti, triggerHaptic, playSound, celebrateStreak, flashScreen } from "@/lib/tradingEffects";
 import { useEstimatedFillPrice } from "@/hooks/useEstimatedFillPrice";
 import {
   Dialog,
@@ -43,6 +44,16 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Trade status overlay state
+  const [tradeStatus, setTradeStatus] = useState<TradeStatus>('idle');
+  const [tradeResult, setTradeResult] = useState<{
+    side?: 'yes' | 'no';
+    filledQuantity?: number;
+    totalQuantity?: number;
+    avgPrice?: number;
+    error?: string;
+  }>({});
   
   const { 
     formatOdds, 
@@ -93,9 +104,18 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
 
     setIsPlacingTrade(true);
     setLastTradeSide(side);
-    if (soundEnabled) playSound('click');
+    setTradeResult({ side });
+    
+    // Start the overlay flow
+    setTradeStatus('submitting');
+    if (soundEnabled) playSound('submit');
 
     try {
+      // Simulate progression for better UX
+      await new Promise(resolve => setTimeout(resolve, 300));
+      setTradeStatus('matching');
+      if (soundEnabled) playSound('click');
+      
       const price = side === "yes" ? yesPrice : noPrice;
       const response = await supabase.functions.invoke("order-book", {
         body: {
@@ -114,9 +134,11 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
 
       // Check for no liquidity response
       if (response.data?.noLiquidity) {
+        setTradeStatus('no-liquidity');
+        setTradeResult({ side, error: 'No matching orders available' });
         setNoLiquiditySide(side);
-        setShowNoLiquidityDialog(true);
         if (soundEnabled) playSound('error');
+        flashScreen('warning');
         return;
       }
 
@@ -125,14 +147,41 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
       }
 
       const orderData = response.data?.order;
-      const fillPrice = orderData?.avgFillPrice || price;
-      const shares = stakeAmount / fillPrice;
-      const payout = shares;
+      const filledQty = orderData?.filledQuantity || orderData?.filled_quantity || 0;
+      const fillPrice = orderData?.avgFillPrice || orderData?.avg_fill_price || price;
+      const shares = filledQty > 0 ? filledQty : stakeAmount / fillPrice;
+      
+      // Show filling state briefly
+      setTradeStatus('filling');
+      if (soundEnabled) playSound('filling');
+      await new Promise(resolve => setTimeout(resolve, 400));
 
+      if (filledQty === 0) {
+        // No fill - show as no liquidity
+        setTradeStatus('no-liquidity');
+        setTradeResult({ side, error: 'No matching orders available' });
+        setNoLiquiditySide(side);
+        if (soundEnabled) playSound('error');
+        flashScreen('warning');
+        return;
+      }
+
+      // Success!
+      setTradeResult({
+        side,
+        filledQuantity: filledQty,
+        totalQuantity: Math.round(stakeAmount / fillPrice),
+        avgPrice: fillPrice,
+      });
+      
+      const isPartial = filledQty < Math.round(stakeAmount / fillPrice) * 0.9;
+      setTradeStatus(isPartial ? 'partial' : 'success');
+      
       // Success effects
       triggerConfetti();
-      triggerHaptic('medium');
-      if (soundEnabled) playSound('success');
+      triggerHaptic('success');
+      flashScreen('success');
+      if (soundEnabled) playSound(isPartial ? 'partial' : 'complete');
       
       // Update streak
       incrementStreak();
@@ -142,20 +191,24 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
         if (soundEnabled && newStreak % 3 === 0) playSound('streak');
       }
 
-      toast({
-        title: "Position opened!",
-        description: `${side.toUpperCase()} — If correct, ${payout.toFixed(2)} tokens returned`,
-      });
     } catch (error: any) {
+      setTradeStatus('failed');
+      setTradeResult({ side, error: error.message || 'Trade failed' });
       if (soundEnabled) playSound('error');
-      toast({
-        title: "Trade Failed",
-        description: error.message || "Could not place prediction",
-        variant: "destructive",
-      });
+      flashScreen('error');
     } finally {
       setIsPlacingTrade(false);
       setTimeout(() => setLastTradeSide(null), 600);
+    }
+  };
+  
+  const handleTradeStatusComplete = () => {
+    setTradeStatus('idle');
+    setTradeResult({});
+    
+    // Show no liquidity dialog after overlay closes
+    if (tradeStatus === 'no-liquidity') {
+      setShowNoLiquidityDialog(true);
     }
   };
 
@@ -214,11 +267,23 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
   }
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/20 bg-card">
-      {/* Header gradient */}
-      <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
+    <>
+      {/* Trade Status Overlay */}
+      <TradeStatusOverlay
+        status={tradeStatus}
+        side={tradeResult.side}
+        filledQuantity={tradeResult.filledQuantity}
+        totalQuantity={tradeResult.totalQuantity}
+        avgPrice={tradeResult.avgPrice}
+        error={tradeResult.error}
+        onComplete={handleTradeStatusComplete}
+      />
       
-      <CardContent className="p-6 space-y-6">
+      <Card className="overflow-hidden border-2 border-primary/20 bg-card">
+        {/* Header gradient */}
+        <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-primary" />
+        
+        <CardContent className="p-6 space-y-6">
         {/* Title with toggles */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -531,7 +596,8 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+      </Card>
+    </>
   );
 };
 
