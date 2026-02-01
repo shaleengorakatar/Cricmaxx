@@ -55,14 +55,32 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [marketId]);
+  }, [marketId, profile?.id]); // Re-fetch when user changes to update self-trade filtering
 
   const fetchOrders = async () => {
-    // Fetch all orders from the aggregated view
-    const { data: aggregatedData } = await supabase
-      .from('order_book_aggregated')
-      .select('side, price, total_quantity')
-      .eq('market_id', marketId);
+    // Fetch orders directly (not from aggregated view) so we can filter out user's own orders
+    // Self-trade prevention: user cannot match their own orders
+    let query = supabase
+      .from('orders')
+      .select('side, price, quantity, filled_quantity, user_id')
+      .eq('market_id', marketId)
+      .in('status', ['pending', 'partial']);
+    
+    // Filter out current user's orders if authenticated (self-trade prevention)
+    if (isAuthenticated && profile?.id) {
+      query = query.neq('user_id', profile.id);
+    }
+    
+    const { data: orderData } = await query;
+    
+    // Transform raw orders to match the expected format with available quantity
+    const aggregatedData = (orderData || [])
+      .filter(o => o.quantity - o.filled_quantity > 0)
+      .map(o => ({
+        side: o.side,
+        price: o.price,
+        total_quantity: o.quantity - o.filled_quantity
+      }));
 
     // Aggregate same price levels helper
     const aggregateByPrice = (levels: OrderLevel[]): OrderLevel[] => {
@@ -209,14 +227,17 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
         return;
       }
 
-      const avgPrice = response.data?.order?.avgFillPrice || response.data?.order?.avg_fill_price || selectedPrice;
-      const actualCost = filledQty * avgPrice;
+      // The edge function returns avgFillPrice as YES price
+      // For NO side, the actual cost per share is (1 - yesPrice)
+      const yesPrice = response.data?.order?.avgFillPrice || response.data?.order?.avg_fill_price || selectedPrice;
+      const actualPricePerShare = selectedSide === 'no' ? (1 - yesPrice) : yesPrice;
+      const actualCost = filledQty * actualPricePerShare;
       const payout = filledQty; // Each share pays $1 if correct
       const profit = payout - actualCost;
 
       toast({
         title: "🎉 Order filled!",
-        description: `Bought ${filledQty} ${selectedSide.toUpperCase()} shares @ ${(avgPrice * 100).toFixed(0)}¢. Potential profit: $${profit.toFixed(2)}`,
+        description: `Bought ${filledQty} ${selectedSide.toUpperCase()} shares @ ${(actualPricePerShare * 100).toFixed(0)}¢. Potential profit: $${profit.toFixed(2)}`,
       });
 
       setBuyDialogOpen(false);
