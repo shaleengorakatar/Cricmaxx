@@ -25,9 +25,10 @@ interface Position {
   entryPrice: number;
   currentPrice: number;
   tokensCommitted: number;
-  status: "active" | "settled";
+  status: "active" | "settled" | "pending";
   tokensReturned?: number;
   expiring?: boolean;
+  type: 'position' | 'order';
 }
 
 interface Transaction {
@@ -172,7 +173,7 @@ const Dashboard = () => {
       .limit(10);
 
     if (data && !error) {
-      const formattedPositions: Position[] = data.map(p => {
+      const formattedPositions = data.map(p => {
         const market = p.markets as any;
         const currentPrice = p.side === 'yes' ? Number(market?.yes_price || 0) : Number(market?.no_price || 0);
         const tokensCommitted = Math.round(Number(p.size) * Number(p.entry_price));
@@ -182,13 +183,14 @@ const Dashboard = () => {
         return {
           id: p.id,
           market: market?.question || 'Unknown Market',
-          side: p.side === 'yes' ? 'Yes' : 'No',
+          side: p.side === 'yes' ? 'Yes' as const : 'No' as const,
           quantity: Number(p.size),
           entryPrice: Number(p.entry_price),
           currentPrice: currentPrice,
           tokensCommitted: tokensCommitted,
           status: "active" as const,
-          expiring: isExpiringSoon
+          expiring: isExpiringSoon,
+          type: 'position' as const
         };
       });
 
