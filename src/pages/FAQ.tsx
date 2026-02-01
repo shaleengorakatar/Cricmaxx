@@ -1,3 +1,6 @@
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import {
@@ -8,6 +11,8 @@ import {
 } from "@/components/ui/accordion";
 
 const FAQ = () => {
+  const navigate = useNavigate();
+  
   const faqSections = [
     {
       id: "getting-started",
@@ -187,7 +192,16 @@ const FAQ = () => {
       
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4 max-w-3xl">
-          <div className="mb-8">
+        <div className="mb-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
             <h1 className="text-3xl font-bold text-foreground mb-2">Frequently Asked Questions</h1>
             <p className="text-muted-foreground">
               Everything you need to know about trading on CricMaxx
