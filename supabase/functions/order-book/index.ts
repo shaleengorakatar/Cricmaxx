@@ -110,8 +110,8 @@ serve(async (req) => {
   }
 });
 
-async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequest) {
-  const { marketId, side, orderType, quantity, price, maxSlippage } = request;
+async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequest & { isSellOrder?: boolean }) {
+  const { marketId, side, orderType, quantity, price, maxSlippage, isSellOrder } = request;
 
   if (!marketId || !side || !orderType || !quantity || quantity <= 0) {
     return new Response(JSON.stringify({ error: 'Invalid order parameters' }), {
@@ -127,7 +127,68 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     });
   }
 
-  // Get user balance
+  // === CRITICAL: SELL ORDER POSITION VALIDATION ===
+  // If this is a sell order, validate the user has enough position to sell
+  // and account for any existing pending sell orders
+  if (isSellOrder) {
+    // Get user's current position
+    const { data: positions, error: posError } = await supabase
+      .from('positions')
+      .select('size')
+      .eq('market_id', marketId)
+      .eq('user_id', userId)
+      .eq('side', side)
+      .eq('status', 'open');
+
+    if (posError) {
+      console.error('Position fetch error for sell validation:', posError);
+      return new Response(JSON.stringify({ error: 'Failed to validate position' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const totalPositionSize = positions?.reduce((sum: number, p: any) => sum + Number(p.size), 0) || 0;
+
+    // Get pending sell orders for this position (same side, pending/partial status)
+    // These are limit orders placed to sell the position
+    const { data: pendingSellOrders, error: pendingError } = await supabase
+      .from('orders')
+      .select('quantity, filled_quantity')
+      .eq('market_id', marketId)
+      .eq('user_id', userId)
+      .eq('side', side)
+      .eq('order_type', 'limit')
+      .in('status', ['pending', 'partial']);
+
+    if (pendingError) {
+      console.error('Pending orders fetch error:', pendingError);
+      return new Response(JSON.stringify({ error: 'Failed to validate pending orders' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Calculate how many shares are already reserved by pending sell orders
+    const pendingSellQuantity = pendingSellOrders?.reduce(
+      (sum: number, o: any) => sum + (Number(o.quantity) - Number(o.filled_quantity)), 0
+    ) || 0;
+
+    const availableToSell = totalPositionSize - pendingSellQuantity;
+
+    console.log(`Sell validation: position=${totalPositionSize}, pending=${pendingSellQuantity}, available=${availableToSell}, requested=${quantity}`);
+
+    if (availableToSell < quantity) {
+      return new Response(JSON.stringify({ 
+        error: `Cannot sell ${quantity} contracts. You have ${totalPositionSize} ${side.toUpperCase()} contracts, with ${pendingSellQuantity} already in pending sell orders. Available: ${availableToSell}`
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // Get user balance (only needed for buy orders)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('balance')
@@ -141,41 +202,44 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     });
   }
 
-  const maxCost = orderType === 'limit' ? quantity * price! : quantity * MAX_YES_PRICE;
-  
-  if (profile.balance < maxCost) {
-    return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  // CRITICAL: Reserve funds upfront for limit orders
-  // This prevents users from placing more orders than they can afford
-  if (orderType === 'limit') {
-    const reserveAmount = quantity * price!;
-    const { error: reserveError } = await supabase.rpc('process_wallet_operation', {
-      _user_id: userId,
-      _operation: 'withdrawal',
-      _amount: reserveAmount,
-      _metadata: { 
-        type: 'order_reserve', 
-        order_type: 'limit',
-        side,
-        quantity,
-        price,
-        reserved: true
-      }
-    });
-
-    if (reserveError) {
-      console.error('Failed to reserve funds:', reserveError);
-      return new Response(JSON.stringify({ error: 'Failed to reserve funds' }), {
-        status: 500,
+  // Only check balance for buy orders, not sell orders
+  if (!isSellOrder) {
+    const maxCost = orderType === 'limit' ? quantity * price! : quantity * MAX_YES_PRICE;
+    
+    if (profile.balance < maxCost) {
+      return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    console.log(`Reserved $${reserveAmount.toFixed(2)} for limit order`);
+
+    // CRITICAL: Reserve funds upfront for limit orders
+    // This prevents users from placing more orders than they can afford
+    if (orderType === 'limit') {
+      const reserveAmount = quantity * price!;
+      const { error: reserveError } = await supabase.rpc('process_wallet_operation', {
+        _user_id: userId,
+        _operation: 'withdrawal',
+        _amount: reserveAmount,
+        _metadata: { 
+          type: 'order_reserve', 
+          order_type: 'limit',
+          side,
+          quantity,
+          price,
+          reserved: true
+        }
+      });
+
+      if (reserveError) {
+        console.error('Failed to reserve funds:', reserveError);
+        return new Response(JSON.stringify({ error: 'Failed to reserve funds' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      console.log(`Reserved $${reserveAmount.toFixed(2)} for limit order`);
+    }
   }
 
   // Create the order
