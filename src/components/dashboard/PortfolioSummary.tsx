@@ -1,18 +1,19 @@
 import { Card } from "@/components/ui/card";
-import { Coins, BarChart3, CheckCircle2 } from "lucide-react";
+import { Coins, BarChart3, CheckCircle2, Clock } from "lucide-react";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
 
 interface PortfolioSummaryProps {
   balance: number;
   profitLoss: number; // Repurposed as "tokens in play"
+  pendingOrderTokens?: number; // NEW: tokens reserved in pending orders
   isVerified: boolean;
 }
 
 /**
  * Portfolio summary using prediction market-safe language
- * Shows "Available Tokens" and "In Play" instead of balance and P&L
+ * Shows "Available Tokens", "In Play", and "Pending Orders"
  */
-const PortfolioSummary = ({ balance, profitLoss, isVerified }: PortfolioSummaryProps) => {
+const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerified }: PortfolioSummaryProps) => {
   const tokensInPlay = profitLoss; // Repurposed
 
   return (
@@ -27,32 +28,46 @@ const PortfolioSummary = ({ balance, profitLoss, isVerified }: PortfolioSummaryP
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {/* Available Tokens - Primary */}
-        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          <div className="flex items-center gap-2 mb-2">
-            <Coins className="h-4 w-4 text-amber-500" />
+        <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Coins className="h-3.5 w-3.5 text-amber-500" />
             <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
           </div>
-          <p className="text-2xl md:text-3xl font-bold text-foreground">
+          <p className="text-xl md:text-2xl font-bold text-foreground">
             {balance.toLocaleString()}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             ≈ ${balance.toLocaleString()}.00
           </p>
         </div>
 
         {/* In Play - Secondary */}
-        <div className="p-4 rounded-lg bg-muted/50 border border-border">
-          <div className="flex items-center gap-2 mb-2">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        <div className="p-3 rounded-lg bg-muted/50 border border-border">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
             <p className="text-xs text-muted-foreground">{WALLET_TERMS.IN_PLAY}</p>
           </div>
-          <p className="text-2xl md:text-3xl font-bold text-foreground">
+          <p className="text-xl md:text-2xl font-bold text-foreground">
             {tokensInPlay.toLocaleString()}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            {WALLET_TERMS.TOKEN_NAME}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Filled positions
+          </p>
+        </div>
+
+        {/* Pending Orders - NEW */}
+        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Clock className="h-3.5 w-3.5 text-blue-500" />
+            <p className="text-xs text-muted-foreground">Pending</p>
+          </div>
+          <p className="text-xl md:text-2xl font-bold text-foreground">
+            {pendingOrderTokens.toLocaleString()}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            In order book
           </p>
         </div>
       </div>
