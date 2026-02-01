@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, Info, HelpCircle, Wifi, WifiOff } from "lucide-react";
+import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
 
 interface OrderBookProps {
   marketId: string;
@@ -354,18 +355,11 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-base sm:text-lg font-semibold text-foreground">Order Book</h3>
-            <Tooltip>
-              <TooltipTrigger>
-                <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-sm">
-                  {viewMode === "buy" 
-                    ? "Buy mode shows where you can purchase shares. Orders are converted to show buying opportunities."
-                    : "Sell mode shows raw orders as placed. Use this to see buyers you can sell your positions to."}
-                </p>
-              </TooltipContent>
-            </Tooltip>
+            <FeatureHelpTooltip
+              title="Order Book"
+              description="The order book shows all pending buy orders at different price levels. In Buy mode, you see prices where you can purchase shares. In Sell mode, you see buyers you can sell your positions to. More orders = more liquidity = better prices."
+              faqId="order-book"
+            />
           </div>
           
           {/* Buy/Sell Toggle */}

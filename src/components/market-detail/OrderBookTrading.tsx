@@ -33,6 +33,7 @@ import { playSound, flashScreen, triggerConfetti, triggerHaptic } from "@/lib/tr
 import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { useIndicativePrice } from "@/hooks/useIndicativePrice";
 import { useRealtimeOrderBook } from "@/hooks/useRealtimeOrderBook";
+import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -546,10 +547,22 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
       {/* Trading Mode Tabs */}
       <Tabs value={tradingMode} onValueChange={(v) => setTradingMode(v as "simple" | "advanced")}>
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="simple" className="relative">
+          <TabsTrigger value="simple" className="relative flex items-center gap-1.5">
             Quick Predict
+            <FeatureHelpTooltip
+              title="Quick Predict"
+              description="The fastest way to trade! Choose your amount, tap YES or NO, and your order executes instantly at the current market price. Perfect for live markets where prices move quickly."
+              faqId="quick-predict"
+            />
           </TabsTrigger>
-          <TabsTrigger value="advanced">Set Your Price</TabsTrigger>
+          <TabsTrigger value="advanced" className="flex items-center gap-1.5">
+            Set Your Price
+            <FeatureHelpTooltip
+              title="Set Your Price (Limit Order)"
+              description="Choose the exact price you're willing to pay. Your order waits in the order book until someone agrees to trade at your price. Great for getting better prices or when there's low liquidity."
+              faqId="set-your-price"
+            />
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="simple" className="space-y-4">
