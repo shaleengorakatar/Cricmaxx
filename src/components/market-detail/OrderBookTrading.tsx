@@ -28,6 +28,9 @@ import {
 import { LiquidityWarning, LiquidityIndicator } from "./LiquidityWarning";
 import { EstimatedFillPreview } from "./EstimatedFillPreview";
 import { PartialFillDialog } from "./PartialFillDialog";
+import { TradeStatusOverlay, TradeStatus } from "@/components/trading/TradeStatusOverlay";
+import { playSound, flashScreen, triggerConfetti, triggerHaptic } from "@/lib/tradingEffects";
+import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -64,6 +67,7 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const navigate = useNavigate();
   const { toast } = useToast();
   const { trigger: haptic } = useHaptics();
+  const { soundEnabled } = useTradingPreferences();
   const cardRef = useRef<HTMLDivElement>(null);
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"yes" | "no">("yes");
@@ -72,6 +76,16 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   const [noLiquidityAmount, setNoLiquidityAmount] = useState<number>(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  
+  // Trade status overlay state
+  const [tradeStatus, setTradeStatus] = useState<TradeStatus>('idle');
+  const [tradeResult, setTradeResult] = useState<{
+    side?: 'yes' | 'no';
+    filledQuantity?: number;
+    totalQuantity?: number;
+    avgPrice?: number;
+    error?: string;
+  }>({});
   
   // Get current path for redirect after login
   const currentPath = window.location.pathname + window.location.search;
@@ -101,6 +115,14 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   const [orderBook, setOrderBook] = useState<{ yes: OrderBookLevel[]; no: OrderBookLevel[] }>({ yes: [], no: [] });
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  
+  const handleTradeStatusComplete = () => {
+    setTradeStatus('idle');
+    setTradeResult({});
+    if (tradeStatus === 'no-liquidity') {
+      setShowNoLiquidityDialog(true);
+    }
+  };
   
 
   useEffect(() => {
@@ -450,7 +472,19 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
   };
 
   return (
-    <Card ref={cardRef} className="p-4 sm:p-6">
+    <>
+      {/* Trade Status Overlay */}
+      <TradeStatusOverlay
+        status={tradeStatus}
+        side={tradeResult.side}
+        filledQuantity={tradeResult.filledQuantity}
+        totalQuantity={tradeResult.totalQuantity}
+        avgPrice={tradeResult.avgPrice}
+        error={tradeResult.error}
+        onComplete={handleTradeStatusComplete}
+      />
+      
+      <Card ref={cardRef} className="p-4 sm:p-6">
       {/* Side Selection */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
@@ -1047,7 +1081,8 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+      </Card>
+    </>
   );
 };
 

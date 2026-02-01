@@ -750,4 +750,68 @@ All colors MUST be HSL format for consistency
   .animate-shimmer {
     animation: shimmer 1.5s infinite;
   }
+
+  /* === Flash Fade Effect === */
+  @keyframes flash-fade {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* === Pulse Glow Effect for Active Trades === */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px 10px hsl(var(--primary) / 0.2);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* === Smooth Skeleton Loading === */
+  @keyframes skeleton-shine {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .skeleton-smooth {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shine 1.5s ease-in-out infinite;
+  }
+
+  /* === Trade Button Active States === */
+  .trade-button-active {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .trade-button-active::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1s infinite;
+  }
 }
