@@ -33,9 +33,9 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
     return () => clearTimeout(delaySearch);
   }, [searchQuery]);
 
-  const handleAddFriend = async (username: string) => {
-    setAddingUser(username);
-    const success = await addFriend(username);
+  const handleAddFriend = async (user: SearchUser) => {
+    setAddingUser(user.id);
+    const success = await addFriend(user.id);
     setAddingUser(null);
     
     if (success) {
@@ -46,8 +46,15 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
     }
   };
 
+  const getAvatarInitial = (user: SearchUser) => {
+    if (user.display_name) return user.display_name[0].toUpperCase();
+    if (user.username) return user.username[0].toUpperCase();
+    if (user.email) return user.email[0].toUpperCase();
+    return 'U';
+  };
+
   const getButtonContent = (user: SearchUser) => {
-    if (addingUser === user.username) {
+    if (addingUser === user.id) {
       return <Loader2 className="w-4 h-4 animate-spin" />;
     }
 
@@ -106,7 +113,7 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={user.avatar_url || undefined} />
                     <AvatarFallback>
-                      {(user.display_name || user.username || '?')[0].toUpperCase()}
+                      {getAvatarInitial(user)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
@@ -120,10 +127,10 @@ const FriendSearch = ({ onFriendAdded }: FriendSearchProps) => {
                 </div>
                 <Button
                   size="sm"
-                  onClick={() => handleAddFriend(user.username)}
+                  onClick={() => handleAddFriend(user)}
                   disabled={
                     user.friendship_status !== 'none' || 
-                    addingUser === user.username
+                    addingUser === user.id
                   }
                   className={
                     user.friendship_status === 'accepted'
