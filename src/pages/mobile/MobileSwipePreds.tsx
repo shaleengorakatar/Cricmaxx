@@ -3,7 +3,7 @@ import { MobileLayout } from "@/layouts/MobileLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3 } from "lucide-react";
+import { CheckCircle, XCircle, SkipForward, Settings, TrendingUp, Clock, Flame, Zap, BarChart3, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Market } from "@/types/market";
+import { Link } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function MobileSwipePreds() {
   const { profile } = useAuth();
@@ -416,9 +418,33 @@ export default function MobileSwipePreds() {
           </div>
         </div>
 
-        {/* Card counter */}
-        <div className="text-center pb-2">
+        {/* Card counter and payout info */}
+        <div className="text-center pb-2 flex items-center justify-center gap-3">
           <span className="text-xs text-muted-foreground">{currentIndex + 1} / {markets.length}</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <HelpCircle className="h-3.5 w-3.5" />
+                <span>How it works</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 text-sm" align="center">
+              <div className="space-y-3">
+                <p className="font-semibold">How RapidPred Works</p>
+                <p className="text-muted-foreground text-xs">
+                  Swipe right for YES, left for NO. If your prediction is correct, you get <span className="font-semibold text-foreground">$1 per share</span>. If not, your share expires worthless.
+                </p>
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-2">
+                  <p className="text-muted-foreground text-xs">
+                    <strong className="text-foreground">Important:</strong> The prediction must happen <em>exactly</em> as stated—if not, it resolves to NO.
+                  </p>
+                </div>
+                <Link to="/faq#rapidpred" className="text-accent hover:underline text-xs block">
+                  Learn more in FAQ →
+                </Link>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Action Buttons */}
