@@ -31,11 +31,12 @@ import { PartialFillDialog } from "./PartialFillDialog";
 import { TradeStatusOverlay, TradeStatus } from "@/components/trading/TradeStatusOverlay";
 import { playSound, flashScreen, triggerConfetti, triggerHaptic } from "@/lib/tradingEffects";
 import { useTradingPreferences } from "@/hooks/useTradingPreferences";
+import { useIndicativePrice } from "@/hooks/useIndicativePrice";
 
 interface OrderBookTradingProps {
   marketId: string;
-  yesPrice: number;
-  noPrice: number;
+  yesPrice: number; // Fallback from parent
+  noPrice: number;  // Fallback from parent
   userBalance: number;
 }
 
@@ -62,13 +63,26 @@ interface UserPosition {
   status: string;
 }
 
-const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBookTradingProps) => {
+const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallbackNoPrice, userBalance }: OrderBookTradingProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { trigger: haptic } = useHaptics();
   const { soundEnabled } = useTradingPreferences();
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  // Use indicative price hook for accurate pricing based on last trade / order book
+  const { 
+    yesPrice: indicativeYesPrice, 
+    noPrice: indicativeNoPrice, 
+    source: priceSource, 
+    hasLiquidity,
+    loading: priceLoading 
+  } = useIndicativePrice(marketId);
+  
+  // Use indicative prices, fallback to props if still loading
+  const yesPrice = priceLoading ? fallbackYesPrice : indicativeYesPrice;
+  const noPrice = priceLoading ? fallbackNoPrice : indicativeNoPrice;
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -488,7 +502,36 @@ const OrderBookTrading = ({ marketId, yesPrice, noPrice, userBalance }: OrderBoo
       {/* Side Selection */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Choose outcome</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Choose outcome</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge 
+                    variant="outline" 
+                    className={`text-[10px] px-1.5 py-0 cursor-help ${
+                      priceSource === 'last_trade' ? 'border-primary/50 text-primary' :
+                      priceSource === 'book_midpoint' ? 'border-amber-500/50 text-amber-600' :
+                      'border-muted text-muted-foreground'
+                    }`}
+                  >
+                    {priceSource === 'last_trade' ? 'Last Trade' :
+                     priceSource === 'book_midpoint' ? 'Book Est.' :
+                     'Starting'}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-xs">
+                    {priceSource === 'last_trade' 
+                      ? "Price based on the most recent trade in this market." 
+                      : priceSource === 'book_midpoint'
+                      ? "Estimated from current order book bids. No trades yet."
+                      : "No trades or orders yet. Starting price is 50/50."}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <LiquidityIndicator marketId={marketId} />
         </div>
         <div className="grid grid-cols-2 gap-2">
