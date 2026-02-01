@@ -98,12 +98,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     // BUY MODE: Kalshi-style order book display
     // - YES column shows prices where you can BUY YES (from NO bidders)
     // - NO column shows prices where you can BUY NO (from YES bidders)
+    // IMPORTANT: In Buy mode, we EXCLUDE your own orders since you can't trade against yourself
     const yesLevelsBuy: OrderLevel[] = [];
     const noLevelsBuy: OrderLevel[] = [];
 
     // SELL MODE: Raw orders as placed (no conversion)
     // - YES column shows YES buy orders (people buying YES = you can sell YES to them)
     // - NO column shows NO buy orders (people buying NO = you can sell NO to them)
+    // In Sell mode, we EXCLUDE your own orders since you can't sell to yourself
     const yesLevelsSell: OrderLevel[] = [];
     const noLevelsSell: OrderLevel[] = [];
 
@@ -115,15 +117,27 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
       if (row.side === 'yes') {
         // YES order at price X means someone is BUYING YES at X
         // BUY MODE: They are implicitly SELLING NO at (1-X), so you can BUY NO at (1-X)
-        noLevelsBuy.push({ price: 1 - price, quantity, isOwn });
+        // Skip your own orders - you can't trade against yourself
+        if (!isOwn) {
+          noLevelsBuy.push({ price: 1 - price, quantity, isOwn: false });
+        }
         // SELL MODE: Show as YES buyers at X (you can sell YES to them at X)
-        yesLevelsSell.push({ price, quantity, isOwn });
+        // Skip your own orders - you can't sell to yourself
+        if (!isOwn) {
+          yesLevelsSell.push({ price, quantity, isOwn: false });
+        }
       } else {
         // NO order at price Y means someone is BUYING NO at Y
         // BUY MODE: They are implicitly SELLING YES at (1-Y), so you can BUY YES at (1-Y)
-        yesLevelsBuy.push({ price: 1 - price, quantity, isOwn });
+        // Skip your own orders - you can't trade against yourself
+        if (!isOwn) {
+          yesLevelsBuy.push({ price: 1 - price, quantity, isOwn: false });
+        }
         // SELL MODE: Show as NO buyers at Y (you can sell NO to them at Y)
-        noLevelsSell.push({ price, quantity, isOwn });
+        // Skip your own orders - you can't sell to yourself
+        if (!isOwn) {
+          noLevelsSell.push({ price, quantity, isOwn: false });
+        }
       }
     }
 
