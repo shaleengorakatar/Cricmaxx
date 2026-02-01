@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/Navigation";
@@ -12,6 +13,8 @@ import {
 
 const FAQ = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [openItem, setOpenItem] = useState<string | undefined>(undefined);
   
   const faqSections = [
     {
@@ -186,6 +189,32 @@ const FAQ = () => {
     },
   ];
 
+  // Build a map of question ID to accordion value
+  const idToValueMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    faqSections.forEach((section, sectionIndex) => {
+      section.questions.forEach((item, itemIndex) => {
+        map[item.id] = `${sectionIndex}-${itemIndex}`;
+      });
+    });
+    return map;
+  }, []);
+
+  // Handle hash navigation - expand the relevant accordion and scroll to it
+  useEffect(() => {
+    const hash = location.hash.replace('#', '');
+    if (hash && idToValueMap[hash]) {
+      setOpenItem(idToValueMap[hash]);
+      // Small delay to allow accordion to expand before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(hash);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [location.hash, idToValueMap]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
@@ -215,7 +244,13 @@ const FAQ = () => {
                   <span className="h-1 w-6 bg-accent rounded-full" />
                   {section.title}
                 </h2>
-                <Accordion type="single" collapsible className="space-y-2">
+                <Accordion 
+                  type="single" 
+                  collapsible 
+                  className="space-y-2"
+                  value={openItem}
+                  onValueChange={setOpenItem}
+                >
                   {section.questions.map((item, itemIndex) => (
                     <AccordionItem 
                       key={itemIndex} 
