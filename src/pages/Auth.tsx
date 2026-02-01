@@ -415,7 +415,7 @@ const Auth = () => {
                 <Button 
                   type="submit" 
                   className="w-full h-12 text-base bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
-                  disabled={loading}
+                  disabled={loading || !validatePassword(signUpData.password).isValid}
                 >
                   {loading ? (
                     <>
