@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { TradeStatusOverlay, TradeStatus } from "@/components/trading/TradeStatu
 import { playSound, flashScreen, triggerConfetti, triggerHaptic } from "@/lib/tradingEffects";
 import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { useIndicativePrice } from "@/hooks/useIndicativePrice";
+import { useRealtimeOrderBook } from "@/hooks/useRealtimeOrderBook";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -125,8 +126,17 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
   const [quantity, setQuantity] = useState("");
   const [advancedDollarAmount, setAdvancedDollarAmount] = useState("");
   
-  // Order book state
-  const [orderBook, setOrderBook] = useState<{ yes: OrderBookLevel[]; no: OrderBookLevel[] }>({ yes: [], no: [] });
+  // Order book state - use optimized realtime hook
+  const { 
+    orderBook, 
+    isConnected: orderBookConnected, 
+    addOptimisticOrder,
+    refetch: refetchOrderBook 
+  } = useRealtimeOrderBook({ 
+    marketId, 
+    userId: user?.id,
+    debounceMs: 50 // Fast updates for responsiveness
+  });
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
   
@@ -139,16 +149,16 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
   };
   
 
+  // Subscribe to user orders and positions updates
   useEffect(() => {
-    fetchOrderBook();
     if (user) {
       fetchUserOrders();
       fetchUserPosition();
     }
 
-    // Subscribe to real-time order book updates
+    // Subscribe to user-specific updates only (order book handled by hook)
     const channel = supabase
-      .channel(`orderbook-${marketId}`)
+      .channel(`user-data-${marketId}-${user?.id}`)
       .on(
         'postgres_changes',
         {
@@ -158,7 +168,6 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
           filter: `market_id=eq.${marketId}`
         },
         () => {
-          fetchOrderBook();
           if (user) fetchUserOrders();
         }
       )
@@ -180,44 +189,6 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
       supabase.removeChannel(channel);
     };
   }, [marketId, user]);
-
-  const fetchOrderBook = async () => {
-    const { data: yesOrders } = await supabase
-      .from('orders')
-      .select('price, quantity, filled_quantity')
-      .eq('market_id', marketId)
-      .eq('side', 'yes')
-      .in('status', ['pending', 'partial'])
-      .order('price', { ascending: false });
-
-    const { data: noOrders } = await supabase
-      .from('orders')
-      .select('price, quantity, filled_quantity')
-      .eq('market_id', marketId)
-      .eq('side', 'no')
-      .in('status', ['pending', 'partial'])
-      .order('price', { ascending: false });
-
-    const aggregateOrders = (orders: any[]) => {
-      const levels: Record<string, number> = {};
-      for (const order of orders || []) {
-        const remaining = order.quantity - order.filled_quantity;
-        if (remaining > 0 && order.price) {
-          const priceKey = Number(order.price).toFixed(2);
-          levels[priceKey] = (levels[priceKey] || 0) + remaining;
-        }
-      }
-      return Object.entries(levels)
-        .map(([price, quantity]) => ({ price: parseFloat(price), quantity }))
-        .sort((a, b) => b.price - a.price)
-        .slice(0, 5);
-    };
-
-    setOrderBook({
-      yes: aggregateOrders(yesOrders || []),
-      no: aggregateOrders(noOrders || [])
-    });
-  };
 
   const fetchUserOrders = async () => {
     if (!user) return;
@@ -338,7 +309,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
 
       setContractCount("");
       setDollarAmount("");
-      fetchOrderBook();
+      refetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
     } catch (error: any) {
@@ -379,6 +350,9 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
     }
 
     setIsSubmitting(true);
+    
+    // Optimistically add order to order book for instant UI feedback
+    addOptimisticOrder(side, price, qty);
 
     try {
       const { data, error } = await supabase.functions.invoke('order-book', {
@@ -405,7 +379,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
 
       setLimitPrice("");
       setQuantity("");
-      fetchOrderBook();
+      refetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
     } catch (error: any) {
@@ -439,7 +413,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
       }
       
       fetchUserOrders();
-      fetchOrderBook();
+      refetchOrderBook();
     } catch (error: any) {
       toast({
         title: "Cancel failed",
@@ -1098,7 +1072,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
                 description: `${quantity} ${partialFillData.side.toUpperCase()} contracts @ ${(price * 100).toFixed(0)}¢`,
               });
 
-              fetchOrderBook();
+              refetchOrderBook();
               fetchUserOrders();
             } catch (error: any) {
               toast({

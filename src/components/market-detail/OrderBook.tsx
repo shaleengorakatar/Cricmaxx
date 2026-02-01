@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, Info, HelpCircle } from "lucide-react";
+import { Loader2, Info, HelpCircle, Wifi, WifiOff } from "lucide-react";
 
 interface OrderBookProps {
   marketId: string;
@@ -33,32 +33,27 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   const [buyQuantity, setBuyQuantity] = useState(10);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [viewMode, setViewMode] = useState<"buy" | "sell">("buy");
+  const [isConnected, setIsConnected] = useState(false);
+  
+  // Debouncing refs for rapid updates
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchRef = useRef<number>(0);
+  const DEBOUNCE_MS = 50; // Fast updates
 
-  useEffect(() => {
-    fetchOrders();
+  const fetchOrders = useCallback(async (force = false) => {
+    // Debounce rapid fetches
+    const now = Date.now();
+    if (!force && now - lastFetchRef.current < DEBOUNCE_MS) {
+      if (!debounceRef.current) {
+        debounceRef.current = setTimeout(() => {
+          debounceRef.current = null;
+          fetchOrders(true);
+        }, DEBOUNCE_MS);
+      }
+      return;
+    }
+    lastFetchRef.current = now;
 
-    const channel = supabase
-      .channel(`orderbook-display-${marketId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-          filter: `market_id=eq.${marketId}`
-        },
-        () => {
-          fetchOrders();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [marketId, profile?.id]); // Re-fetch when user changes to update self-trade filtering
-
-  const fetchOrders = async () => {
     // Fetch aggregated order book data from the public view (shows ALL orders anonymously)
     const { data: aggregatedOrderBook } = await supabase
       .from('order_book_aggregated')
@@ -174,7 +169,37 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     setRawYesOrders(aggregatedYesSell.slice(0, 5));
     setRawNoOrders(aggregatedNoSell.slice(0, 5));
     setLoading(false);
-  };
+  }, [marketId, isAuthenticated, profile?.id]);
+
+  // Setup realtime subscription
+  useEffect(() => {
+    fetchOrders(true);
+
+    const channel = supabase
+      .channel(`orderbook-display-${marketId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders',
+          filter: `market_id=eq.${marketId}`
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe((status) => {
+        setIsConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, [marketId, profile?.id, fetchOrders]);
 
   // Get the appropriate orders based on view mode
   const displayYesOrders = viewMode === "buy" ? yesOrders : rawYesOrders;
