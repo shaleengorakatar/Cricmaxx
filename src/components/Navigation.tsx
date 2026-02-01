@@ -235,18 +235,7 @@ const Navigation = () => {
                             Balance: ${profile.balance.toFixed(2)}
                           </p>
                         </div>
-                        {!profile.kyc_verified && (
-                          <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={() => {
-                              navigate('/kyc-verification');
-                              setMobileMenuOpen(false);
-                            }}
-                          >
-                            Complete KYC
-                          </Button>
-                        )}
+                        {/* KYC button hidden per compliance/kyc-visibility-status */}
                         <Button 
                           variant="outline" 
                           className="w-full"
@@ -337,12 +326,7 @@ const Navigation = () => {
                       <Settings className="w-4 h-4 mr-2" />
                       Account Settings
                     </DropdownMenuItem>
-                    {!profile.kyc_verified && (
-                      <DropdownMenuItem onClick={() => navigate('/kyc-verification')}>
-                        <User className="w-4 h-4 mr-2" />
-                        Complete KYC
-                      </DropdownMenuItem>
-                    )}
+                    {/* KYC menu item hidden per compliance/kyc-visibility-status */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="w-4 h-4 mr-2" />
