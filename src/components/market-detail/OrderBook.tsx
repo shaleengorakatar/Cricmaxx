@@ -17,6 +17,7 @@ interface OrderBookProps {
 interface OrderLevel {
   price: number;
   quantity: number;
+  isOwn?: boolean;
 }
 
 const OrderBook = ({ marketId }: OrderBookProps) => {
@@ -58,38 +59,40 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   }, [marketId, profile?.id]); // Re-fetch when user changes to update self-trade filtering
 
   const fetchOrders = async () => {
-    // Fetch orders directly (not from aggregated view) so we can filter out user's own orders
-    // Self-trade prevention: user cannot match their own orders
-    let query = supabase
+    // Fetch all orders (including user's own) so we can mark them with "(you)"
+    const { data: orderData } = await supabase
       .from('orders')
       .select('side, price, quantity, filled_quantity, user_id')
       .eq('market_id', marketId)
       .in('status', ['pending', 'partial']);
     
-    // Filter out current user's orders if authenticated (self-trade prevention)
-    if (isAuthenticated && profile?.id) {
-      query = query.neq('user_id', profile.id);
-    }
-    
-    const { data: orderData } = await query;
-    
     // Transform raw orders to match the expected format with available quantity
+    // Mark orders that belong to the current user
     const aggregatedData = (orderData || [])
       .filter(o => o.quantity - o.filled_quantity > 0)
       .map(o => ({
         side: o.side,
         price: o.price,
-        total_quantity: o.quantity - o.filled_quantity
+        total_quantity: o.quantity - o.filled_quantity,
+        isOwn: isAuthenticated && profile?.id === o.user_id
       }));
 
-    // Aggregate same price levels helper
+    // Aggregate same price levels helper - track if any order at this level is user's own
     const aggregateByPrice = (levels: OrderLevel[]): OrderLevel[] => {
-      const priceMap = new Map<number, number>();
+      const priceMap = new Map<number, { quantity: number; isOwn: boolean }>();
       for (const level of levels) {
         const roundedPrice = Math.round(level.price * 100) / 100;
-        priceMap.set(roundedPrice, (priceMap.get(roundedPrice) || 0) + level.quantity);
+        const existing = priceMap.get(roundedPrice) || { quantity: 0, isOwn: false };
+        priceMap.set(roundedPrice, { 
+          quantity: existing.quantity + level.quantity,
+          isOwn: existing.isOwn || !!level.isOwn
+        });
       }
-      return Array.from(priceMap.entries()).map(([price, quantity]) => ({ price, quantity }));
+      return Array.from(priceMap.entries()).map(([price, data]) => ({ 
+        price, 
+        quantity: data.quantity,
+        isOwn: data.isOwn
+      }));
     };
 
     // BUY MODE: Kalshi-style order book display
@@ -107,19 +110,20 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     for (const row of aggregatedData || []) {
       const price = Number(row.price);
       const quantity = Number(row.total_quantity);
+      const isOwn = row.isOwn;
       
       if (row.side === 'yes') {
         // YES order at price X means someone is BUYING YES at X
         // BUY MODE: They are implicitly SELLING NO at (1-X), so you can BUY NO at (1-X)
-        noLevelsBuy.push({ price: 1 - price, quantity });
+        noLevelsBuy.push({ price: 1 - price, quantity, isOwn });
         // SELL MODE: Show as YES buyers at X (you can sell YES to them at X)
-        yesLevelsSell.push({ price, quantity });
+        yesLevelsSell.push({ price, quantity, isOwn });
       } else {
         // NO order at price Y means someone is BUYING NO at Y
         // BUY MODE: They are implicitly SELLING YES at (1-Y), so you can BUY YES at (1-Y)
-        yesLevelsBuy.push({ price: 1 - price, quantity });
+        yesLevelsBuy.push({ price: 1 - price, quantity, isOwn });
         // SELL MODE: Show as NO buyers at Y (you can sell NO to them at Y)
-        noLevelsSell.push({ price, quantity });
+        noLevelsSell.push({ price, quantity, isOwn });
       }
     }
 
@@ -423,6 +427,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                       >
                         <span className="font-medium text-green-600 dark:text-green-500">
                           {(order.price * 100).toFixed(0)}¢
+                          {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
                         </span>
                         <span className="text-muted-foreground">{order.quantity} shares</span>
                       </div>
@@ -483,6 +488,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                       >
                         <span className="font-medium text-red-600 dark:text-red-500">
                           {(order.price * 100).toFixed(0)}¢
+                          {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
                         </span>
                         <span className="text-muted-foreground">{order.quantity} shares</span>
                       </div>
