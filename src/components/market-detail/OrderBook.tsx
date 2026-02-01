@@ -232,13 +232,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
 
   return (
     <TooltipProvider>
-      <div className="p-0 md:p-6">
-        <div className="flex items-center justify-between mb-4 px-4 md:px-0">
+      <div className="p-4 md:p-6">
+        {/* Header with title and toggle */}
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-semibold text-foreground hidden md:block">Order Book</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">Order Book</h3>
             <Tooltip>
               <TooltipTrigger>
-                <HelpCircle className="h-4 w-4 text-muted-foreground hidden md:block" />
+                <HelpCircle className="h-4 w-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-sm">
@@ -251,10 +252,10 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
           </div>
           
           {/* Buy/Sell Toggle */}
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <div className="inline-flex items-center gap-0.5 bg-muted rounded-lg p-1">
             <button
               onClick={() => setViewMode("buy")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 viewMode === "buy" 
                   ? "bg-background text-foreground shadow-sm" 
                   : "text-muted-foreground hover:text-foreground"
@@ -264,7 +265,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
             </button>
             <button
               onClick={() => setViewMode("sell")}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
                 viewMode === "sell" 
                   ? "bg-background text-foreground shadow-sm" 
                   : "text-muted-foreground hover:text-foreground"
@@ -275,7 +276,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
           </div>
         </div>
         
-        <div className="space-y-4 px-4 md:px-0 pb-4 md:pb-0">
+        <div className="space-y-4">
           {/* Mode description */}
           <p className="text-xs text-muted-foreground text-center">
             {viewMode === "buy" 
