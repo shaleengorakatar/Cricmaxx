@@ -202,6 +202,8 @@ const MarketDetail = () => {
               marketId={market.id}
               currentYesPrice={market.yesPrice}
               currentNoPrice={market.noPrice}
+              platformFeePercent={marketFees.platform}
+              creatorFeePercent={marketFees.creator}
             />
           )}
 

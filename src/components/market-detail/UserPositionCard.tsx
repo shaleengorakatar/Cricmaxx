@@ -14,6 +14,8 @@ interface UserPositionCardProps {
   marketId: string;
   currentYesPrice: number;
   currentNoPrice: number;
+  platformFeePercent?: number;
+  creatorFeePercent?: number;
 }
 
 interface Position {
@@ -35,7 +37,13 @@ interface PendingOrder {
   created_at: string;
 }
 
-const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPositionCardProps) => {
+const UserPositionCard = ({ 
+  marketId, 
+  currentYesPrice, 
+  currentNoPrice,
+  platformFeePercent = 3,
+  creatorFeePercent = 0
+}: UserPositionCardProps) => {
   const { isAuthenticated, profile } = useAuth();
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<PendingOrder[]>([]);
@@ -210,11 +218,18 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
   const totalUnrealizedPnL = yesUnrealizedPnL + noUnrealizedPnL;
   const totalCost = yesCost + noCost;
 
+  // Calculate fees and net profit
+  const totalFeePercent = platformFeePercent + creatorFeePercent;
+  const feeMultiplier = 1 - (totalFeePercent / 100);
+  
   // Max payout is $1 per share if correct
   const yesPotentialPayout = totalYesShares * 1;
   const noPotentialPayout = totalNoShares * 1;
-  const yesPotentialProfit = yesPotentialPayout - yesCost;
-  const noPotentialProfit = noPotentialPayout - noCost;
+  const yesGrossProfit = yesPotentialPayout - yesCost;
+  const noGrossProfit = noPotentialPayout - noCost;
+  // Fee only applies to profit portion
+  const yesPotentialProfit = yesGrossProfit * feeMultiplier;
+  const noPotentialProfit = noGrossProfit * feeMultiplier;
 
   return (
     <>
@@ -271,6 +286,7 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                   <span className="text-muted-foreground">If Correct:</span>
                   <span className="font-semibold text-primary">
                     +${yesPotentialProfit.toFixed(2)}
+                    <span className="text-[10px] text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
                   </span>
                 </div>
               </div>
@@ -326,6 +342,7 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                   <span className="text-muted-foreground">If Correct:</span>
                   <span className="font-semibold text-primary">
                     +${noPotentialProfit.toFixed(2)}
+                    <span className="text-[10px] text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
                   </span>
                 </div>
               </div>
@@ -381,7 +398,8 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                 {pendingOrders.map((order) => {
                   const remainingQty = order.quantity - order.filled_quantity;
                   const totalCostOrder = remainingQty * order.price;
-                  const potentialProfit = remainingQty - totalCostOrder;
+                  const grossProfit = remainingQty - totalCostOrder;
+                  const netProfit = grossProfit * feeMultiplier;
                   const isBuyOrder = order.order_type === 'limit' || order.order_type === 'market';
                   
                   return (
@@ -416,8 +434,9 @@ const UserPositionCard = ({ marketId, currentYesPrice, currentNoPrice }: UserPos
                         <div>
                           <p className="text-muted-foreground">If correct</p>
                           <p className="font-semibold text-green-600 dark:text-green-400">
-                            +${potentialProfit.toFixed(2)}
+                            +${netProfit.toFixed(2)}
                           </p>
+                          <p className="text-[10px] text-muted-foreground">(after {totalFeePercent}% fee)</p>
                         </div>
                       </div>
                       
