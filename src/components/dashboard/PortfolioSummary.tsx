@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
-import { Coins, BarChart3, CheckCircle2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Coins, BarChart3, CheckCircle2, Clock, PlusCircle } from "lucide-react";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
 
 interface PortfolioSummaryProps {
@@ -7,13 +8,14 @@ interface PortfolioSummaryProps {
   profitLoss: number; // Repurposed as "tokens in play"
   pendingOrderTokens?: number; // NEW: tokens reserved in pending orders
   isVerified: boolean;
+  onBuyTokens?: () => void;
 }
 
 /**
  * Portfolio summary using prediction market-safe language
  * Shows "Available Tokens", "In Play", and "Pending Orders"
  */
-const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerified }: PortfolioSummaryProps) => {
+const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerified, onBuyTokens }: PortfolioSummaryProps) => {
   const tokensInPlay = profitLoss; // Repurposed
 
   return (
@@ -35,12 +37,25 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerif
             <Coins className="h-3.5 w-3.5 text-amber-500" />
             <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
           </div>
-          <p className="text-xl md:text-2xl font-bold text-foreground">
-            {balance.toLocaleString()}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            ≈ ${balance.toLocaleString()}.00
-          </p>
+          {balance > 0 ? (
+            <>
+              <p className="text-xl md:text-2xl font-bold text-foreground">
+                {balance.toLocaleString()}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                ≈ ${balance.toLocaleString()}.00
+              </p>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              onClick={onBuyTokens}
+              className="mt-1 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Buy Tokens
+            </Button>
+          )}
         </div>
 
         {/* In Play - Secondary */}

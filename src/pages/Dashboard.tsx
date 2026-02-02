@@ -9,6 +9,7 @@ import WalletActions from "@/components/dashboard/WalletActions";
 import ActivePositions from "@/components/dashboard/ActivePositions";
 import TransactionHistory from "@/components/dashboard/TransactionHistory";
 import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
+import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Settings } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -51,6 +52,7 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
+  const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
 
   // Handle payment success/cancel URL params
   useEffect(() => {
@@ -270,6 +272,7 @@ const Dashboard = () => {
                 profitLoss={profitLoss}
                 pendingOrderTokens={pendingOrderTokens}
                 isVerified={profile.kyc_verified}
+                onBuyTokens={() => setShowBuyTokensDialog(true)}
               />
               <PLChart data={chartData} />
             </div>
@@ -308,6 +311,16 @@ const Dashboard = () => {
       </main>
 
       <Footer />
+
+      {/* Buy Tokens Dialog */}
+      <PaymentMethodsDialog
+        isOpen={showBuyTokensDialog}
+        onClose={() => setShowBuyTokensDialog(false)}
+        onSuccess={() => {
+          setShowBuyTokensDialog(false);
+          handleBalanceUpdate();
+        }}
+      />
     </div>
   );
 };
