@@ -310,13 +310,8 @@ const OrderBookTrading = ({
           description: `You now own ${filledQty} ${side.toUpperCase()} contracts`,
         });
       } else {
-        // Order was cancelled or no fill happened
+        // Order was cancelled or no fill happened - show dialog only (no toast)
         haptic('warning');
-        toast({
-          title: "No liquidity available",
-          description: "Try placing a limit order instead",
-          variant: "destructive",
-        });
         setNoLiquiditySide(side);
         setNoLiquidityAmount(totalCost);
         setShowNoLiquidityDialog(true);
