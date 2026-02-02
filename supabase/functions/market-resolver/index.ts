@@ -223,6 +223,48 @@ serve(async (req) => {
       });
     }
 
+    // Cancel all pending/partial limit orders for this market
+    const { data: cancelledOrders, error: cancelOrdersError } = await supabase
+      .from('orders')
+      .update({
+        status: 'cancelled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('market_id', marketId)
+      .in('status', ['pending', 'partial'])
+      .select('id, user_id, price, quantity, filled_quantity, side');
+
+    if (cancelOrdersError) {
+      console.error('Error cancelling orders:', cancelOrdersError);
+    } else {
+      console.log(`Cancelled ${cancelledOrders?.length || 0} pending orders`);
+      
+      // Refund reserved balance for unfilled portions of cancelled orders
+      for (const order of cancelledOrders || []) {
+        const unfilledQuantity = order.quantity - order.filled_quantity;
+        if (unfilledQuantity > 0 && order.price) {
+          const refundAmount = unfilledQuantity * order.price;
+          
+          // Refund the user's balance
+          const { error: refundError } = await supabase.rpc('process_wallet_operation_pooled', {
+            _user_id: order.user_id,
+            _operation: 'deposit',
+            _amount: refundAmount,
+            _metadata: {
+              type: 'order_cancellation_refund',
+              order_id: order.id,
+              market_id: marketId,
+              reason: 'market_resolved'
+            }
+          });
+
+          if (refundError) {
+            console.error(`Failed to refund user ${order.user_id}:`, refundError);
+          }
+        }
+      }
+    }
+
     // Update market status to resolved
     const newLiquidityPool = (market.liquidity_pool || 0) - totalPayouts;
     
