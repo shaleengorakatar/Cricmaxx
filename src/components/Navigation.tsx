@@ -11,14 +11,16 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
-import { User, Settings, LogOut, Menu, Coins } from "lucide-react";
+import { User, Settings, LogOut, Menu, Coins, PlusCircle } from "lucide-react";
 import { NotificationsBell } from "./notifications/NotificationsBell";
+import PaymentMethodsDialog from "./wallet/PaymentMethodsDialog";
 const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -234,6 +236,17 @@ const Navigation = () => {
                           <p className="text-sm font-semibold text-primary mt-1">
                             Balance: ${profile.balance.toFixed(2)}
                           </p>
+                          <Button 
+                            size="sm"
+                            className="w-full mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              setShowBuyTokensDialog(true);
+                            }}
+                          >
+                            <PlusCircle className="h-3.5 w-3.5" />
+                            Buy Tokens
+                          </Button>
                         </div>
                         {/* KYC button hidden per compliance/kyc-visibility-status */}
                         <Button 
@@ -320,6 +333,14 @@ const Navigation = () => {
                       <p className="text-xs font-semibold text-primary mt-1">
                         Balance: ${profile.balance.toFixed(2)}
                       </p>
+                      <Button 
+                        size="sm"
+                        className="w-full mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
+                        onClick={() => setShowBuyTokensDialog(true)}
+                      >
+                        <PlusCircle className="h-3.5 w-3.5" />
+                        Buy Tokens
+                      </Button>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => navigate('/settings')}>
@@ -357,6 +378,13 @@ const Navigation = () => {
           </div>
         </div>
       </div>
+
+      {/* Buy Tokens Dialog */}
+      <PaymentMethodsDialog
+        isOpen={showBuyTokensDialog}
+        onClose={() => setShowBuyTokensDialog(false)}
+        onSuccess={() => setShowBuyTokensDialog(false)}
+      />
     </nav>
   );
 };
