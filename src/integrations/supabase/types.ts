@@ -1627,6 +1627,16 @@ export type Database = {
         Args: { _category?: string; _limit?: number; _status?: string }
         Returns: Json
       }
+      get_order_book_aggregated: {
+        Args: { market_ids: string[] }
+        Returns: {
+          market_id: string
+          order_count: number
+          price: number
+          side: string
+          total_quantity: number
+        }[]
+      }
       get_platform_analytics_readonly: {
         Args: { _hours?: number }
         Returns: Json
