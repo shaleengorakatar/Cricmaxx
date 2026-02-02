@@ -8,7 +8,7 @@ const Footer = () => {
             <p className="text-sm text-accent font-medium mb-1">🚀 Beta Release</p>
             <p className="text-sm text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               CricMaxx is currently in beta. We are in the process of obtaining CFTC regulatory approval. 
-              These are fixed-payout event contracts, not gambling. Users must be 18+ and complete KYC verification.
+              These are fixed-payout event contracts, not gambling.
             </p>
           </div>
 
