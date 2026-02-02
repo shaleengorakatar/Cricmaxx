@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus, Coins, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,6 +34,7 @@ import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { useIndicativePrice } from "@/hooks/useIndicativePrice";
 import { useRealtimeOrderBook } from "@/hooks/useRealtimeOrderBook";
 import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
+import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 
 interface OrderBookTradingProps {
   marketId: string;
@@ -101,6 +102,9 @@ const OrderBookTrading = ({
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   const [noLiquidityAmount, setNoLiquidityAmount] = useState<number>(0);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showInsufficientBalanceDialog, setShowInsufficientBalanceDialog] = useState(false);
+  const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+  const [insufficientBalanceAmount, setInsufficientBalanceAmount] = useState(0);
   
   // Trade status overlay state
   const [tradeStatus, setTradeStatus] = useState<TradeStatus>('idle');
@@ -253,7 +257,9 @@ const OrderBookTrading = ({
 
     const cost = contractsToTrade * currentPrice;
     if (cost > userBalance) {
-      toast({ title: "Insufficient balance", variant: "destructive" });
+      setInsufficientBalanceAmount(cost);
+      setShowInsufficientBalanceDialog(true);
+      haptic('warning');
       return;
     }
 
@@ -355,7 +361,9 @@ const OrderBookTrading = ({
 
     const cost = qty * price;
     if (cost > userBalance) {
-      toast({ title: "Insufficient balance", variant: "destructive" });
+      setInsufficientBalanceAmount(cost);
+      setShowInsufficientBalanceDialog(true);
+      haptic('warning');
       return;
     }
 
@@ -1141,6 +1149,57 @@ const OrderBookTrading = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Insufficient Balance Dialog */}
+      <Dialog open={showInsufficientBalanceDialog} onOpenChange={setShowInsufficientBalanceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              <Coins className="h-6 w-6 text-accent" />
+              Insufficient Balance
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3 pt-4">
+              <p className="text-base">
+                You need more tokens to place this prediction.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Your balance: <span className="font-bold">{userBalance.toFixed(0)} tokens</span>
+                <br />
+                Required: <span className="font-bold">{insufficientBalanceAmount.toFixed(0)} tokens</span>
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => {
+                setShowInsufficientBalanceDialog(false);
+                setShowBuyTokensDialog(true);
+              }}
+              className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Buy Tokens
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowInsufficientBalanceDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Buy Tokens Dialog */}
+      <PaymentMethodsDialog
+        isOpen={showBuyTokensDialog}
+        onClose={() => setShowBuyTokensDialog(false)}
+        onSuccess={() => {
+          setShowBuyTokensDialog(false);
+          // Balance will refresh via parent component
+        }}
+      />
       </Card>
     </>
   );
