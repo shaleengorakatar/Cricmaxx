@@ -26,6 +26,7 @@ import { RealtimeStatus, LivePrice } from "@/components/ui/realtime-indicators";
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useBatchIndicativePrices } from "@/hooks/useBatchIndicativePrices";
 
 // Generate price history from current price
 const generatePriceHistory = (yesPrice: number) => {
@@ -62,6 +63,9 @@ const MarketDetail = () => {
   const { prices: realtimePrices, isConnected: pricesConnected } = useRealtimeMarketPrices(id);
   const { trades: realtimeTrades, isConnected: tradesConnected } = useRealtimeTrades(id);
   
+  // Indicative prices from order book
+  const { prices: indicativePrices } = useBatchIndicativePrices(id ? [id] : []);
+  
   // Mobile collapsible sections
   const [chartExpanded, setChartExpanded] = useState(true);
   const [orderBookExpanded, setOrderBookExpanded] = useState(false);
@@ -96,7 +100,7 @@ const MarketDetail = () => {
 
   useEffect(() => {
     fetchMarket();
-  }, [id]);
+  }, [id, indicativePrices]);
 
   const fetchMarket = async () => {
     if (!id) return;
@@ -113,13 +117,22 @@ const MarketDetail = () => {
       return;
     }
 
+    // Get indicative price from order book if available
+    const indicative = indicativePrices.get(data.id);
+    const yesPrice = indicative && indicative.source !== "default" 
+      ? indicative.yesPrice 
+      : Number(data.yes_price);
+    const noPrice = indicative && indicative.source !== "default"
+      ? indicative.noPrice
+      : Number(data.no_price);
+
     const formattedMarket: Market = {
       id: data.id,
       question: data.question,
       category: data.category as Market["category"],
       type: data.type as Market["type"],
-      yesPrice: Number(data.yes_price),
-      noPrice: Number(data.no_price),
+      yesPrice,
+      noPrice,
       volume: Number(data.volume),
       expiryTime: data.expiry_time,
       description: data.description || "",
