@@ -30,12 +30,22 @@ interface SimpleTradingCardProps {
   noPrice: number;
   userBalance: number;
   onScrollToOrderBook?: () => void;
+  platformFeePercent?: number;
+  creatorFeePercent?: number;
 }
 
 const STAKE_OPTIONS = [5, 10, 25, 50, 100];
 const QUICK_AMOUNTS = [1, 5, 10];
 
-const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollToOrderBook }: SimpleTradingCardProps) => {
+const SimpleTradingCard = ({ 
+  marketId, 
+  yesPrice, 
+  noPrice, 
+  userBalance, 
+  onScrollToOrderBook,
+  platformFeePercent = 3,
+  creatorFeePercent = 0
+}: SimpleTradingCardProps) => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [stakeAmount, setStakeAmount] = useState(10);
@@ -80,11 +90,23 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
   const effectiveYesPrice = yesEstimate?.avgPrice ?? yesPrice;
   const effectiveNoPrice = noEstimate?.avgPrice ?? noPrice;
 
-  // Calculate shares and payout based on effective prices
+  // Calculate fee-adjusted payouts
+  const totalFeePercent = platformFeePercent + creatorFeePercent;
+  const feeMultiplier = 1 - (totalFeePercent / 100);
+  
+  // Calculate shares based on effective prices
   const yesShares = stakeAmount / effectiveYesPrice;
   const noShares = stakeAmount / effectiveNoPrice;
-  const yesPayout = yesShares; // $1 per share if wins
-  const noPayout = noShares;
+  
+  // Gross payout is $1 per share, fee is applied to profit
+  const yesGrossPayout = yesShares;
+  const noGrossPayout = noShares;
+  
+  // Net payout after fees (fee applied to profit portion)
+  const yesProfit = yesGrossPayout - stakeAmount;
+  const noProfit = noGrossPayout - stakeAmount;
+  const yesPayout = stakeAmount + (yesProfit * feeMultiplier);
+  const noPayout = stakeAmount + (noProfit * feeMultiplier);
 
   const handleTrade = async (side: "yes" | "no") => {
     if (!isAuthenticated) {
@@ -413,10 +435,11 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
                 <p className="text-2xl font-black">{formatOdds(yesPrice)}</p>
               )}
               
-              {/* Prominent payout display */}
+              {/* Prominent payout display with fee info */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If Yes, you get</p>
-                <p className="text-xl font-black">{yesPayout.toFixed(2)} tokens</p>
+                <p className="text-xl font-black">${yesPayout.toFixed(2)}</p>
+                <p className="text-[10px] opacity-60">After {totalFeePercent}% fee</p>
               </div>
             </div>
             
@@ -459,10 +482,11 @@ const SimpleTradingCard = ({ marketId, yesPrice, noPrice, userBalance, onScrollT
                 <p className="text-2xl font-black">{formatOdds(noPrice)}</p>
               )}
               
-              {/* Prominent payout display */}
+              {/* Prominent payout display with fee info */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If No, you get</p>
-                <p className="text-xl font-black">{noPayout.toFixed(2)} tokens</p>
+                <p className="text-xl font-black">${noPayout.toFixed(2)}</p>
+                <p className="text-[10px] opacity-60">After {totalFeePercent}% fee</p>
               </div>
             </div>
             
