@@ -32,16 +32,10 @@ export function LiquidityWarning({
     ? calculateEstimatedFill(side, stakeAmount, indicativePrice) 
     : null;
 
-  // Show warning if no liquidity at all
+  // Don't show no-liquidity warning here - EstimatedFillPreview handles that case
+  // to avoid duplicate warnings
   if (!liquidity) {
-    return (
-      <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <p className="text-xs">
-          <span className="font-medium">No liquidity available.</span> Your order will be placed in the book at your price.
-        </p>
-      </div>
-    );
+    return null;
   }
 
   // Show warning if partial fill expected
