@@ -376,12 +376,30 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
         </div>
         
         <div className="space-y-4">
-          {/* Mode description */}
-          <p className="text-xs text-muted-foreground text-center">
-            {viewMode === "buy" 
-              ? "Showing prices where you can buy shares (dual-sided matching)"
-              : "Showing raw orders — sell your position to these buyers"}
-          </p>
+          {/* Liquidity Summary */}
+          {(() => {
+            const totalYesLiquidity = displayYesOrders.reduce((sum, o) => sum + o.quantity, 0);
+            const totalNoLiquidity = displayNoOrders.reduce((sum, o) => sum + o.quantity, 0);
+            const totalLiquidity = totalYesLiquidity + totalNoLiquidity;
+            
+            return (
+              <div className="flex items-center justify-center gap-4 py-2 px-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <span className="text-muted-foreground">Total Liquidity:</span>
+                  <span className="font-semibold">{totalLiquidity.toFixed(0)} shares</span>
+                </div>
+                <div className="h-3 w-px bg-border" />
+                <div className="flex items-center gap-3 text-xs">
+                  <span className="text-green-600 dark:text-green-500 font-medium">
+                    YES: {totalYesLiquidity.toFixed(0)}
+                  </span>
+                  <span className="text-red-600 dark:text-red-500 font-medium">
+                    NO: {totalNoLiquidity.toFixed(0)}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
           
           {/* Best Prices Summary */}
           <div className="grid grid-cols-2 gap-3">
