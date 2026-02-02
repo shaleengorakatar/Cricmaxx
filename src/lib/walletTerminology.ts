@@ -71,8 +71,9 @@ export function getActivityLabel(type: WalletActivityType, amount: number, marke
 
 // Token amount presets for buy flow
 export const TOKEN_PRESETS = [
-  { amount: 10, display: "$10 → 10 tokens" },
-  { amount: 25, display: "$25 → 25 tokens" },
   { amount: 50, display: "$50 → 50 tokens" },
+  { amount: 75, display: "$75 → 75 tokens" },
   { amount: 100, display: "$100 → 100 tokens" },
 ] as const;
+
+export const MIN_TOKEN_PURCHASE = 30;
