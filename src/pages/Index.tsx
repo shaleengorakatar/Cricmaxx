@@ -6,6 +6,7 @@ import SeriesSearchWidget from "@/components/SeriesSearchWidget";
 import LiveMarketsWidget from "@/components/LiveMarketsWidget";
 import { FeaturedMarket } from "@/components/markets/FeaturedMarket";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { HowItWorks } from "@/components/HowItWorks";
 
 const Index = () => {
   return (
@@ -14,6 +15,7 @@ const Index = () => {
       <OnboardingModal />
       <main className="flex-1">
         <Hero />
+        <HowItWorks />
         
         {/* Featured Market - Prediction of the Day */}
         <section className="py-8 bg-gradient-to-b from-secondary/30 to-background">
