@@ -53,9 +53,15 @@ const TransactionHistory = ({ transactions }: TransactionHistoryProps) => {
     return type === "deposit" || type === "settlement" || type === "refund";
   };
 
+  // Format amount to avoid floating point display issues
+  const formatAmount = (amount: number): string => {
+    const rounded = Math.round(amount * 100) / 100;
+    return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+  };
+
   const formatActivity = (transaction: Transaction) => {
     const prefix = isCredit(transaction.type) ? "+" : "–";
-    const amount = Math.abs(transaction.amount);
+    const amount = formatAmount(Math.abs(transaction.amount));
     
     switch (transaction.type) {
       case "deposit":
