@@ -50,9 +50,9 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
           <AlertCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-xs sm:text-xs text-muted-foreground leading-relaxed">
-              <span className="font-medium">CFTC-Regulated Event Contract:</span> This is a fixed-payout binary contract{" "}
-              <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount ($1.00) if you're correct and nothing ($0.00) if you're wrong. They are regulated as commodity swaps by the CFTC, not gambling." />
-              {" "}Pays $1.00 if correct, $0.00 if incorrect. Federally compliant under CFTC regulations.
+              <span className="font-medium">Event Contract (CFTC Compliance In Progress):</span> This is a fixed-payout binary contract{" "}
+              <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount ($1.00) if you're correct and nothing ($0.00) if you're wrong. We are in the process of obtaining CFTC regulatory approval." />
+              {" "}Pays $1.00 if correct, $0.00 if incorrect. <span className="text-accent font-medium">Beta Release</span> - CFTC compliance in progress.
             </p>
           </div>
         </div>

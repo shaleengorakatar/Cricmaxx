@@ -10,9 +10,9 @@ const CreatorGuidance = () => {
         <div className="flex items-start gap-3">
           <Shield className="h-5 w-5 text-accent mt-0.5 flex-shrink-0" />
           <div>
-            <h4 className="font-medium text-foreground text-sm mb-1">CFTC Compliance</h4>
+            <h4 className="font-medium text-foreground text-sm mb-1">CFTC Compliance (In Progress)</h4>
             <p className="text-xs text-muted-foreground">
-              All markets are fixed-payout $1 contracts under CFTC regulations. 
+              All markets are fixed-payout $1 contracts. We are working toward CFTC compliance. 
               Only use approved templates and real, verifiable events.
             </p>
           </div>
