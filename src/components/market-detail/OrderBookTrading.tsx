@@ -877,35 +877,44 @@ const OrderBookTrading = ({
             )}
           </div>
 
-          {advancedCost > 0 && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-              {/* Primary: What you pay → What you get */}
-              <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground uppercase">You Pay</div>
-                  <div className="text-xl font-bold">${advancedCost.toFixed(2)}</div>
+          {advancedCost > 0 && (() => {
+            const advancedQty = parseFloat(quantity) || 0;
+            const advancedGrossPayout = advancedQty; // $1 per contract
+            const advancedGrossProfit = advancedGrossPayout - advancedCost;
+            const advancedNetProfit = advancedGrossProfit * feeMultiplier;
+            const advancedNetPayout = advancedCost + advancedNetProfit;
+            
+            return (
+              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                {/* Primary: What you pay → What you get */}
+                <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground uppercase">You Pay</div>
+                    <div className="text-xl font-bold">${advancedCost.toFixed(2)}</div>
+                  </div>
+                  <div className="text-2xl text-muted-foreground">→</div>
+                  <div className="text-center">
+                    <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
+                    <div className="text-xl font-bold text-primary">${advancedNetPayout.toFixed(2)}</div>
+                  </div>
                 </div>
-                <div className="text-2xl text-muted-foreground">→</div>
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
-                  <div className="text-xl font-bold text-primary">${parseFloat(quantity).toFixed(2)}</div>
-                </div>
-              </div>
 
-              <div className="border-t border-border/50 pt-3 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-medium text-primary">
-                    +${(parseFloat(quantity) - advancedCost).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                  <span className="font-medium text-destructive">-${advancedCost.toFixed(2)}</span>
+                <div className="border-t border-border/50 pt-3 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Profit if correct:</span>
+                    <span className="font-medium text-primary">
+                      +${advancedNetProfit.toFixed(2)}
+                      <span className="text-xs text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                    <span className="font-medium text-destructive">-${advancedCost.toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <Button
             className="w-full h-12"
