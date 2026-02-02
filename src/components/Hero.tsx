@@ -100,8 +100,8 @@ const Hero = () => {
           >
             Welcome to CricMaxx, the ultimate cricket prediction playground. 
             Make <span className="font-semibold">fast, live predictions</span> on your favorite matches 
-            with real-time order book trading. Feel the stadium energy from anywhere. 
-            All contracts are CFTC-compliant.
+            with real-time order book trading. Feel the stadium energy from anywhere.
+            <span className="block mt-2 text-accent font-medium">🚀 Beta Release — CFTC compliance in progress.</span>
           </motion.p>
 
           {/* Mobile-optimized buttons - stack on mobile, side-by-side on larger screens */}
