@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { getMarketDateRange, ACTIVE_MARKET_STATUSES, shouldShowMarket } from "@/lib/marketFilters";
+import { useBatchIndicativePrices } from "@/hooks/useBatchIndicativePrices";
 
 const Markets = () => {
   const { isAuthenticated } = useAuth();
@@ -164,8 +165,27 @@ const Markets = () => {
     setLoading(false);
   };
 
+  // Batch fetch indicative prices from order book
+  const marketIds = useMemo(() => allMarkets.map(m => m.id), [allMarkets]);
+  const { prices: indicativePrices } = useBatchIndicativePrices(marketIds);
+
+  // Apply indicative prices to markets
+  const marketsWithIndicativePrices = useMemo(() => {
+    return allMarkets.map(market => {
+      const indicative = indicativePrices.get(market.id);
+      if (indicative && indicative.source !== "default") {
+        return {
+          ...market,
+          yesPrice: indicative.yesPrice,
+          noPrice: indicative.noPrice,
+        };
+      }
+      return market;
+    });
+  }, [allMarkets, indicativePrices]);
+
   const filteredMarkets = useMemo(() => {
-    return allMarkets
+    return marketsWithIndicativePrices
       .filter((market) => {
         // Category filter
         const categoryMatch = selectedCategory === "All" || market.category === selectedCategory;
@@ -179,7 +199,7 @@ const Markets = () => {
       })
       // Sort by expiry time - soonest first
       .sort((a, b) => new Date(a.expiryTime).getTime() - new Date(b.expiryTime).getTime());
-  }, [allMarkets, selectedCategory, searchQuery]);
+  }, [marketsWithIndicativePrices, selectedCategory, searchQuery]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
