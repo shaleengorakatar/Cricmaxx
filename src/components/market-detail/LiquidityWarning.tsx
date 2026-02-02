@@ -21,54 +21,8 @@ export function LiquidityWarning({
   stakeAmount, 
   indicativePrice 
 }: LiquidityWarningProps) {
-  const { calculateEstimatedFill, hasLiquidity, loading } = useEstimatedFillPrice(marketId);
-
-  if (loading) return null;
-
-  const liquidity = side === "yes" ? hasLiquidity.yes : hasLiquidity.no;
-  
-  // Calculate estimated fill to check for thin liquidity
-  const estimate = stakeAmount > 0 
-    ? calculateEstimatedFill(side, stakeAmount, indicativePrice) 
-    : null;
-
-  // Don't show no-liquidity warning here - EstimatedFillPreview handles that case
-  // to avoid duplicate warnings
-  if (!liquidity) {
-    return null;
-  }
-
-  // Show warning if partial fill expected
-  if (estimate && estimate.isPartialFill && stakeAmount > 0) {
-    const fillPercent = ((estimate.totalCost / stakeAmount) * 100).toFixed(0);
-    return (
-      <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <AlertDescription className="text-xs">
-          <span className="font-medium text-amber-600 dark:text-amber-400">
-            Low liquidity warning:
-          </span>{" "}
-          Only ~{fillPercent}% of your order can be filled at current prices.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  // Show warning if significant price impact
-  if (estimate && Math.abs(estimate.priceImpact) > 5) {
-    return (
-      <Alert className="py-2 border-amber-500/50 bg-amber-500/10">
-        <AlertTriangle className="h-4 w-4 text-amber-500" />
-        <AlertDescription className="text-xs">
-          <span className="font-medium text-amber-600 dark:text-amber-400">
-            Price impact: {estimate.priceImpact.toFixed(1)}%
-          </span>{" "}
-          — Large orders may execute at higher prices.
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
+  // All warnings are now handled by EstimatedFillPreview to avoid duplicates
+  // This component is kept for backward compatibility but renders nothing
   return null;
 }
 
