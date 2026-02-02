@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp, LogIn, UserPlus } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp, LogIn, UserPlus, Coins, PlusCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 
 interface SimpleTradingCardProps {
   marketId: string;
@@ -54,6 +55,8 @@ const SimpleTradingCard = ({
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showInsufficientBalanceDialog, setShowInsufficientBalanceDialog] = useState(false);
+  const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
   
   // Trade status overlay state
   const [tradeStatus, setTradeStatus] = useState<TradeStatus>('idle');
@@ -115,11 +118,7 @@ const SimpleTradingCard = ({
     }
 
     if (userBalance < stakeAmount) {
-      toast({
-        title: "Insufficient Balance",
-        description: "Please add funds to your wallet",
-        variant: "destructive",
-      });
+      setShowInsufficientBalanceDialog(true);
       if (soundEnabled) playSound('error');
       return;
     }
@@ -532,9 +531,19 @@ const SimpleTradingCard = ({
         {/* Balance Display */}
         {isAuthenticated && (
           <div className="text-center pt-4 border-t border-border/50">
-            <p className="text-sm text-muted-foreground">
-              Available tokens: <span className="font-bold text-foreground">{userBalance.toFixed(0)}</span>
-            </p>
+            {userBalance > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Available tokens: <span className="font-bold text-foreground">{userBalance.toFixed(0)}</span>
+              </p>
+            ) : (
+              <Button
+                onClick={() => setShowBuyTokensDialog(true)}
+                className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Buy Tokens to Start
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
@@ -620,6 +629,57 @@ const SimpleTradingCard = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Insufficient Balance Dialog */}
+      <Dialog open={showInsufficientBalanceDialog} onOpenChange={setShowInsufficientBalanceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl">
+              <Coins className="h-6 w-6 text-accent" />
+              Insufficient Balance
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-3 pt-4">
+              <p className="text-base">
+                You need more tokens to place this prediction.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Your balance: <span className="font-bold">{userBalance.toFixed(0)} tokens</span>
+                <br />
+                Required: <span className="font-bold">{stakeAmount} tokens</span>
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => {
+                setShowInsufficientBalanceDialog(false);
+                setShowBuyTokensDialog(true);
+              }}
+              className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
+            >
+              <PlusCircle className="h-5 w-5" />
+              Buy Tokens
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setShowInsufficientBalanceDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Buy Tokens Dialog */}
+      <PaymentMethodsDialog
+        isOpen={showBuyTokensDialog}
+        onClose={() => setShowBuyTokensDialog(false)}
+        onSuccess={() => {
+          setShowBuyTokensDialog(false);
+          // Balance will refresh via parent component
+        }}
+      />
       </Card>
     </>
   );
