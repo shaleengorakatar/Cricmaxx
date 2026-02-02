@@ -291,6 +291,9 @@ const OrderBookTrading = ({
         setNoLiquidityAmount(cost);
         setShowNoLiquidityDialog(true);
         haptic('warning');
+        // Reset guards before early return
+        tradeInProgressRef.current = false;
+        setIsSubmitting(false);
         return;
       }
 
@@ -322,6 +325,9 @@ const OrderBookTrading = ({
         setNoLiquiditySide(side);
         setNoLiquidityAmount(cost);
         setShowNoLiquidityDialog(true);
+        // Reset guards before early return
+        tradeInProgressRef.current = false;
+        setIsSubmitting(false);
         return;
       }
 
