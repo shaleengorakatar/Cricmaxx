@@ -15,8 +15,27 @@ interface PaymentRecord {
     source?: string;
     stripe_session_id?: string;
     payment_method?: string;
+    type?: string; // Internal transaction type: trade, order_reserve, etc.
   } | null;
 }
+
+// Get the actual transaction purpose from metadata
+const getTransactionPurpose = (record: PaymentRecord): 'payment' | 'trade' | 'redemption' => {
+  const metaType = record.metadata?.type;
+  
+  // If it's a Stripe payment, it's a real deposit
+  if (record.metadata?.source === 'stripe') return 'payment';
+  
+  // Check metadata.type for trading-related transactions
+  if (metaType && ['trade', 'order_reserve', 'trade_adjustment', 'position_sale', 'trade_refund', 'order_cancel_refund'].includes(metaType)) {
+    return 'trade';
+  }
+  
+  // Real redemptions (payout to bank)
+  if (record.type === 'withdrawal' && !metaType) return 'redemption';
+  
+  return record.type === 'deposit' ? 'payment' : 'redemption';
+};
 
 const PaymentHistory = () => {
   const { user } = useAuth();
@@ -33,16 +52,25 @@ const PaymentHistory = () => {
     if (!user) return;
 
     try {
+      // Only fetch actual payment transactions (Stripe deposits and real redemptions)
+      // Exclude trading-related transactions
       const { data, error } = await supabase
         .from("transactions")
         .select("id, type, amount, status, created_at, metadata")
         .eq("user_id", user.id)
         .in("type", ["deposit", "withdrawal"])
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
-      setPayments((data as PaymentRecord[]) || []);
+      
+      // Filter to only show real payments (Stripe deposits) and actual redemptions (not trading)
+      const filteredPayments = (data as PaymentRecord[])?.filter(record => {
+        const purpose = getTransactionPurpose(record);
+        return purpose === 'payment' || purpose === 'redemption';
+      }) || [];
+      
+      setPayments(filteredPayments.slice(0, 20));
     } catch (error) {
       console.error("Error fetching payment history:", error);
     } finally {
