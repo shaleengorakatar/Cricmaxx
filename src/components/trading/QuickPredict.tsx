@@ -16,11 +16,21 @@ interface QuickPredictProps {
   onPredict: (side: 'yes' | 'no', amount: number) => Promise<void>;
   disabled?: boolean;
   className?: string;
+  platformFeePercent?: number;
+  creatorFeePercent?: number;
 }
 
 const QUICK_AMOUNTS = [1, 5, 10, 25];
 
-export function QuickPredict({ yesPrice, noPrice, onPredict, disabled, className }: QuickPredictProps) {
+export function QuickPredict({ 
+  yesPrice, 
+  noPrice, 
+  onPredict, 
+  disabled, 
+  className,
+  platformFeePercent = 3,
+  creatorFeePercent = 0
+}: QuickPredictProps) {
   const { quickPredictAmount, setQuickPredictAmount, formatOdds } = useTradingPreferences();
   const [isLoading, setIsLoading] = useState<'yes' | 'no' | null>(null);
 
@@ -33,8 +43,20 @@ export function QuickPredict({ yesPrice, noPrice, onPredict, disabled, className
     }
   };
 
-  const yesWin = (quickPredictAmount / yesPrice) - quickPredictAmount;
-  const noWin = (quickPredictAmount / noPrice) - quickPredictAmount;
+  // Calculate fee-adjusted payouts
+  const totalFeePercent = platformFeePercent + creatorFeePercent;
+  const feeMultiplier = 1 - (totalFeePercent / 100);
+  
+  // Gross payout - stake = gross profit, then subtract fee from that profit
+  const yesGrossPayout = quickPredictAmount / yesPrice;
+  const noGrossPayout = quickPredictAmount / noPrice;
+  
+  // Fee is applied to the profit portion
+  const yesProfit = yesGrossPayout - quickPredictAmount;
+  const noProfit = noGrossPayout - quickPredictAmount;
+  
+  const yesWin = yesProfit * feeMultiplier;
+  const noWin = noProfit * feeMultiplier;
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -90,7 +112,7 @@ export function QuickPredict({ yesPrice, noPrice, onPredict, disabled, className
                 <span className="font-bold">YES</span>
               </div>
               <span className="text-xs opacity-80">{formatOdds(yesPrice)}</span>
-              <span className="text-[10px] opacity-60">Win ${yesWin.toFixed(2)}</span>
+              <span className="text-[10px] opacity-60">Win ${yesWin.toFixed(2)} <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
             </>
           )}
         </Button>
@@ -109,7 +131,7 @@ export function QuickPredict({ yesPrice, noPrice, onPredict, disabled, className
                 <span className="font-bold">NO</span>
               </div>
               <span className="text-xs opacity-80">{formatOdds(noPrice)}</span>
-              <span className="text-[10px] opacity-60">Win ${noWin.toFixed(2)}</span>
+              <span className="text-[10px] opacity-60">Win ${noWin.toFixed(2)} <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
             </>
           )}
         </Button>

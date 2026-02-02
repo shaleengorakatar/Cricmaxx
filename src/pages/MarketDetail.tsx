@@ -53,6 +53,7 @@ const MarketDetail = () => {
   const [market, setMarket] = useState<Market | null>(null);
   const [marketStatus, setMarketStatus] = useState<string>('open');
   const [marketOutcome, setMarketOutcome] = useState<string | null>(null);
+  const [marketFees, setMarketFees] = useState<{ platform: number; creator: number }>({ platform: 3, creator: 0 });
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
@@ -142,6 +143,10 @@ const MarketDetail = () => {
     setMarket(formattedMarket);
     setMarketStatus(data.status);
     setMarketOutcome(data.outcome);
+    setMarketFees({
+      platform: Number(data.platform_fee_percent) || 3,
+      creator: Number(data.creator_fee_percent) || 0,
+    });
     setPriceHistory(generatePriceHistory(formattedMarket.yesPrice));
     setLoading(false);
   };
@@ -210,6 +215,8 @@ const MarketDetail = () => {
                 yesPrice={market.yesPrice}
                 noPrice={market.noPrice}
                 userBalance={profile?.balance || 0}
+                platformFeePercent={marketFees.platform}
+                creatorFeePercent={marketFees.creator}
               />
               
               {/* Order Book & Chart in tabs for space efficiency */}

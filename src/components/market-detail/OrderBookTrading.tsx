@@ -40,6 +40,8 @@ interface OrderBookTradingProps {
   yesPrice: number; // Fallback from parent
   noPrice: number;  // Fallback from parent
   userBalance: number;
+  platformFeePercent?: number;
+  creatorFeePercent?: number;
 }
 
 interface OrderBookLevel {
@@ -65,7 +67,14 @@ interface UserPosition {
   status: string;
 }
 
-const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallbackNoPrice, userBalance }: OrderBookTradingProps) => {
+const OrderBookTrading = ({ 
+  marketId, 
+  yesPrice: fallbackYesPrice, 
+  noPrice: fallbackNoPrice, 
+  userBalance,
+  platformFeePercent = 3,
+  creatorFeePercent = 0
+}: OrderBookTradingProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -435,9 +444,17 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
   const totalCost = inputMode === "contracts"
     ? contracts * currentPrice
     : (dollarAmount ? parseFloat(dollarAmount) : 0);
-    
-  const totalPayout = contracts; // Each contract = $1 payout
-  const potentialProfit = totalPayout - totalCost;
+  
+  // Fee calculations
+  const totalFeePercent = platformFeePercent + creatorFeePercent;
+  const feeMultiplier = 1 - (totalFeePercent / 100);
+  
+  // Gross payout is $1 per contract, fee applies to profit
+  const grossPayout = contracts; // Each contract = $1 payout
+  const grossProfit = grossPayout - totalCost;
+  const potentialProfit = grossProfit * feeMultiplier;
+  const totalPayout = totalCost + potentialProfit; // Net payout after fees
+  
   const advancedCost = quantity && limitPrice ? parseFloat(quantity) * parseFloat(limitPrice) : 0;
   
   // For display consistency
@@ -653,6 +670,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
                   <div className="text-xl font-bold text-primary">${totalPayout.toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground">after {totalFeePercent}% fee</div>
                 </div>
               </div>
 
@@ -663,7 +681,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)}</span>
+                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">(after {totalFeePercent}% fee)</span></span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
@@ -946,8 +964,9 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
               const price = Number(order.price);
               const quantity = order.quantity;
               const totalCost = quantity * price;
-              const potentialPayout = quantity; // Each contract pays $1 if correct
-              const potentialProfit = potentialPayout - totalCost;
+              const grossPayout = quantity; // Each contract pays $1 if correct
+              const grossProfit = grossPayout - totalCost;
+              const netProfit = grossProfit * feeMultiplier;
               
               return (
                 <div key={order.id} className="bg-muted/30 rounded-lg p-3 text-sm">
@@ -977,7 +996,7 @@ const OrderBookTrading = ({ marketId, yesPrice: fallbackYesPrice, noPrice: fallb
                     </div>
                     <div>
                       <p className="text-muted-foreground">If correct</p>
-                      <p className="font-semibold text-green-600">+${potentialProfit.toFixed(2)}</p>
+                      <p className="font-semibold text-success">+${netProfit.toFixed(2)}</p>
                     </div>
                   </div>
                 </div>
