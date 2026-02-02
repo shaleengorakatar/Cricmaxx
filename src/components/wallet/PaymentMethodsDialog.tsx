@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, CreditCard, Wallet, Check, Shield, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { WALLET_TERMS, TOKEN_PRESETS } from "@/lib/walletTerminology";
+import { WALLET_TERMS, TOKEN_PRESETS, MIN_TOKEN_PURCHASE } from "@/lib/walletTerminology";
 import { cn } from "@/lib/utils";
 
 interface PaymentMethodsDialogProps {
@@ -24,13 +24,13 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
   const { toast } = useToast();
 
   const finalAmount = selectedAmount || (customAmount ? parseInt(customAmount, 10) : 0);
-  const isValidAmount = finalAmount >= 10 && finalAmount <= 10000;
+  const isValidAmount = finalAmount >= MIN_TOKEN_PURCHASE && finalAmount <= 10000;
 
   const handlePayment = async () => {
     if (!isValidAmount) {
       toast({
         title: "Invalid amount",
-        description: "Please select or enter an amount between $10 and $10,000",
+        description: `Please select or enter an amount between $${MIN_TOKEN_PURCHASE} and $10,000`,
         variant: "destructive",
       });
       return;
@@ -130,7 +130,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
               <Input
                 type="text"
                 inputMode="numeric"
-                placeholder="Custom (min $10)"
+                placeholder={`Custom (min $${MIN_TOKEN_PURCHASE})`}
                 value={customAmount}
                 onChange={(e) => handleCustomAmountChange(e.target.value)}
                 className={cn(
