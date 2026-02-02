@@ -237,12 +237,17 @@ const OrderBookTrading = ({
     }
   };
 
+  // Ref guard to prevent rapid double-submissions
+  const tradeInProgressRef = useRef(false);
+
   const handleSimpleTrade = async () => {
+    // Client-side guard prevents rapid double-clicks
+    if (tradeInProgressRef.current || isSubmitting) return;
+    
     if (!user) {
       setShowAuthDialog(true);
       return;
     }
-
 
     // Calculate contracts based on input mode
     const currentPrice = side === "yes" ? yesPrice : noPrice;
@@ -263,6 +268,8 @@ const OrderBookTrading = ({
       return;
     }
 
+    // Set both guards
+    tradeInProgressRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -281,7 +288,7 @@ const OrderBookTrading = ({
       // Check for no liquidity response or failed order
       if (data?.noLiquidity || data?.success === false) {
         setNoLiquiditySide(side);
-        setNoLiquidityAmount(totalCost);
+        setNoLiquidityAmount(cost);
         setShowNoLiquidityDialog(true);
         haptic('warning');
         return;
@@ -313,7 +320,7 @@ const OrderBookTrading = ({
         // Order was cancelled or no fill happened - show dialog only (no toast)
         haptic('warning');
         setNoLiquiditySide(side);
-        setNoLiquidityAmount(totalCost);
+        setNoLiquidityAmount(cost);
         setShowNoLiquidityDialog(true);
         return;
       }
@@ -331,11 +338,15 @@ const OrderBookTrading = ({
         variant: "destructive",
       });
     } finally {
+      tradeInProgressRef.current = false;
       setIsSubmitting(false);
     }
   };
 
   const handleAdvancedTrade = async () => {
+    // Client-side guard prevents rapid double-clicks
+    if (tradeInProgressRef.current || isSubmitting) return;
+    
     if (!user) {
       setShowAuthDialog(true);
       return;
@@ -362,6 +373,8 @@ const OrderBookTrading = ({
       return;
     }
 
+    // Set both guards
+    tradeInProgressRef.current = true;
     setIsSubmitting(true);
     
     // Optimistically add order to order book for instant UI feedback
@@ -403,6 +416,7 @@ const OrderBookTrading = ({
         variant: "destructive",
       });
     } finally {
+      tradeInProgressRef.current = false;
       setIsSubmitting(false);
     }
   };
