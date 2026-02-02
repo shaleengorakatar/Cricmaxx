@@ -51,11 +51,9 @@ export function useRealtimeOrderBook({
     
     lastFetchRef.current = now;
 
-    // Use the aggregated view for efficiency (single query vs multiple)
+    // Use RPC function to get aggregated order book (bypasses RLS for all users)
     const { data: aggregatedData, error } = await supabase
-      .from('order_book_aggregated')
-      .select('side, price, total_quantity')
-      .eq('market_id', marketId);
+      .rpc('get_order_book_aggregated', { market_ids: [marketId] });
 
     if (error) {
       console.error('Error fetching order book:', error);

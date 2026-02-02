@@ -55,11 +55,9 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
     }
     lastFetchRef.current = now;
 
-    // Fetch aggregated order book data from the public view (shows ALL orders anonymously)
+    // Fetch aggregated order book data using RPC function (bypasses RLS)
     const { data: aggregatedOrderBook } = await supabase
-      .from('order_book_aggregated')
-      .select('side, price, total_quantity')
-      .eq('market_id', marketId);
+      .rpc('get_order_book_aggregated', { market_ids: [marketId] });
     
     // Fetch user's own orders separately to mark them with "(you)"
     let userOrderPrices: Set<string> = new Set();
