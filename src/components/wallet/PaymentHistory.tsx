@@ -119,7 +119,7 @@ const PaymentHistory = () => {
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className={`text-sm font-medium ${payment.type === "deposit" ? "text-accent" : "text-destructive"}`}>
-                {payment.type === "deposit" ? "+" : "-"}{Math.abs(payment.amount)} tokens
+                {payment.type === "deposit" ? "+" : "-"}{Math.round(Math.abs(payment.amount) * 100) / 100} tokens
               </p>
               <p className="text-xs text-muted-foreground">
                 {getPaymentMethod(payment.metadata)}

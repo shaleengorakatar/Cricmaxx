@@ -52,20 +52,27 @@ export type WalletActivityType =
   | "redemption_requested"
   | "redemption_completed";
 
+// Format amount to avoid floating point display issues
+function formatAmount(amount: number): string {
+  const rounded = Math.round(amount * 100) / 100;
+  return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(2);
+}
+
 export function getActivityLabel(type: WalletActivityType, amount: number, marketName?: string): string {
+  const formatted = formatAmount(amount);
   switch (type) {
     case "tokens_added":
-      return `+${amount} Tokens added`;
+      return `+${formatted} Tokens added`;
     case "tokens_committed":
-      return `–${amount} Tokens committed${marketName ? ` (${marketName})` : ''}`;
+      return `–${formatted} Tokens committed${marketName ? ` (${marketName})` : ''}`;
     case "tokens_settled":
-      return `+${amount} Tokens settled${marketName ? ` (${marketName})` : ''}`;
+      return `+${formatted} Tokens settled${marketName ? ` (${marketName})` : ''}`;
     case "redemption_requested":
-      return `–${amount} Tokens redemption requested`;
+      return `–${formatted} Tokens redemption requested`;
     case "redemption_completed":
-      return `–${amount} Tokens redeemed`;
+      return `–${formatted} Tokens redeemed`;
     default:
-      return `${amount} Tokens`;
+      return `${formatted} Tokens`;
   }
 }
 
