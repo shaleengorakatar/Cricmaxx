@@ -33,6 +33,7 @@ import { playSound, flashScreen, triggerConfetti, triggerHaptic } from "@/lib/tr
 import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { useIndicativePrice } from "@/hooks/useIndicativePrice";
 import { useRealtimeOrderBook } from "@/hooks/useRealtimeOrderBook";
+import { useEstimatedFillPrice } from "@/hooks/useEstimatedFillPrice";
 import FeatureHelpTooltip from "@/components/FeatureHelpTooltip";
 import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 
@@ -92,6 +93,9 @@ const OrderBookTrading = ({
     loading: priceLoading 
   } = useIndicativePrice(marketId);
   
+  // Use estimated fill price hook for dangerous price detection
+  const { calculateEstimatedFill } = useEstimatedFillPrice(marketId);
+  
   // Use indicative prices, fallback to props if still loading
   const yesPrice = priceLoading ? fallbackYesPrice : indicativeYesPrice;
   const noPrice = priceLoading ? fallbackNoPrice : indicativeNoPrice;
@@ -105,6 +109,16 @@ const OrderBookTrading = ({
   const [showInsufficientBalanceDialog, setShowInsufficientBalanceDialog] = useState(false);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
   const [insufficientBalanceAmount, setInsufficientBalanceAmount] = useState(0);
+  
+  // Dangerous price warning dialog state
+  const [showDangerousPriceDialog, setShowDangerousPriceDialog] = useState(false);
+  const [dangerousPriceData, setDangerousPriceData] = useState<{
+    side: "yes" | "no";
+    marketPrice: number;
+    fillPrice: number;
+    contracts: number;
+    totalCost: number;
+  } | null>(null);
   
   // Trade status overlay state
   const [tradeStatus, setTradeStatus] = useState<TradeStatus>('idle');
@@ -240,7 +254,7 @@ const OrderBookTrading = ({
   // Ref guard to prevent rapid double-submissions
   const tradeInProgressRef = useRef(false);
 
-  const handleSimpleTrade = async () => {
+  const handleSimpleTrade = async (skipDangerousCheck = false) => {
     // Client-side guard prevents rapid double-clicks
     if (tradeInProgressRef.current || isSubmitting) return;
     
@@ -266,6 +280,27 @@ const OrderBookTrading = ({
       setShowInsufficientBalanceDialog(true);
       haptic('warning');
       return;
+    }
+
+    // Check for dangerous price fills (unless user already confirmed)
+    if (!skipDangerousCheck) {
+      const estimate = calculateEstimatedFill(side, cost, currentPrice);
+      if (estimate) {
+        const priceDifferencePercent = Math.abs(estimate.priceImpact);
+        // Warn if estimated fill price differs by more than 15% from market price
+        if (priceDifferencePercent > 15) {
+          setDangerousPriceData({
+            side,
+            marketPrice: currentPrice,
+            fillPrice: estimate.avgPrice,
+            contracts: contractsToTrade,
+            totalCost: cost,
+          });
+          setShowDangerousPriceDialog(true);
+          haptic('warning');
+          return;
+        }
+      }
     }
 
     // Set both guards
@@ -361,8 +396,9 @@ const OrderBookTrading = ({
     const price = parseFloat(limitPrice);
     const qty = parseFloat(quantity);
 
-    if (!price || price <= 0 || price >= 1) {
-      toast({ title: "Price must be between $0.01 and $0.99", variant: "destructive" });
+    // Enforce 1-99 cents range for limit orders
+    if (!price || price < 0.01 || price > 0.99) {
+      toast({ title: "Price must be between 1¢ and 99¢", variant: "destructive" });
       return;
     }
 
@@ -716,7 +752,7 @@ const OrderBookTrading = ({
 
           <Button
             className="w-full h-12 text-lg"
-            onClick={handleSimpleTrade}
+            onClick={() => handleSimpleTrade()}
             disabled={isSubmitting || !hasValidInput}
           >
             {isSubmitting ? (
@@ -1215,6 +1251,84 @@ const OrderBookTrading = ({
           // Balance will refresh via parent component
         }}
       />
+
+      {/* Dangerous Price Warning Dialog */}
+      <Dialog open={showDangerousPriceDialog} onOpenChange={setShowDangerousPriceDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-center gap-2 text-xl text-destructive">
+              <AlertTriangle className="h-6 w-6" />
+              Price Warning
+            </DialogTitle>
+            <DialogDescription className="text-center space-y-4 pt-4">
+              {dangerousPriceData && (
+                <>
+                  <p className="text-base font-medium text-foreground">
+                    This order will fill at a significantly different price!
+                  </p>
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Market price:</span>
+                      <span className="font-bold">{(dangerousPriceData.marketPrice * 100).toFixed(0)}¢</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Your fill price:</span>
+                      <span className="font-bold text-destructive">{(dangerousPriceData.fillPrice * 100).toFixed(0)}¢</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Difference:</span>
+                      <span className="font-bold text-destructive">
+                        {Math.abs(((dangerousPriceData.fillPrice - dangerousPriceData.marketPrice) / dangerousPriceData.marketPrice) * 100).toFixed(0)}% {dangerousPriceData.fillPrice > dangerousPriceData.marketPrice ? 'more expensive' : 'cheaper'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    There may be orders in this market at prices that are far from the current market value. 
+                    Consider using <strong>Set Your Price</strong> mode for better control.
+                  </p>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setShowDangerousPriceDialog(false);
+                setTradingMode("advanced");
+                // Pre-fill limit order with market price
+                if (dangerousPriceData) {
+                  setLimitPrice(dangerousPriceData.marketPrice.toFixed(2));
+                  setQuantity(dangerousPriceData.contracts.toString());
+                }
+              }}
+              className="w-full h-12 gap-2"
+            >
+              <BookOpen className="h-5 w-5" />
+              Use Set Your Price Instead
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowDangerousPriceDialog(false);
+                // Proceed with trade, skipping the dangerous check
+                handleSimpleTrade(true);
+              }}
+              variant="destructive"
+              className="w-full h-12 gap-2"
+            >
+              <AlertTriangle className="h-5 w-5" />
+              Trade Anyway (I understand the risk)
+            </Button>
+            <Button 
+              variant="ghost"
+              onClick={() => setShowDangerousPriceDialog(false)}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </Card>
     </>
   );
