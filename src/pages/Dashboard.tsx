@@ -46,7 +46,7 @@ const Dashboard = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { isAuthenticated, profile, loading, user, profileError, refetchProfile } = useAuth();
+  const { isAuthenticated, profile, loading, user, profileError, profileLoading, refetchProfile } = useAuth();
   const [balance, setBalance] = useState(profile?.balance || 0);
   const [profitLoss, setProfitLoss] = useState(0);
   const [pendingOrderTokens, setPendingOrderTokens] = useState(0);
@@ -339,14 +339,15 @@ const Dashboard = () => {
           {profileError ? (
             <>
               <p className="text-muted-foreground mb-4">Failed to load profile. Please try again.</p>
-              <Button onClick={refetchProfile} variant="outline">
-                Retry
+              <Button onClick={refetchProfile} variant="outline" disabled={profileLoading}>
+                {profileLoading ? 'Retrying...' : 'Retry'}
               </Button>
             </>
           ) : (
             <>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading your profile...</p>
+              <p className="text-xs text-muted-foreground mt-2">This may take a moment on slow connections</p>
             </>
           )}
         </div>

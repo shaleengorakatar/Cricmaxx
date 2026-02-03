@@ -30,30 +30,39 @@ export const useAuth = () => {
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileError, setProfileError] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     let isMounted = true;
 
     // Fetch user profile and roles - defined inside to access isMounted
-    const fetchUserData = async (userId: string): Promise<boolean> => {
+    const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<boolean> => {
       try {
+        if (isPostAuthFetch && isMounted) {
+          setProfileLoading(true);
+        }
+        
         // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData, error: fetchError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single();
 
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          if (isMounted) setProfileError(true);
+        if (fetchError) {
+          console.error('Error fetching profile:', fetchError);
+          if (isMounted) {
+            setProfileError(true);
+            setProfileLoading(false);
+          }
           return false;
         }
         
         if (isMounted) {
           setProfile(profileData);
           setProfileError(false);
+          setProfileLoading(false);
         }
 
         // Fetch roles
@@ -74,27 +83,44 @@ export const useAuth = () => {
         return true;
       } catch (error) {
         console.error('Error fetching user data:', error);
-        if (isMounted) setProfileError(true);
+        if (isMounted) {
+          setProfileError(true);
+          setProfileLoading(false);
+        }
         return false;
       }
     };
 
     // Listener for ONGOING auth changes (does NOT control loading state)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         if (!isMounted) return;
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Fire and forget - don't await, don't set loading
-        // This handles sign-in/sign-out events AFTER initial load
+        // Handle sign-in/sign-out events AFTER initial load
         if (currentSession?.user) {
-          fetchUserData(currentSession.user.id);
+          // Set a flag that we're fetching, timeout will check this
+          let fetchCompleted = false;
+          
+          // Use a timeout to ensure we show error state if profile fetch takes too long
+          const timeoutId = setTimeout(() => {
+            if (isMounted && !fetchCompleted) {
+              console.warn('Profile fetch timeout - showing error state');
+              setProfileError(true);
+              setProfileLoading(false);
+            }
+          }, 10000); // 10 second timeout for mobile
+          
+          await fetchUserData(currentSession.user.id, true);
+          fetchCompleted = true;
+          clearTimeout(timeoutId);
         } else {
           setProfile(null);
           setRoles([]);
           setProfileError(false);
+          setProfileLoading(false);
         }
       }
     );
@@ -175,14 +201,18 @@ export const useAuth = () => {
   const refetchProfile = async () => {
     if (user?.id) {
       setProfileError(false);
+      setProfileLoading(true);
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
+      setProfileLoading(false);
       if (!error && profileData) {
         setProfile(profileData);
+      } else {
+        setProfileError(true);
       }
     }
   };
@@ -194,6 +224,7 @@ export const useAuth = () => {
     roles,
     loading,
     profileError,
+    profileLoading,
     refetchProfile,
     signUp,
     signIn,
