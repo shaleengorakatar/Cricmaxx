@@ -36,37 +36,35 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
+    let lastActiveTime = Date.now();
+    const STALE_SESSION_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
-    // Session refresh on tab visibility change
+    // Session refresh on tab visibility change - only if user was away for a while
     const refreshSessionOnVisibility = async () => {
-      if (document.visibilityState !== 'visible') return;
+      if (document.visibilityState !== 'visible') {
+        // Track when user left
+        lastActiveTime = Date.now();
+        return;
+      }
+      
+      // Only refresh if user was away for more than 5 minutes
+      const timeSinceActive = Date.now() - lastActiveTime;
+      if (timeSinceActive < STALE_SESSION_THRESHOLD) {
+        return;
+      }
       
       try {
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        // Just try to refresh the session silently - don't clear state on failure
+        const { data: refreshData } = await supabase.auth.refreshSession();
         
-        if (error || !currentSession) {
-          // Session expired - try to refresh
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
-          if (refreshError || !refreshData.session) {
-            // Can't refresh - clear state
-            console.warn('Session expired and refresh failed, clearing auth state');
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setRoles([]);
-            }
-            return;
-          }
-          
-          if (isMounted) {
-            setSession(refreshData.session);
-            setUser(refreshData.session.user);
-          }
+        if (refreshData.session && isMounted) {
+          setSession(refreshData.session);
+          setUser(refreshData.session.user);
         }
+        // If refresh fails, don't sign out - let the normal auth flow handle it
       } catch (err) {
         console.error('Error refreshing session on visibility:', err);
+        // Don't clear state here - let normal requests fail and trigger proper error handling
       }
     };
 
