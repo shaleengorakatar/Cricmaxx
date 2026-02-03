@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -32,43 +33,53 @@ export const useAuth = () => {
   const [profileError, setProfileError] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Use ref for lastActiveTime to persist across re-renders
+  const lastActiveTimeRef = useRef<number>(Date.now());
+  // Ref to prevent concurrent refresh calls (debouncing)
+  const isRefreshingRef = useRef<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
-    let lastActiveTime = Date.now();
     const STALE_SESSION_THRESHOLD = 30 * 60 * 1000; // 30 minutes - only refresh if away longer than this
 
     // Session refresh on tab visibility change - only if user was away for a while
     const refreshSessionOnVisibility = async () => {
       if (document.visibilityState !== 'visible') {
         // Track when user left
-        lastActiveTime = Date.now();
+        lastActiveTimeRef.current = Date.now();
         return;
       }
       
-      // Only refresh if user was away for more than 5 minutes
-      const timeSinceActive = Date.now() - lastActiveTime;
+      // Prevent concurrent refresh calls (debouncing)
+      if (isRefreshingRef.current) {
+        return;
+      }
+      
+      // Only refresh if user was away for more than threshold
+      const timeSinceActive = Date.now() - lastActiveTimeRef.current;
       if (timeSinceActive < STALE_SESSION_THRESHOLD) {
         return;
       }
       
+      isRefreshingRef.current = true;
+      
       try {
-        // Check if we still have a valid session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // Prioritize refreshSession over getSession to ensure we have a valid token
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (!currentSession) {
-          // Session is gone - try to refresh
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          
-          if (refreshError || !refreshData.session) {
-            // Session truly expired - notify user and redirect
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setRoles([]);
-              
+        if (refreshError || !refreshData.session) {
+          // Session truly expired - notify user and redirect
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setRoles([]);
+            
+            // Only show toast and navigate if not already on home page
+            if (location.pathname !== '/') {
               toast.info("Session expired", {
                 description: "You've been logged out due to inactivity. Please sign in again.",
                 duration: 5000,
@@ -76,18 +87,17 @@ export const useAuth = () => {
               
               navigate('/');
             }
-            return;
           }
-          
-          // Refresh succeeded
-          if (isMounted) {
-            setSession(refreshData.session);
-            setUser(refreshData.session.user);
-          }
+        } else if (isMounted) {
+          // Refresh succeeded - update state
+          setSession(refreshData.session);
+          setUser(refreshData.session.user);
         }
       } catch (err) {
         console.error('Error checking session on visibility:', err);
         // Don't clear state on network errors - let normal requests handle it
+      } finally {
+        isRefreshingRef.current = false;
       }
     };
 
@@ -242,7 +252,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', refreshSessionOnVisibility);
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   const signUp = async (email: string, password: string, name: string, accountType: 'trader' | 'creator') => {
     const redirectUrl = `${window.location.origin}/`;
