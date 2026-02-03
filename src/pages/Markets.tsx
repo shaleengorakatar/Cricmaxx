@@ -197,8 +197,16 @@ const Markets = () => {
         
         return categoryMatch && searchMatch;
       })
-      // Sort by expiry time - soonest first
-      .sort((a, b) => new Date(a.expiryTime).getTime() - new Date(b.expiryTime).getTime());
+      // Sort: T20 World Cup 2026 market first, then by expiry time
+      .sort((a, b) => {
+        const isAT20WC = a.question.toLowerCase().includes("india win t20 world cup 2026");
+        const isBT20WC = b.question.toLowerCase().includes("india win t20 world cup 2026");
+        
+        if (isAT20WC && !isBT20WC) return -1;
+        if (!isAT20WC && isBT20WC) return 1;
+        
+        return new Date(a.expiryTime).getTime() - new Date(b.expiryTime).getTime();
+      });
   }, [marketsWithIndicativePrices, selectedCategory, searchQuery]);
 
   return (
