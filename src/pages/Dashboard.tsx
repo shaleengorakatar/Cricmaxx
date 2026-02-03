@@ -12,7 +12,7 @@ import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
 import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, Settings } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -43,6 +43,7 @@ interface Transaction {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { isAuthenticated, profile, loading, user } = useAuth();
@@ -308,6 +309,16 @@ const Dashboard = () => {
     }
   }, [user?.id]);
 
+  // Scroll to wallet section if hash is #wallet
+  useEffect(() => {
+    if (location.hash === '#wallet' && !loading && profile) {
+      const walletElement = document.getElementById('wallet-section');
+      if (walletElement) {
+        walletElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [location.hash, loading, profile]);
+
   // Show loading state while checking auth - with visible feedback
   if (loading) {
     return (
@@ -356,7 +367,7 @@ const Dashboard = () => {
               <PLChart data={chartData} />
             </div>
             
-            <div className="space-y-4 md:space-y-6">
+            <div id="wallet-section" className="space-y-4 md:space-y-6">
               <WalletActions 
                 balance={balance}
                 onBalanceUpdate={handleBalanceUpdate}
