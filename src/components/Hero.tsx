@@ -69,7 +69,8 @@ const Hero = () => {
             alt="CricMaxx" 
             width={576}
             height={384}
-            fetchPriority="high"
+            // @ts-expect-error fetchpriority is valid HTML but React types don't recognize it
+            fetchpriority="high"
             className="h-64 sm:h-72 md:h-96 w-auto mx-auto mb-0 -mt-8 sm:-mt-10 md:-mt-16 drop-shadow-2xl"
             variants={itemVariants}
             animate={{ 
