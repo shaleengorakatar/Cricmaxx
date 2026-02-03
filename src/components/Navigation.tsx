@@ -101,7 +101,7 @@ const Navigation = () => {
             {/* Balance Display - Mobile (authenticated) */}
             {isAuthenticated && profile && (
               <Link 
-                to="/dashboard" 
+                to="/dashboard#wallet" 
                 className="flex lg:hidden items-center gap-1.5 px-2 py-1 bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer"
               >
                 <Coins className="w-3.5 h-3.5 text-accent" />
@@ -309,7 +309,7 @@ const Navigation = () => {
 
                 {/* Balance Display - Desktop */}
                 <Link 
-                  to="/dashboard" 
+                  to="/dashboard#wallet" 
                   className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors cursor-pointer"
                 >
                   <Coins className="w-4 h-4 text-accent" />
