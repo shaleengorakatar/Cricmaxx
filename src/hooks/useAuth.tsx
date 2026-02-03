@@ -33,38 +33,42 @@ export const useAuth = () => {
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Session refresh on tab visibility change
-  const refreshSessionOnVisibility = useCallback(async () => {
-    if (document.visibilityState !== 'visible') return;
-    
-    try {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
-      if (error || !currentSession) {
-        // Session expired - try to refresh
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshData.session) {
-          // Can't refresh - clear state
-          console.warn('Session expired and refresh failed, clearing auth state');
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setRoles([]);
-          return;
-        }
-        
-        setSession(refreshData.session);
-        setUser(refreshData.session.user);
-      }
-    } catch (err) {
-      console.error('Error refreshing session on visibility:', err);
-    }
-  }, []);
-
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
+
+    // Session refresh on tab visibility change
+    const refreshSessionOnVisibility = async () => {
+      if (document.visibilityState !== 'visible') return;
+      
+      try {
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error || !currentSession) {
+          // Session expired - try to refresh
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            // Can't refresh - clear state
+            console.warn('Session expired and refresh failed, clearing auth state');
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRoles([]);
+            }
+            return;
+          }
+          
+          if (isMounted) {
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+          }
+        }
+      } catch (err) {
+        console.error('Error refreshing session on visibility:', err);
+      }
+    };
 
     // Fetch user profile and roles - defined inside to access isMounted
     const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
@@ -217,7 +221,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', refreshSessionOnVisibility);
     };
-  }, [refreshSessionOnVisibility]);
+  }, []);
 
   const signUp = async (email: string, password: string, name: string, accountType: 'trader' | 'creator') => {
     const redirectUrl = `${window.location.origin}/`;
