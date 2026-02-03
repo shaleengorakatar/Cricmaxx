@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +35,7 @@ export const useAuth = () => {
 
   useEffect(() => {
     let isMounted = true;
+    let isInitialized = false; // Track if initial load is complete
 
     // Fetch user profile and roles - defined inside to access isMounted
     const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
@@ -96,35 +97,78 @@ export const useAuth = () => {
       }
     };
 
-    // Listener for ONGOING auth changes (does NOT control loading state)
+    // INITIAL load (controls loading state) - must complete before onAuthStateChange matters
+    const initializeAuth = async () => {
+      try {
+        // Get existing session - this is synchronous from localStorage
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        // Only try refresh if no session found (Safari ITP workaround)
+        if (!initialSession) {
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          if (refreshData.session) {
+            if (isMounted) {
+              setSession(refreshData.session);
+              setUser(refreshData.session.user);
+              await fetchUserData(refreshData.session.user.id);
+            }
+            return;
+          }
+        }
+        
+        if (!isMounted) return;
+
+        setSession(initialSession);
+        setUser(initialSession?.user ?? null);
+
+        // Fetch profile data BEFORE setting loading false
+        if (initialSession?.user) {
+          const result = await fetchUserData(initialSession.user.id);
+          if (result === 'permission_denied' && isMounted) {
+            console.warn('Profile fetch permission denied - signing out');
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) setProfileError(true);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          isInitialized = true;
+        }
+      }
+    };
+
+    // Start initialization immediately
+    initializeAuth();
+
+    // Listener for ONGOING auth changes (only matters AFTER initial load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        // Skip if still in initial loading - initializeAuth handles this
+        if (!isInitialized) return;
         if (!isMounted) return;
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Handle sign-in/sign-out events AFTER initial load
         if (currentSession?.user) {
-          // Set a flag that we're fetching, timeout will check this
-          let fetchCompleted = false;
+          setProfileLoading(true);
           
-          // Use a timeout to ensure we show error state if profile fetch takes too long
           const timeoutId = setTimeout(() => {
-            if (isMounted && !fetchCompleted) {
-              console.warn('Profile fetch timeout - showing error state');
+            if (isMounted) {
               setProfileError(true);
               setProfileLoading(false);
             }
-          }, 10000); // 10 second timeout for mobile
+          }, 10000);
           
           const result = await fetchUserData(currentSession.user.id, true);
-          fetchCompleted = true;
           clearTimeout(timeoutId);
           
-          // If permission denied, the JWT is bad - sign out
           if (result === 'permission_denied' && isMounted) {
-            console.warn('Permission denied on profile fetch - signing out stale session');
             await supabase.auth.signOut();
           }
         } else {
@@ -135,65 +179,6 @@ export const useAuth = () => {
         }
       }
     );
-
-    // INITIAL load (controls loading state)
-    const initializeAuth = async () => {
-      try {
-        // First try to get existing session
-        let { data: { session: initialSession } } = await supabase.auth.getSession();
-        
-        // Safari ITP may clear localStorage but token might still be refreshable
-        // Try to refresh if we have a session but it appears invalid
-        if (!initialSession) {
-          // Attempt a silent refresh in case Safari cleared storage but refresh token cookie exists
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (!refreshError && refreshData.session) {
-            initialSession = refreshData.session;
-            console.log('Session recovered via refresh');
-          }
-        }
-        
-        // If we have a session, validate it by attempting to refresh
-        // This catches stale/corrupted JWT tokens that would fail on profile fetch
-        if (initialSession) {
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshData.session) {
-            console.warn('Session invalid, signing out:', refreshError?.message);
-            await supabase.auth.signOut();
-            initialSession = null;
-          } else {
-            initialSession = refreshData.session;
-          }
-        }
-        
-        if (!isMounted) return;
-
-        setSession(initialSession);
-        setUser(initialSession?.user ?? null);
-
-        // Fetch data BEFORE setting loading false
-        if (initialSession?.user) {
-          const result = await fetchUserData(initialSession.user.id);
-          // If profile fetch fails due to RLS/permission, sign out the bad session
-          if (result === 'permission_denied' && isMounted) {
-            console.warn('Profile fetch permission denied - signing out invalid session');
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (isMounted) setProfileError(true);
-      } finally {
-        // Only set loading false after ALL initial operations complete
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
 
     return () => {
       isMounted = false;
