@@ -37,25 +37,17 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerif
             <Coins className="h-3.5 w-3.5 text-amber-500" />
             <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
           </div>
-          {balance > 0 ? (
-            <>
-              <p className="text-xl md:text-2xl font-bold text-foreground">
-                {balance.toLocaleString()}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                ≈ ${balance.toLocaleString()}.00
-              </p>
-            </>
-          ) : (
-            <Button
-              size="sm"
-              onClick={onBuyTokens}
-              className="mt-1 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              <PlusCircle className="h-3.5 w-3.5" />
-              Buy Tokens
-            </Button>
-          )}
+          <p className="text-xl md:text-2xl font-bold text-foreground">
+            {balance.toLocaleString()}
+          </p>
+          <Button
+            size="sm"
+            onClick={onBuyTokens}
+            className="mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90 w-full"
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            Buy Tokens
+          </Button>
         </div>
 
         {/* In Play - Secondary */}
