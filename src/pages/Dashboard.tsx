@@ -62,16 +62,16 @@ const Dashboard = () => {
     }
   }, [profile?.balance]);
 
-  // Fetch data when user is available
+  // Fetch data once when user is available - only trigger on user.id change, not profile
   useEffect(() => {
-    if (user?.id && profile) {
+    if (user?.id) {
       fetchBalance();
       fetchTransactions();
       fetchPositions();
       fetchPendingOrders();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, profile]);
+  }, [user?.id]);
 
   // Handle payment success/cancel URL params with polling for webhook processing
   useEffect(() => {

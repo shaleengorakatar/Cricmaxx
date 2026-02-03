@@ -154,34 +154,45 @@ const Markets = () => {
       });
       setUserPositions(positionsMap);
       
-      // Also fetch any markets with positions that might not be in the main list
+      // Fetch any markets with positions that might not be in the main list
       const positionMarketIds = positions.map(p => p.market_id);
-      const existingMarketIds = new Set(allMarkets.map(m => m.id));
-      const missingMarketIds = positionMarketIds.filter(id => !existingMarketIds.has(id));
       
-      if (missingMarketIds.length > 0) {
-        const { data: positionMarkets } = await supabase
-          .from("markets")
-          .select("*")
-          .in("id", missingMarketIds)
-          .in("status", ["approved", "open", "closed"]);
-
-        if (positionMarkets) {
-          const additionalMarkets = positionMarkets.map((m: any) => ({
-            id: m.id,
-            question: m.question,
-            category: m.category as Market["category"],
-            type: m.type as Market["type"],
-            yesPrice: Number(m.yes_price),
-            noPrice: Number(m.no_price),
-            volume: Number(m.volume),
-            expiryTime: m.expiry_time,
-            description: m.description || "",
-            imageUrl: m.image_url || "",
-          }));
-          setAllMarkets(prev => [...prev, ...additionalMarkets]);
+      setAllMarkets(prev => {
+        const existingMarketIds = new Set(prev.map(m => m.id));
+        const missingMarketIds = positionMarketIds.filter(id => !existingMarketIds.has(id));
+        
+        if (missingMarketIds.length > 0) {
+          // Fetch missing markets async and update state
+          supabase
+            .from("markets")
+            .select("*")
+            .in("id", missingMarketIds)
+            .in("status", ["approved", "open", "closed"])
+            .then(({ data: positionMarkets }) => {
+              if (positionMarkets && positionMarkets.length > 0) {
+                const additionalMarkets = positionMarkets.map((m: any) => ({
+                  id: m.id,
+                  question: m.question,
+                  category: m.category as Market["category"],
+                  type: m.type as Market["type"],
+                  yesPrice: Number(m.yes_price),
+                  noPrice: Number(m.no_price),
+                  volume: Number(m.volume),
+                  expiryTime: m.expiry_time,
+                  description: m.description || "",
+                  imageUrl: m.image_url || "",
+                }));
+                // Deduplicate when adding
+                setAllMarkets(current => {
+                  const currentIds = new Set(current.map(m => m.id));
+                  const uniqueAdditional = additionalMarkets.filter(m => !currentIds.has(m.id));
+                  return [...current, ...uniqueAdditional];
+                });
+              }
+            });
         }
-      }
+        return prev;
+      });
     } else {
       setUserPositions(new Map());
     }
