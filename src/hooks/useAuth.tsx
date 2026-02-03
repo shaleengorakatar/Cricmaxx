@@ -43,7 +43,7 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
-    const STALE_SESSION_THRESHOLD = 1 * 60 * 1000; // 1 minute - TEMP FOR TESTING (change back to 30 minutes)
+    const STALE_SESSION_THRESHOLD = 15 * 60 * 1000; // 15 minutes - refresh session if away longer than this
 
     // Session refresh on tab visibility change - only if user was away for a while
     const refreshSessionOnVisibility = async () => {
