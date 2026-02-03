@@ -331,8 +331,21 @@ const Dashboard = () => {
     );
   }
 
-  // Wait for profile to load after auth is confirmed, with error recovery
-  if (isAuthenticated && !profile) {
+  // Wait for profile to load - guard against null profile access
+  if (!profile) {
+    // If not authenticated, show redirecting state (redirect happens via useEffect)
+    if (!isAuthenticated) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Redirecting to login...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Authenticated but profile not loaded yet
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
