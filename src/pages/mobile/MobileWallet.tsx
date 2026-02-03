@@ -295,6 +295,7 @@ const MobileWallet = () => {
         onSuccess={handleBalanceUpdate}
         availableTokens={availableTokens}
         hasOpenPositions={openPositionsCount > 0}
+        userId={user?.id}
       />
     </MobileLayout>
   );

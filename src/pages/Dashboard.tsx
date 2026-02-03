@@ -414,6 +414,7 @@ const Dashboard = () => {
               <WalletActions 
                 balance={balance}
                 onBalanceUpdate={handleBalanceUpdate}
+                userId={user?.id}
               />
               <div className="flex flex-col gap-3">
                 <Button 

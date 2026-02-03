@@ -16,6 +16,7 @@ interface RedeemTokensDialogProps {
   onSuccess: () => void;
   availableTokens: number;
   hasOpenPositions: boolean;
+  userId?: string;
 }
 
 const RedeemTokensDialog = ({ 
@@ -23,14 +24,15 @@ const RedeemTokensDialog = ({
   onClose, 
   onSuccess, 
   availableTokens,
-  hasOpenPositions 
+  hasOpenPositions,
+  userId
 }: RedeemTokensDialogProps) => {
   const [step, setStep] = useState<1 | 2>(1);
   const [amount, setAmount] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<"US" | "CA">("US");
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
-  const { status, isLoading: isLoadingStatus, startOnboarding, isConnecting, requestPayout } = useStripeConnect();
+  const { status, isLoading: isLoadingStatus, startOnboarding, isConnecting, requestPayout } = useStripeConnect(userId);
 
   const redeemAmount = parseFloat(amount) || 0;
   const minRedemption = 10; // Stripe minimum
