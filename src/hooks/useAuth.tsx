@@ -214,7 +214,16 @@ export const useAuth = () => {
   };
 
   const signOut = async () => {
+    // Clear local state first
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setRoles([]);
+    
+    // Then call Supabase signOut
     const { error } = await supabase.auth.signOut();
+    
+    // Navigate after sign out completes
     if (!error) {
       navigate('/');
     }

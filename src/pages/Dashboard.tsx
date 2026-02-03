@@ -54,6 +54,7 @@ const Dashboard = () => {
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+  const [showProfileRecovery, setShowProfileRecovery] = useState(false);
 
   // Sync balance from profile when it loads
   useEffect(() => {
@@ -310,12 +311,22 @@ const Dashboard = () => {
     fetchPendingOrders();
   };
 
-  // Redirect if not authenticated - using early return to prevent render
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       navigate('/auth?mode=login', { replace: true });
     }
   }, [loading, isAuthenticated, navigate]);
+
+  // Profile loading timeout - show recovery after 10s
+  useEffect(() => {
+    if (!loading && isAuthenticated && !profile && !profileError) {
+      const timeout = setTimeout(() => setShowProfileRecovery(true), 10000);
+      return () => clearTimeout(timeout);
+    } else {
+      setShowProfileRecovery(false);
+    }
+  }, [loading, isAuthenticated, profile, profileError]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -343,30 +354,32 @@ const Dashboard = () => {
   }
 
   // Wait for profile to load - guard against null profile access
-  // At this point, user IS authenticated but profile might still be loading
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          {profileError ? (
+          {profileError || showProfileRecovery ? (
             <>
-              <p className="text-muted-foreground mb-4">Failed to load profile. Please try again.</p>
-              <Button onClick={refetchProfile} variant="outline" disabled={profileLoading}>
-                {profileLoading ? 'Retrying...' : 'Retry'}
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="mt-2 text-xs"
-                onClick={() => window.location.reload()}
-              >
-                Refresh Page
-              </Button>
+              <p className="text-muted-foreground mb-4">
+                {profileError ? 'Failed to load profile.' : 'Taking longer than expected...'}
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button onClick={refetchProfile} variant="outline" disabled={profileLoading}>
+                  {profileLoading ? 'Retrying...' : 'Retry'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="text-xs"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Page
+                </Button>
+              </div>
             </>
           ) : (
             <>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading your profile...</p>
-              <p className="text-xs text-muted-foreground mt-2">This may take a moment on slow connections</p>
             </>
           )}
         </div>
