@@ -53,6 +53,11 @@ export const useAuth = () => {
         return;
       }
       
+      // Don't run during initial auth load
+      if (!isInitialized) {
+        return;
+      }
+      
       // Prevent concurrent refresh calls (debouncing)
       if (isRefreshingRef.current) {
         return;
@@ -67,16 +72,31 @@ export const useAuth = () => {
       isRefreshingRef.current = true;
       
       try {
-        // Prioritize refreshSession over getSession to ensure we have a valid token
+        // First check current session state without network call
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        // If no session exists, user is already logged out - don't try to refresh
+        if (!currentSession) {
+          return;
+        }
+        
+        // Try to refresh the session
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (refreshError || !refreshData.session) {
+        // Check if it's a true auth error vs network error
+        const isAuthError = refreshError && (
+          refreshError.message?.includes('invalid') ||
+          refreshError.message?.includes('expired') ||
+          refreshError.message?.includes('JWT') ||
+          refreshError.status === 401 ||
+          refreshError.status === 403
+        );
+        
+        if (isAuthError && !refreshData?.session) {
           // Session truly expired - notify user and redirect
           if (isMounted) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setRoles([]);
+            // Let onAuthStateChange handle state clearing
+            await supabase.auth.signOut();
             
             // Only show toast and navigate if not already on home page
             if (location.pathname !== '/') {
@@ -88,14 +108,12 @@ export const useAuth = () => {
               navigate('/');
             }
           }
-        } else if (isMounted) {
-          // Refresh succeeded - update state
-          setSession(refreshData.session);
-          setUser(refreshData.session.user);
         }
+        // Don't manually update state here - let onAuthStateChange handle it
+        // This prevents race conditions between visibility handler and auth listener
       } catch (err) {
         console.error('Error checking session on visibility:', err);
-        // Don't clear state on network errors - let normal requests handle it
+        // Don't clear state on network/unexpected errors - let normal requests handle it
       } finally {
         isRefreshingRef.current = false;
       }
