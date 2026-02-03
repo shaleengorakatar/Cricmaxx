@@ -30,52 +30,64 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerif
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Available Tokens - Primary */}
         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Coins className="h-3.5 w-3.5 text-amber-500" />
-            <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
+          <div className="flex items-center justify-between sm:flex-col sm:items-start">
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Coins className="h-3.5 w-3.5 text-amber-500" />
+                <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {balance.toLocaleString()}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={onBuyTokens}
+              className="gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90 sm:w-full sm:mt-2"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              Buy Tokens
+            </Button>
           </div>
-          <p className="text-xl md:text-2xl font-bold text-foreground">
-            {balance.toLocaleString()}
-          </p>
-          <Button
-            size="sm"
-            onClick={onBuyTokens}
-            className="mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90 w-full"
-          >
-            <PlusCircle className="h-3.5 w-3.5" />
-            Buy Tokens
-          </Button>
         </div>
 
         {/* In Play - Secondary */}
         <div className="p-3 rounded-lg bg-muted/50 border border-border">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">{WALLET_TERMS.IN_PLAY}</p>
+          <div className="flex items-center justify-between sm:block">
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">{WALLET_TERMS.IN_PLAY}</p>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {tokensInPlay.toLocaleString()}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground sm:mt-0.5">
+              Filled positions
+            </p>
           </div>
-          <p className="text-xl md:text-2xl font-bold text-foreground">
-            {tokensInPlay.toLocaleString()}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Filled positions
-          </p>
         </div>
 
-        {/* Pending Orders - NEW */}
+        {/* Pending Orders */}
         <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <Clock className="h-3.5 w-3.5 text-blue-500" />
-            <p className="text-xs text-muted-foreground">Pending</p>
+          <div className="flex items-center justify-between sm:block">
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Clock className="h-3.5 w-3.5 text-blue-500" />
+                <p className="text-xs text-muted-foreground">Pending</p>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {pendingOrderTokens.toLocaleString()}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground sm:mt-0.5">
+              In order book
+            </p>
           </div>
-          <p className="text-xl md:text-2xl font-bold text-foreground">
-            {pendingOrderTokens.toLocaleString()}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            In order book
-          </p>
         </div>
       </div>
     </Card>
