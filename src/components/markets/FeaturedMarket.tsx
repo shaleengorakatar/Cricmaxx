@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,17 @@ export function FeaturedMarket() {
   const [error, setError] = useState(false);
   const navigate = useNavigate();
   const { formatOdds } = useTradingPreferences();
+  const hasFetchedRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchFeaturedMarket = useCallback(async (retry = false) => {
-    if (retry) {
+  const fetchFeaturedMarket = useCallback(async (isRetry = false) => {
+    // Clear any pending retry
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    if (isRetry) {
       setLoading(true);
       setError(false);
     }
@@ -40,11 +48,12 @@ export function FeaturedMarket() {
       // Check if it's an auth error - if so, wait and retry once
       const isAuthError = fetchError.message?.includes('JWT') || 
                           fetchError.code === 'PGRST301' ||
-                          fetchError.message?.includes('invalid');
+                          fetchError.message?.includes('invalid') ||
+                          fetchError.message?.includes('missing sub claim');
       
-      if (isAuthError && !retry) {
-        // Wait for potential token refresh, then retry
-        setTimeout(() => fetchFeaturedMarket(true), 2000);
+      if (isAuthError && !isRetry) {
+        // Wait for token refresh, then retry
+        retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), 2000);
         return;
       }
       
@@ -55,6 +64,7 @@ export function FeaturedMarket() {
     
     if (!allMarkets || allMarkets.length === 0) {
       setLoading(false);
+      hasFetchedRef.current = true;
       return;
     }
 
@@ -84,11 +94,42 @@ export function FeaturedMarket() {
 
     setError(false);
     setLoading(false);
+    hasFetchedRef.current = true;
   }, []);
 
+  // Initial fetch + failsafe timeout
   useEffect(() => {
     fetchFeaturedMarket();
+    
+    // Failsafe: if still loading after 15 seconds, force retry
+    const failsafeTimeout = setTimeout(() => {
+      if (loading && !error) {
+        console.log('FeaturedMarket: Failsafe triggered - forcing retry');
+        fetchFeaturedMarket(true);
+      }
+    }, 15000);
+    
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      clearTimeout(failsafeTimeout);
+    };
   }, [fetchFeaturedMarket]);
+
+  // Listen for auth state changes and re-fetch if we had an error or are stuck loading
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // Re-fetch when token is refreshed or user signs in
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        if (error || (loading && hasFetchedRef.current)) {
+          fetchFeaturedMarket(true);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [error, loading, fetchFeaturedMarket]);
 
   if (loading) {
     return (
