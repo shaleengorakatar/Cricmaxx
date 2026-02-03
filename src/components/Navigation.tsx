@@ -17,13 +17,16 @@ import PaymentMethodsDialog from "./wallet/PaymentMethodsDialog";
 const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 const Navigation = () => {
-  const { isAuthenticated, signOut, profile, isCreator, isAdmin, loading } = useAuth();
+  const { isAuthenticated, signOut, profile, isCreator, isAdmin, loading, profileLoading } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
   
   // Only show authenticated links when auth is fully resolved AND user is authenticated
   const showAuthenticatedLinks = !loading && isAuthenticated;
+  
+  // Don't show sign-in/sign-up buttons while still loading auth or profile
+  const showUnauthenticatedButtons = !loading && !profileLoading && !isAuthenticated;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -115,7 +118,7 @@ const Navigation = () => {
             )}
 
             {/* Mobile Sign In Button (unauthenticated) */}
-            {!loading && !isAuthenticated && (
+            {showUnauthenticatedButtons && (
               <Button 
                 variant="default"
                 size="sm"
@@ -136,7 +139,7 @@ const Navigation = () => {
               <SheetContent side="right" className="w-[280px] sm:w-[350px] overflow-y-auto">
                 <div className="flex flex-col gap-4 mt-8 pb-8">
                   {/* Prominent Auth Section at Top for Guests */}
-                  {!loading && !isAuthenticated && (
+                  {showUnauthenticatedButtons && (
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-2">
                       <p className="text-sm font-medium text-foreground mb-3">
                         Join CricMaxx to start predicting!
@@ -359,7 +362,7 @@ const Navigation = () => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
-            ) : (
+            ) : showUnauthenticatedButtons ? (
               <div className="flex items-center gap-2">
                 <Button 
                   variant="outline" 
@@ -376,7 +379,7 @@ const Navigation = () => {
                   Sign Up
                 </Button>
               </div>
-            )}
+            ) : null}
             </div>
           </div>
         </div>
