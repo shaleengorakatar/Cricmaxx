@@ -21,20 +21,36 @@ export function FeaturedMarket() {
   }, []);
 
   const fetchFeaturedMarket = async () => {
-    const { now, maxExpiry } = getMarketDateRange();
+    const { now } = getMarketDateRange();
 
-    // First try to get a featured market
+    // Hardcoded: Show "Will India win T20 World Cup 2026?" for the next 45 days
     let { data, error } = await supabase
       .from("markets")
       .select("*")
-      .eq("is_featured", true)
+      .ilike("question", "%India win T20 World Cup 2026%")
       .in("status", [...ACTIVE_MARKET_STATUSES])
       .gte("expiry_time", now.toISOString())
       .limit(1)
       .single();
 
-    // If no featured market, get highest volume market
+    // Fallback to any featured market if T20 WC market not found
     if (!data) {
+      const result = await supabase
+        .from("markets")
+        .select("*")
+        .eq("is_featured", true)
+        .in("status", [...ACTIVE_MARKET_STATUSES])
+        .gte("expiry_time", now.toISOString())
+        .limit(1)
+        .single();
+      
+      data = result.data;
+      error = result.error;
+    }
+
+    // Final fallback: highest volume market
+    if (!data) {
+      const { maxExpiry } = getMarketDateRange();
       const result = await supabase
         .from("markets")
         .select("*")
