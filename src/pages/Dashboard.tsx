@@ -58,7 +58,6 @@ const Dashboard = () => {
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     const amount = searchParams.get("amount");
-    const sessionId = searchParams.get("session_id");
     
     if (paymentStatus === "success" && user?.id) {
       // Clear the URL params immediately
@@ -70,10 +69,11 @@ const Dashboard = () => {
         description: "Your tokens are being added to your wallet.",
       });
 
-      // Poll for balance update (webhook may take a few seconds)
+      // Capture userId to avoid stale closure
+      const userId = user.id;
       let attempts = 0;
       const maxAttempts = 10;
-      const initialBalance = balance;
+      let initialBalanceSnapshot: number | null = null;
       
       const pollForUpdate = async () => {
         attempts++;
@@ -81,19 +81,24 @@ const Dashboard = () => {
         const { data, error } = await supabase
           .from('profiles')
           .select('balance')
-          .eq('id', user.id)
+          .eq('id', userId)
           .single();
         
         if (data && !error) {
           const newBalance = Number(data.balance) || 0;
           
-          // Balance updated - webhook processed
-          if (newBalance > initialBalance || attempts >= maxAttempts) {
+          // Capture initial balance on first poll
+          if (initialBalanceSnapshot === null) {
+            initialBalanceSnapshot = newBalance;
+          }
+          
+          // Balance updated - webhook processed (check if balance increased from first poll OR max attempts reached)
+          if ((attempts > 1 && newBalance > initialBalanceSnapshot) || attempts >= maxAttempts) {
             setBalance(newBalance);
             fetchTransactions();
             
-            if (newBalance > initialBalance) {
-              const addedTokens = newBalance - initialBalance;
+            if (attempts > 1 && newBalance > initialBalanceSnapshot) {
+              const addedTokens = newBalance - initialBalanceSnapshot;
               toast({
                 title: "🎉 Payment Successful!",
                 description: `${addedTokens} tokens have been added to your wallet.`,
@@ -131,6 +136,7 @@ const Dashboard = () => {
       });
       setSearchParams({});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, user?.id]);
 
   // Fetch real-time balance from database
