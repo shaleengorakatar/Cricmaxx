@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCard, { UserPosition } from "@/components/markets/MarketCard";
@@ -6,7 +6,7 @@ import MarketFilters from "@/components/markets/MarketFilters";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LeaderboardModal from "@/components/leaderboard/LeaderboardModal";
 import { MarketCategory, Market } from "@/types/market";
-import { TrendingUp, Trophy } from "lucide-react";
+import { TrendingUp, Trophy, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ const Markets = () => {
   const [allMarkets, setAllMarkets] = useState<Market[]>([]);
   const [userPositions, setUserPositions] = useState<Map<string, UserPosition>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
   // Fetch markets immediately on mount (no auth dependency for public data)
@@ -93,7 +94,12 @@ const Markets = () => {
   }, [isAuthenticated]);
 
   // Fetch public markets (no auth required)
-  const fetchPublicMarkets = async () => {
+  const fetchPublicMarkets = useCallback(async (retry = false) => {
+    if (retry) {
+      setLoading(true);
+      setFetchError(false);
+    }
+    
     const { now, maxExpiry } = getMarketDateRange();
 
     const { data: activeMarkets, error: activeError } = await supabase
@@ -106,6 +112,19 @@ const Markets = () => {
 
     if (activeError) {
       console.error("Error fetching markets:", activeError);
+      
+      // Check if it's an auth error - if so, wait and retry once
+      const isAuthError = activeError.message?.includes('JWT') || 
+                          activeError.code === 'PGRST301' ||
+                          activeError.message?.includes('invalid');
+      
+      if (isAuthError && !retry) {
+        // Wait for potential token refresh, then retry
+        setTimeout(() => fetchPublicMarkets(true), 2000);
+        return;
+      }
+      
+      setFetchError(true);
       setLoading(false);
       return;
     }
@@ -126,8 +145,9 @@ const Markets = () => {
     }));
 
     setAllMarkets(formattedMarkets);
+    setFetchError(false);
     setLoading(false);
-  };
+  }, []);
 
   // Fetch user positions (requires auth)
   const fetchUserPositions = async () => {
@@ -300,6 +320,20 @@ const Markets = () => {
           {loading ? (
             <div className="text-center py-12 sm:py-16">
               <p className="text-base sm:text-lg text-muted-foreground">Loading markets...</p>
+            </div>
+          ) : fetchError ? (
+            <div className="text-center py-12 sm:py-16 space-y-4">
+              <p className="text-base sm:text-lg text-muted-foreground">
+                Unable to load markets
+              </p>
+              <Button 
+                variant="outline" 
+                onClick={() => fetchPublicMarkets(true)}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Try Again
+              </Button>
             </div>
           ) : filteredMarkets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

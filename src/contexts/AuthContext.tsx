@@ -64,32 +64,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
+    let proactiveRefreshInterval: NodeJS.Timeout | null = null;
     const STALE_SESSION_THRESHOLD = 15 * 60 * 1000; // 15 minutes - refresh session if away longer than this
+    const PROACTIVE_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes - proactively refresh token
 
-    // Session refresh on tab visibility change - only if user was away for a while
-    const refreshSessionOnVisibility = async () => {
-      if (document.visibilityState !== 'visible') {
-        // Track when user left
-        lastActiveTimeRef.current = Date.now();
-        return;
-      }
-      
-      // Don't run during initial auth load - wait for initialization
-      if (!isInitialized) {
-        return;
-      }
-      
+    // Core session refresh logic - used by both visibility change and proactive refresh
+    const performSessionRefresh = async (reason: 'visibility' | 'proactive'): Promise<boolean> => {
       // Prevent concurrent refresh calls (debouncing)
       if (isRefreshingRef.current) {
-        return;
-      }
-      
-      // Only refresh if user was away for more than threshold
-      const timeSinceActive = Date.now() - lastActiveTimeRef.current;
-      if (timeSinceActive < STALE_SESSION_THRESHOLD) {
-        // Not away long enough - no need to refresh, just update active time
-        lastActiveTimeRef.current = Date.now();
-        return;
+        return false;
       }
       
       isRefreshingRef.current = true;
@@ -100,14 +83,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         // If no session exists, user is already logged out - don't try to refresh
         if (!currentSession) {
-          return;
+          return false;
         }
         
         // Check if the session token looks valid before attempting refresh
         if (!currentSession.access_token || !currentSession.refresh_token) {
           console.warn('Invalid session tokens found, clearing session');
           await supabase.auth.signOut();
-          return;
+          return false;
         }
         
         // Try to refresh the session
@@ -139,16 +122,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               navigate('/');
             }
           }
+          return false;
         }
-        // Don't manually update state here - let onAuthStateChange handle it
-        // This prevents race conditions between visibility handler and auth listener
+        
+        // Session refreshed successfully
+        return !!refreshData?.session;
       } catch (err) {
-        console.error('Error checking session on visibility:', err);
+        console.error(`Error during ${reason} session refresh:`, err);
         // Don't clear state on network/unexpected errors - let normal requests handle it
+        return false;
       } finally {
         isRefreshingRef.current = false;
         lastActiveTimeRef.current = Date.now();
       }
+    };
+
+    // Session refresh on tab visibility change - only if user was away for a while
+    const refreshSessionOnVisibility = async () => {
+      if (document.visibilityState !== 'visible') {
+        // Track when user left
+        lastActiveTimeRef.current = Date.now();
+        return;
+      }
+      
+      // Don't run during initial auth load - wait for initialization
+      if (!isInitialized) {
+        return;
+      }
+      
+      // Only refresh if user was away for more than threshold
+      const timeSinceActive = Date.now() - lastActiveTimeRef.current;
+      if (timeSinceActive < STALE_SESSION_THRESHOLD) {
+        // Not away long enough - no need to refresh, just update active time
+        lastActiveTimeRef.current = Date.now();
+        return;
+      }
+      
+      await performSessionRefresh('visibility');
+    };
+
+    // Proactive session refresh - runs every 10 minutes to keep token fresh
+    const startProactiveRefresh = () => {
+      proactiveRefreshInterval = setInterval(async () => {
+        if (!isInitialized || document.visibilityState !== 'visible') {
+          return;
+        }
+        
+        // Check if we have a session before trying to refresh
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (currentSession) {
+          await performSessionRefresh('proactive');
+        }
+      }, PROACTIVE_REFRESH_INTERVAL);
     };
 
     // Fetch user profile and roles - defined inside to access isMounted
@@ -257,7 +282,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Start initialization immediately
-    initializeAuth();
+    initializeAuth().then(() => {
+      // Start proactive refresh after auth is initialized
+      startProactiveRefresh();
+    });
 
     // Listener for ONGOING auth changes (only matters AFTER initial load)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -301,6 +329,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isMounted = false;
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', refreshSessionOnVisibility);
+      if (proactiveRefreshInterval) {
+        clearInterval(proactiveRefreshInterval);
+      }
     };
   }, [navigate, location.pathname]);
 

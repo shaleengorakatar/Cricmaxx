@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Clock, ArrowRight } from "lucide-react";
+import { TrendingUp, Clock, ArrowRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
@@ -11,16 +11,18 @@ import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters"
 export default function LiveMarketsWidget() {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchLiveMarkets();
-  }, []);
-
-  const fetchLiveMarkets = async () => {
+  const fetchLiveMarkets = useCallback(async (retry = false) => {
+    if (retry) {
+      setLoading(true);
+      setError(false);
+    }
+    
     const { now, maxExpiry } = getMarketDateRange();
 
-    const { data, error } = await supabase
+    const { data, error: fetchError } = await supabase
       .from("markets")
       .select("*")
       .in("status", [...ACTIVE_MARKET_STATUSES])
@@ -29,8 +31,21 @@ export default function LiveMarketsWidget() {
       .order("volume", { ascending: false })
       .limit(6);
 
-    if (error) {
-      console.error("Error fetching live markets:", error);
+    if (fetchError) {
+      console.error("Error fetching live markets:", fetchError);
+      
+      // Check if it's an auth error - if so, wait and retry once
+      const isAuthError = fetchError.message?.includes('JWT') || 
+                          fetchError.code === 'PGRST301' ||
+                          fetchError.message?.includes('invalid');
+      
+      if (isAuthError && !retry) {
+        // Wait for potential token refresh, then retry
+        setTimeout(() => fetchLiveMarkets(true), 2000);
+        return;
+      }
+      
+      setError(true);
       setLoading(false);
       return;
     }
@@ -49,8 +64,13 @@ export default function LiveMarketsWidget() {
     }));
 
     setMarkets(formattedMarkets);
+    setError(false);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchLiveMarkets();
+  }, [fetchLiveMarkets]);
 
   const getTimeUntilExpiry = (expiryTime: string) => {
     const now = new Date();
@@ -69,6 +89,27 @@ export default function LiveMarketsWidget() {
         <div className="container mx-auto px-4">
           <div className="text-center">
             <p className="text-muted-foreground">Loading live markets...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-12 bg-gradient-to-b from-background to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">Unable to load markets</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => fetchLiveMarkets(true)}
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
           </div>
         </div>
       </section>
