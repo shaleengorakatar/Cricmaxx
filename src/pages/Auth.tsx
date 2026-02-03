@@ -65,6 +65,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && profile) {
+      setLoading(false); // Reset loading when redirect happens
       const redirect = searchParams.get('redirect');
       if (redirect) {
         navigate(redirect);
@@ -73,6 +74,18 @@ const Auth = () => {
       }
     }
   }, [isAuthenticated, profile, navigate, searchParams]);
+
+  // Safety timeout - if we're stuck in loading state for too long after sign-in succeeds
+  useEffect(() => {
+    if (loading && isAuthenticated && !profile) {
+      const timeout = setTimeout(() => {
+        // Force redirect even if profile hasn't loaded - dashboard will handle it
+        const redirect = searchParams.get('redirect');
+        navigate(redirect || '/dashboard');
+      }, 5000); // 5 second safety timeout
+      return () => clearTimeout(timeout);
+    }
+  }, [loading, isAuthenticated, profile, navigate, searchParams]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,6 +200,7 @@ const Auth = () => {
       const { data, error } = await signIn(validated.email, validated.password);
 
       if (error) {
+        setLoading(false);
         toast({
           title: "Login failed",
           description: error.message === "Invalid login credentials" 
@@ -198,20 +212,17 @@ const Auth = () => {
       }
 
       if (data.user) {
-        // Check if user has MFA enabled (simulated)
-        const userProfile = await fetchUserProfile(data.user.id);
-        
-        if (userProfile?.mfa_enabled) {
-          setMfaStep(true);
-        } else {
-          toast({
-            title: "Welcome back!",
-            description: "Successfully signed in to CricMaxx.",
-          });
-          // Will redirect via useEffect
-        }
+        // Success! Show toast immediately - redirect will happen via useEffect
+        // when profile is loaded by useAuth hook
+        toast({
+          title: "Welcome back!",
+          description: "Successfully signed in to CricMaxx.",
+        });
+        // Keep loading=true until redirect happens via useEffect
+        // This prevents user from clicking again
       }
     } catch (error) {
+      setLoading(false);
       if (error instanceof z.ZodError) {
         toast({
           title: "Validation error",
@@ -219,19 +230,16 @@ const Auth = () => {
           variant: "destructive",
         });
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  const fetchUserProfile = async (userId: string) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('mfa_enabled')
-      .eq('id', userId)
-      .single();
-    return data;
-  };
+  // MFA handling - check from useAuth profile instead
+  useEffect(() => {
+    if (isAuthenticated && profile?.mfa_enabled && loading) {
+      setLoading(false);
+      setMfaStep(true);
+    }
+  }, [isAuthenticated, profile, loading]);
 
   const handleMfaVerify = () => {
     // Simulate MFA verification (accept any code for prototype)
