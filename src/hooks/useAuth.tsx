@@ -37,7 +37,7 @@ export const useAuth = () => {
     let isMounted = true;
 
     // Fetch user profile and roles - defined inside to access isMounted
-    const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<boolean> => {
+    const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
       try {
         if (isPostAuthFetch && isMounted) {
           setProfileLoading(true);
@@ -52,11 +52,18 @@ export const useAuth = () => {
 
         if (fetchError) {
           console.error('Error fetching profile:', fetchError);
+          
+          // Check if this is a permission/RLS error (indicates bad JWT)
+          const isPermissionError = fetchError.message?.includes('permission denied') || 
+                                    fetchError.code === '42501' ||
+                                    fetchError.code === 'PGRST301';
+          
           if (isMounted) {
             setProfileError(true);
             setProfileLoading(false);
           }
-          return false;
+          
+          return isPermissionError ? 'permission_denied' : 'error';
         }
         
         if (isMounted) {
@@ -73,21 +80,19 @@ export const useAuth = () => {
 
         if (rolesError) {
           console.error('Error fetching roles:', rolesError);
-          return false;
-        }
-        
-        if (isMounted) {
+          // Don't fail completely for roles error, profile is more important
+        } else if (isMounted) {
           setRoles(rolesData.map((r: UserRole) => r.role));
         }
         
-        return true;
+        return 'success';
       } catch (error) {
         console.error('Error fetching user data:', error);
         if (isMounted) {
           setProfileError(true);
           setProfileLoading(false);
         }
-        return false;
+        return 'error';
       }
     };
 
@@ -113,9 +118,15 @@ export const useAuth = () => {
             }
           }, 10000); // 10 second timeout for mobile
           
-          await fetchUserData(currentSession.user.id, true);
+          const result = await fetchUserData(currentSession.user.id, true);
           fetchCompleted = true;
           clearTimeout(timeoutId);
+          
+          // If permission denied, the JWT is bad - sign out
+          if (result === 'permission_denied' && isMounted) {
+            console.warn('Permission denied on profile fetch - signing out stale session');
+            await supabase.auth.signOut();
+          }
         } else {
           setProfile(null);
           setRoles([]);
@@ -162,11 +173,13 @@ export const useAuth = () => {
 
         // Fetch data BEFORE setting loading false
         if (initialSession?.user) {
-          const success = await fetchUserData(initialSession.user.id);
-          // If profile fetch fails due to RLS/permission, the session might be bad
-          if (!success && isMounted) {
-            console.warn('Profile fetch failed - possible stale session');
-            // Don't sign out automatically, but show error state so user can retry
+          const result = await fetchUserData(initialSession.user.id);
+          // If profile fetch fails due to RLS/permission, sign out the bad session
+          if (result === 'permission_denied' && isMounted) {
+            console.warn('Profile fetch permission denied - signing out invalid session');
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
           }
         }
       } catch (error) {
