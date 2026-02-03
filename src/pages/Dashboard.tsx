@@ -47,13 +47,31 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { isAuthenticated, profile, loading, user, profileError, profileLoading, refetchProfile } = useAuth();
-  const [balance, setBalance] = useState(profile?.balance || 0);
+  const [balance, setBalance] = useState(0);
   const [profitLoss, setProfitLoss] = useState(0);
   const [pendingOrderTokens, setPendingOrderTokens] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+
+  // Sync balance from profile when it loads
+  useEffect(() => {
+    if (profile?.balance !== undefined) {
+      setBalance(profile.balance);
+    }
+  }, [profile?.balance]);
+
+  // Fetch data when user is available
+  useEffect(() => {
+    if (user?.id && profile) {
+      fetchBalance();
+      fetchTransactions();
+      fetchPositions();
+      fetchPendingOrders();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profile]);
 
   // Handle payment success/cancel URL params with polling for webhook processing
   useEffect(() => {
@@ -335,6 +353,13 @@ const Dashboard = () => {
               <p className="text-muted-foreground mb-4">Failed to load profile. Please try again.</p>
               <Button onClick={refetchProfile} variant="outline" disabled={profileLoading}>
                 {profileLoading ? 'Retrying...' : 'Retry'}
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="mt-2 text-xs"
+                onClick={() => window.location.reload()}
+              >
+                Refresh Page
               </Button>
             </>
           ) : (
