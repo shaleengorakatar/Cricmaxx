@@ -10,9 +10,10 @@ interface WalletActionsProps {
   balance: number;
   onBalanceUpdate: () => void;
   hasOpenPositions?: boolean;
+  userId?: string;
 }
 
-const WalletActions = ({ balance, onBalanceUpdate, hasOpenPositions = false }: WalletActionsProps) => {
+const WalletActions = ({ balance, onBalanceUpdate, hasOpenPositions = false, userId }: WalletActionsProps) => {
   const [isBuyOpen, setIsBuyOpen] = useState(false);
   const [isRedeemOpen, setIsRedeemOpen] = useState(false);
 
@@ -53,6 +54,7 @@ const WalletActions = ({ balance, onBalanceUpdate, hasOpenPositions = false }: W
         onSuccess={onBalanceUpdate}
         availableTokens={balance}
         hasOpenPositions={hasOpenPositions}
+        userId={userId}
       />
     </>
   );

@@ -9,13 +9,24 @@ interface StripeConnectStatus {
   details_submitted?: boolean;
 }
 
-export function useStripeConnect() {
+export function useStripeConnect(userId?: string) {
   const [status, setStatus] = useState<StripeConnectStatus | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStatus = useCallback(async () => {
+    // Don't fetch if no userId - user not authenticated
+    if (!userId) {
+      setStatus({
+        connected: false,
+        status: "not_connected",
+        payouts_enabled: false,
+      });
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 
@@ -36,7 +47,7 @@ export function useStripeConnect() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchStatus();
