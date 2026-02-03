@@ -53,7 +53,7 @@ export const useAuth = () => {
         return;
       }
       
-      // Don't run during initial auth load
+      // Don't run during initial auth load - wait for initialization
       if (!isInitialized) {
         return;
       }
@@ -66,6 +66,8 @@ export const useAuth = () => {
       // Only refresh if user was away for more than threshold
       const timeSinceActive = Date.now() - lastActiveTimeRef.current;
       if (timeSinceActive < STALE_SESSION_THRESHOLD) {
+        // Not away long enough - no need to refresh, just update active time
+        lastActiveTimeRef.current = Date.now();
         return;
       }
       
@@ -80,6 +82,13 @@ export const useAuth = () => {
           return;
         }
         
+        // Check if the session token looks valid before attempting refresh
+        if (!currentSession.access_token || !currentSession.refresh_token) {
+          console.warn('Invalid session tokens found, clearing session');
+          await supabase.auth.signOut();
+          return;
+        }
+        
         // Try to refresh the session
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
@@ -88,6 +97,7 @@ export const useAuth = () => {
           refreshError.message?.includes('invalid') ||
           refreshError.message?.includes('expired') ||
           refreshError.message?.includes('JWT') ||
+          refreshError.message?.includes('missing sub claim') ||
           refreshError.status === 401 ||
           refreshError.status === 403
         );
@@ -116,6 +126,7 @@ export const useAuth = () => {
         // Don't clear state on network/unexpected errors - let normal requests handle it
       } finally {
         isRefreshingRef.current = false;
+        lastActiveTimeRef.current = Date.now();
       }
     };
 
