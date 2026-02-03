@@ -386,7 +386,6 @@ const Dashboard = () => {
                 balance={balance}
                 profitLoss={profitLoss}
                 pendingOrderTokens={pendingOrderTokens}
-                isVerified={profile.kyc_verified}
                 onBuyTokens={() => setShowBuyTokensDialog(true)}
               />
               <PLChart data={chartData} />

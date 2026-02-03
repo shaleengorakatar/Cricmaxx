@@ -1,33 +1,27 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, BarChart3, CheckCircle2, Clock, PlusCircle } from "lucide-react";
+import { Coins, BarChart3, Clock, PlusCircle } from "lucide-react";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
 
 interface PortfolioSummaryProps {
   balance: number;
   profitLoss: number; // Repurposed as "tokens in play"
   pendingOrderTokens?: number; // NEW: tokens reserved in pending orders
-  isVerified: boolean;
   onBuyTokens?: () => void;
 }
 
 /**
  * Portfolio summary using prediction market-safe language
  * Shows "Available Tokens", "In Play", and "Pending Orders"
+ * KYC verification requirement removed for beta phase
  */
-const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, isVerified, onBuyTokens }: PortfolioSummaryProps) => {
+const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, onBuyTokens }: PortfolioSummaryProps) => {
   const tokensInPlay = profitLoss; // Repurposed
 
   return (
     <Card className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-base md:text-lg font-semibold text-foreground">CricMaxx Wallet</h2>
-        {isVerified && (
-          <div className="flex items-center gap-1 text-sm text-accent">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="font-medium">Verified</span>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
