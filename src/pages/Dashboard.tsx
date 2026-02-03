@@ -46,7 +46,7 @@ const Dashboard = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
-  const { isAuthenticated, profile, loading, user } = useAuth();
+  const { isAuthenticated, profile, loading, user, profileError, refetchProfile } = useAuth();
   const [balance, setBalance] = useState(profile?.balance || 0);
   const [profitLoss, setProfitLoss] = useState(0);
   const [pendingOrderTokens, setPendingOrderTokens] = useState(0);
@@ -331,13 +331,24 @@ const Dashboard = () => {
     );
   }
 
-  // Wait for profile to load after auth is confirmed
+  // Wait for profile to load after auth is confirmed, with error recovery
   if (isAuthenticated && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading your profile...</p>
+          {profileError ? (
+            <>
+              <p className="text-muted-foreground mb-4">Failed to load profile. Please try again.</p>
+              <Button onClick={refetchProfile} variant="outline">
+                Retry
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your profile...</p>
+            </>
+          )}
         </div>
       </div>
     );

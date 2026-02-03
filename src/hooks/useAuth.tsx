@@ -29,6 +29,7 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,11 +47,13 @@ export const useAuth = () => {
 
         if (profileError) {
           console.error('Error fetching profile:', profileError);
+          if (isMounted) setProfileError(true);
           return false;
         }
         
         if (isMounted) {
           setProfile(profileData);
+          setProfileError(false);
         }
 
         // Fetch roles
@@ -71,6 +74,7 @@ export const useAuth = () => {
         return true;
       } catch (error) {
         console.error('Error fetching user data:', error);
+        if (isMounted) setProfileError(true);
         return false;
       }
     };
@@ -90,6 +94,7 @@ export const useAuth = () => {
         } else {
           setProfile(null);
           setRoles([]);
+          setProfileError(false);
         }
       }
     );
@@ -110,6 +115,7 @@ export const useAuth = () => {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        if (isMounted) setProfileError(true);
       } finally {
         // Only set loading false after ALL initial operations complete
         if (isMounted) {
@@ -165,12 +171,30 @@ export const useAuth = () => {
     return roles.includes(role);
   };
 
+  // Retry profile fetch function for recovery
+  const refetchProfile = async () => {
+    if (user?.id) {
+      setProfileError(false);
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && profileData) {
+        setProfile(profileData);
+      }
+    }
+  };
+
   return {
     user,
     session,
     profile,
     roles,
     loading,
+    profileError,
+    refetchProfile,
     signUp,
     signIn,
     signOut,
