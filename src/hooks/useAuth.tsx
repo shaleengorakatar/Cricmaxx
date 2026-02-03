@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-
+import { toast } from "sonner";
 export interface UserProfile {
   id: string;
   name: string;
@@ -37,7 +37,7 @@ export const useAuth = () => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
     let lastActiveTime = Date.now();
-    const STALE_SESSION_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    const STALE_SESSION_THRESHOLD = 30 * 60 * 1000; // 30 minutes - only refresh if away longer than this
 
     // Session refresh on tab visibility change - only if user was away for a while
     const refreshSessionOnVisibility = async () => {
@@ -54,17 +54,40 @@ export const useAuth = () => {
       }
       
       try {
-        // Just try to refresh the session silently - don't clear state on failure
-        const { data: refreshData } = await supabase.auth.refreshSession();
+        // Check if we still have a valid session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
-        if (refreshData.session && isMounted) {
-          setSession(refreshData.session);
-          setUser(refreshData.session.user);
+        if (!currentSession) {
+          // Session is gone - try to refresh
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError || !refreshData.session) {
+            // Session truly expired - notify user and redirect
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRoles([]);
+              
+              toast.info("Session expired", {
+                description: "You've been logged out due to inactivity. Please sign in again.",
+                duration: 5000,
+              });
+              
+              navigate('/');
+            }
+            return;
+          }
+          
+          // Refresh succeeded
+          if (isMounted) {
+            setSession(refreshData.session);
+            setUser(refreshData.session.user);
+          }
         }
-        // If refresh fails, don't sign out - let the normal auth flow handle it
       } catch (err) {
-        console.error('Error refreshing session on visibility:', err);
-        // Don't clear state here - let normal requests fail and trigger proper error handling
+        console.error('Error checking session on visibility:', err);
+        // Don't clear state on network errors - let normal requests handle it
       }
     };
 
