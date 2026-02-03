@@ -21,49 +21,28 @@ export function FeaturedMarket() {
   }, []);
 
   const fetchFeaturedMarket = async () => {
-    const { now } = getMarketDateRange();
+    const { now, maxExpiry } = getMarketDateRange();
 
-    // Hardcoded: Show "Will India win T20 World Cup 2026?" for the next 45 days
-    let { data, error } = await supabase
+    // Get all active markets
+    const { data: allMarkets, error } = await supabase
       .from("markets")
       .select("*")
-      .ilike("question", "%India win T20 World Cup 2026%")
       .in("status", [...ACTIVE_MARKET_STATUSES])
+      .lte("expiry_time", maxExpiry.toISOString())
       .gte("expiry_time", now.toISOString())
-      .limit(1)
-      .single();
+      .order("volume", { ascending: false });
 
-    // Fallback to any featured market if T20 WC market not found
-    if (!data) {
-      const result = await supabase
-        .from("markets")
-        .select("*")
-        .eq("is_featured", true)
-        .in("status", [...ACTIVE_MARKET_STATUSES])
-        .gte("expiry_time", now.toISOString())
-        .limit(1)
-        .single();
-      
-      data = result.data;
-      error = result.error;
+    if (error || !allMarkets || allMarkets.length === 0) {
+      setLoading(false);
+      return;
     }
 
-    // Final fallback: highest volume market
-    if (!data) {
-      const { maxExpiry } = getMarketDateRange();
-      const result = await supabase
-        .from("markets")
-        .select("*")
-        .in("status", [...ACTIVE_MARKET_STATUSES])
-        .lte("expiry_time", maxExpiry.toISOString())
-        .gte("expiry_time", now.toISOString())
-        .order("volume", { ascending: false })
-        .limit(1)
-        .single();
-      
-      data = result.data;
-      error = result.error;
-    }
+    // Use the current date as a seed for daily rotation
+    const today = new Date();
+    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    const marketIndex = dayOfYear % allMarkets.length;
+    
+    const data = allMarkets[marketIndex];
 
     if (data) {
       setMarket({
