@@ -292,34 +292,14 @@ const Dashboard = () => {
     fetchPendingOrders();
   };
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated - using early return to prevent render
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      navigate('/auth?mode=login');
+      navigate('/auth?mode=login', { replace: true });
     }
   }, [loading, isAuthenticated, navigate]);
 
-  // Initial data fetch
-  React.useEffect(() => {
-    if (user?.id) {
-      fetchBalance();
-      fetchTransactions();
-      fetchPositions();
-      fetchPendingOrders();
-    }
-  }, [user?.id]);
-
-  // Scroll to wallet section if hash is #wallet
-  useEffect(() => {
-    if (location.hash === '#wallet' && !loading && profile) {
-      const walletElement = document.getElementById('wallet-section');
-      if (walletElement) {
-        walletElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }
-  }, [location.hash, loading, profile]);
-
-  // Show loading state while checking auth - with visible feedback
+  // Show loading state while checking auth
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -331,21 +311,22 @@ const Dashboard = () => {
     );
   }
 
-  // Wait for profile to load - guard against null profile access
-  if (!profile) {
-    // If not authenticated, show redirecting state (redirect happens via useEffect)
-    if (!isAuthenticated) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Redirecting to login...</p>
-          </div>
+  // If not authenticated after loading is complete, show redirecting state
+  // This prevents the profile check from running for unauthenticated users
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to login...</p>
         </div>
-      );
-    }
-    
-    // Authenticated but profile not loaded yet
+      </div>
+    );
+  }
+
+  // Wait for profile to load - guard against null profile access
+  // At this point, user IS authenticated but profile might still be loading
+  if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
