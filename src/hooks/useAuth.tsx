@@ -142,6 +142,19 @@ export const useAuth = () => {
           }
         }
         
+        // If we have a session, validate it by attempting to refresh
+        // This catches stale/corrupted JWT tokens that would fail on profile fetch
+        if (initialSession) {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshData.session) {
+            console.warn('Session invalid, signing out:', refreshError?.message);
+            await supabase.auth.signOut();
+            initialSession = null;
+          } else {
+            initialSession = refreshData.session;
+          }
+        }
+        
         if (!isMounted) return;
 
         setSession(initialSession);
@@ -149,7 +162,12 @@ export const useAuth = () => {
 
         // Fetch data BEFORE setting loading false
         if (initialSession?.user) {
-          await fetchUserData(initialSession.user.id);
+          const success = await fetchUserData(initialSession.user.id);
+          // If profile fetch fails due to RLS/permission, the session might be bad
+          if (!success && isMounted) {
+            console.warn('Profile fetch failed - possible stale session');
+            // Don't sign out automatically, but show error state so user can retry
+          }
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
