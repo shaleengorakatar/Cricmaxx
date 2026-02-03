@@ -128,7 +128,19 @@ export const useAuth = () => {
     // INITIAL load (controls loading state)
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        // First try to get existing session
+        let { data: { session: initialSession } } = await supabase.auth.getSession();
+        
+        // Safari ITP may clear localStorage but token might still be refreshable
+        // Try to refresh if we have a session but it appears invalid
+        if (!initialSession) {
+          // Attempt a silent refresh in case Safari cleared storage but refresh token cookie exists
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && refreshData.session) {
+            initialSession = refreshData.session;
+            console.log('Session recovered via refresh');
+          }
+        }
         
         if (!isMounted) return;
 
