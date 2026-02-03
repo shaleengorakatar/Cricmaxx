@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,17 @@ export default function LiveMarketsWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const navigate = useNavigate();
+  const hasFetchedRef = useRef(false);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchLiveMarkets = useCallback(async (retry = false) => {
-    if (retry) {
+  const fetchLiveMarkets = useCallback(async (isRetry = false) => {
+    // Clear any pending retry
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+
+    if (isRetry) {
       setLoading(true);
       setError(false);
     }
@@ -37,11 +45,12 @@ export default function LiveMarketsWidget() {
       // Check if it's an auth error - if so, wait and retry once
       const isAuthError = fetchError.message?.includes('JWT') || 
                           fetchError.code === 'PGRST301' ||
-                          fetchError.message?.includes('invalid');
+                          fetchError.message?.includes('invalid') ||
+                          fetchError.message?.includes('missing sub claim');
       
-      if (isAuthError && !retry) {
-        // Wait for potential token refresh, then retry
-        setTimeout(() => fetchLiveMarkets(true), 2000);
+      if (isAuthError && !isRetry) {
+        // Wait for token refresh, then retry
+        retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), 2000);
         return;
       }
       
@@ -66,11 +75,43 @@ export default function LiveMarketsWidget() {
     setMarkets(formattedMarkets);
     setError(false);
     setLoading(false);
+    hasFetchedRef.current = true;
   }, []);
 
+  // Initial fetch + failsafe timeout
   useEffect(() => {
     fetchLiveMarkets();
+    
+    // Failsafe: if still loading after 15 seconds, force retry
+    const failsafeTimeout = setTimeout(() => {
+      if (loading && !error) {
+        console.log('LiveMarketsWidget: Failsafe triggered - forcing retry');
+        fetchLiveMarkets(true);
+      }
+    }, 15000);
+    
+    return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+      clearTimeout(failsafeTimeout);
+    };
   }, [fetchLiveMarkets]);
+
+  // Listen for auth state changes and re-fetch if we had an error or are stuck loading
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      // Re-fetch when token is refreshed or user signs in
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        // Only re-fetch if we're in an error state or still loading after initial attempt
+        if (error || (loading && hasFetchedRef.current)) {
+          fetchLiveMarkets(true);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [error, loading, fetchLiveMarkets]);
 
   const getTimeUntilExpiry = (expiryTime: string) => {
     const now = new Date();
