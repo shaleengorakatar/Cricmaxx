@@ -77,15 +77,16 @@ const Auth = () => {
 
   // Safety timeout - if we're stuck in loading state for too long after sign-in succeeds
   useEffect(() => {
-    if (loading && isAuthenticated && !profile) {
+    if (loading && isAuthenticated) {
       const timeout = setTimeout(() => {
         // Force redirect even if profile hasn't loaded - dashboard will handle it
+        setLoading(false);
         const redirect = searchParams.get('redirect');
         navigate(redirect || '/dashboard');
-      }, 5000); // 5 second safety timeout
+      }, 3000); // 3 second safety timeout (reduced from 5)
       return () => clearTimeout(timeout);
     }
-  }, [loading, isAuthenticated, profile, navigate, searchParams]);
+  }, [loading, isAuthenticated, navigate, searchParams]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
