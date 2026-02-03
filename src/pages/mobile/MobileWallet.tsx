@@ -45,20 +45,70 @@ const MobileWallet = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("wallet");
 
-  // Handle payment success/cancel URL params
+  // Handle payment success/cancel URL params with polling for webhook processing
   useEffect(() => {
     const paymentStatus = searchParams.get("payment");
     const amount = searchParams.get("amount");
     
-    if (paymentStatus === "success") {
-      toast({
-        title: "Payment Successful!",
-        description: `${amount || ''} tokens have been added to your wallet.`,
-      });
-      // Clear the URL params
+    if (paymentStatus === "success" && user?.id) {
+      // Clear the URL params immediately
       setSearchParams({});
-      // Refresh data
-      fetchWalletData();
+      
+      // Show initial processing toast
+      toast({
+        title: "Processing payment...",
+        description: "Your tokens are being added to your wallet.",
+      });
+
+      // Poll for balance update (webhook may take a few seconds)
+      let attempts = 0;
+      const maxAttempts = 10;
+      const initialBalance = profile?.balance || 0;
+      
+      const pollForUpdate = async () => {
+        attempts++;
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('balance')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && !error) {
+          const newBalance = Number(data.balance) || 0;
+          
+          // Balance updated - webhook processed
+          if (newBalance > initialBalance || attempts >= maxAttempts) {
+            fetchWalletData();
+            
+            if (newBalance > initialBalance) {
+              const addedTokens = newBalance - initialBalance;
+              toast({
+                title: "🎉 Payment Successful!",
+                description: `${addedTokens} tokens have been added to your wallet.`,
+              });
+            } else if (amount) {
+              // Fallback: show amount from URL if balance didn't update yet
+              toast({
+                title: "🎉 Payment Successful!",
+                description: `${amount} tokens have been added to your wallet.`,
+              });
+              // One final refresh after a delay
+              setTimeout(fetchWalletData, 3000);
+            }
+            return;
+          }
+        }
+        
+        // Keep polling if not updated yet
+        if (attempts < maxAttempts) {
+          setTimeout(pollForUpdate, 1500);
+        }
+      };
+      
+      // Start polling after a short delay to give webhook time
+      setTimeout(pollForUpdate, 1000);
+      
     } else if (paymentStatus === "cancelled") {
       toast({
         title: "Payment Cancelled",
@@ -67,7 +117,7 @@ const MobileWallet = () => {
       });
       setSearchParams({});
     }
-  }, [searchParams]);
+  }, [searchParams, user?.id, profile?.balance]);
 
   useEffect(() => {
     if (user) {
