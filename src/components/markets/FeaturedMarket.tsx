@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, TrendingUp, Users, ArrowRight } from "lucide-react";
+import { Star, TrendingUp, Users, ArrowRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
@@ -13,18 +13,20 @@ import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters"
 export function FeaturedMarket() {
   const [market, setMarket] = useState<Market & { prediction_count?: number; price_history?: any[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const navigate = useNavigate();
   const { formatOdds } = useTradingPreferences();
 
-  useEffect(() => {
-    fetchFeaturedMarket();
-  }, []);
-
-  const fetchFeaturedMarket = async () => {
+  const fetchFeaturedMarket = useCallback(async (retry = false) => {
+    if (retry) {
+      setLoading(true);
+      setError(false);
+    }
+    
     const { now, maxExpiry } = getMarketDateRange();
 
     // Get all active markets
-    const { data: allMarkets, error } = await supabase
+    const { data: allMarkets, error: fetchError } = await supabase
       .from("markets")
       .select("*")
       .in("status", [...ACTIVE_MARKET_STATUSES])
@@ -32,7 +34,26 @@ export function FeaturedMarket() {
       .gte("expiry_time", now.toISOString())
       .order("volume", { ascending: false });
 
-    if (error || !allMarkets || allMarkets.length === 0) {
+    if (fetchError) {
+      console.error("Error fetching featured market:", fetchError);
+      
+      // Check if it's an auth error - if so, wait and retry once
+      const isAuthError = fetchError.message?.includes('JWT') || 
+                          fetchError.code === 'PGRST301' ||
+                          fetchError.message?.includes('invalid');
+      
+      if (isAuthError && !retry) {
+        // Wait for potential token refresh, then retry
+        setTimeout(() => fetchFeaturedMarket(true), 2000);
+        return;
+      }
+      
+      setError(true);
+      setLoading(false);
+      return;
+    }
+    
+    if (!allMarkets || allMarkets.length === 0) {
       setLoading(false);
       return;
     }
@@ -61,13 +82,35 @@ export function FeaturedMarket() {
       });
     }
 
+    setError(false);
     setLoading(false);
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchFeaturedMarket();
+  }, [fetchFeaturedMarket]);
 
   if (loading) {
     return (
       <Card className="p-6 animate-pulse">
         <div className="h-32 bg-muted rounded" />
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-6 text-center space-y-4">
+        <p className="text-muted-foreground">Unable to load featured market</p>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => fetchFeaturedMarket(true)}
+          className="gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Try Again
+        </Button>
       </Card>
     );
   }
