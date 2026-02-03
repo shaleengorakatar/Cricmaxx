@@ -22,8 +22,9 @@ const Markets = () => {
   const [loading, setLoading] = useState(true);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
 
+  // Fetch markets immediately on mount (no auth dependency for public data)
   useEffect(() => {
-    fetchMarkets();
+    fetchPublicMarkets();
 
     // Real-time subscription for market updates
     const channel = supabase
@@ -82,10 +83,19 @@ const Markets = () => {
     };
   }, []);
 
-  const fetchMarkets = async () => {
+  // Fetch user positions separately once authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserPositions();
+    } else {
+      setUserPositions(new Map());
+    }
+  }, [isAuthenticated]);
+
+  // Fetch public markets (no auth required)
+  const fetchPublicMarkets = async () => {
     const { now, maxExpiry } = getMarketDateRange();
 
-    // Fetch active markets (within visibility window)
     const { data: activeMarkets, error: activeError } = await supabase
       .from("markets")
       .select("*")
@@ -100,53 +110,7 @@ const Markets = () => {
       return;
     }
 
-    let allMarketData = activeMarkets || [];
-
-    // If authenticated, also fetch markets where user has positions (even if expired)
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: positions } = await supabase
-        .from("positions")
-        .select("market_id, side, size, entry_price")
-        .eq("user_id", user.id)
-        .eq("status", "open");
-
-      if (positions && positions.length > 0) {
-        const positionsMap = new Map<string, UserPosition>();
-        positions.forEach(p => {
-          positionsMap.set(p.market_id, { 
-            side: p.side, 
-            size: Number(p.size),
-            entryPrice: Number(p.entry_price)
-          });
-        });
-        setUserPositions(positionsMap);
-        
-        const positionMarketIds = positions.map(p => p.market_id);
-        const activeMarketIds = new Set(allMarketData.map(m => m.id));
-        
-        // Filter out markets we already have
-        const missingMarketIds = positionMarketIds.filter(id => !activeMarketIds.has(id));
-        
-        if (missingMarketIds.length > 0) {
-          const { data: positionMarkets } = await supabase
-            .from("markets")
-            .select("*")
-            .in("id", missingMarketIds)
-            .in("status", ["approved", "open", "closed"]);
-
-          if (positionMarkets) {
-            allMarketData = [...allMarketData, ...positionMarkets];
-          }
-        }
-      } else {
-        setUserPositions(new Map());
-      }
-    } else {
-      setUserPositions(new Map());
-    }
-
-    const formattedMarkets: (Market & { prediction_count?: number; price_history?: any[] })[] = allMarketData.map((m: any) => ({
+    const formattedMarkets: (Market & { prediction_count?: number; price_history?: any[] })[] = (activeMarkets || []).map((m: any) => ({
       id: m.id,
       question: m.question,
       category: m.category as Market["category"],
@@ -163,6 +127,64 @@ const Markets = () => {
 
     setAllMarkets(formattedMarkets);
     setLoading(false);
+  };
+
+  // Fetch user positions (requires auth)
+  const fetchUserPositions = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setUserPositions(new Map());
+      return;
+    }
+
+    const { data: positions } = await supabase
+      .from("positions")
+      .select("market_id, side, size, entry_price")
+      .eq("user_id", user.id)
+      .eq("status", "open");
+
+    if (positions && positions.length > 0) {
+      const positionsMap = new Map<string, UserPosition>();
+      positions.forEach(p => {
+        positionsMap.set(p.market_id, { 
+          side: p.side, 
+          size: Number(p.size),
+          entryPrice: Number(p.entry_price)
+        });
+      });
+      setUserPositions(positionsMap);
+      
+      // Also fetch any markets with positions that might not be in the main list
+      const positionMarketIds = positions.map(p => p.market_id);
+      const existingMarketIds = new Set(allMarkets.map(m => m.id));
+      const missingMarketIds = positionMarketIds.filter(id => !existingMarketIds.has(id));
+      
+      if (missingMarketIds.length > 0) {
+        const { data: positionMarkets } = await supabase
+          .from("markets")
+          .select("*")
+          .in("id", missingMarketIds)
+          .in("status", ["approved", "open", "closed"]);
+
+        if (positionMarkets) {
+          const additionalMarkets = positionMarkets.map((m: any) => ({
+            id: m.id,
+            question: m.question,
+            category: m.category as Market["category"],
+            type: m.type as Market["type"],
+            yesPrice: Number(m.yes_price),
+            noPrice: Number(m.no_price),
+            volume: Number(m.volume),
+            expiryTime: m.expiry_time,
+            description: m.description || "",
+            imageUrl: m.image_url || "",
+          }));
+          setAllMarkets(prev => [...prev, ...additionalMarkets]);
+        }
+      }
+    } else {
+      setUserPositions(new Map());
+    }
   };
 
   // Batch fetch indicative prices from order book
