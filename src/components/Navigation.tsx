@@ -17,10 +17,13 @@ import PaymentMethodsDialog from "./wallet/PaymentMethodsDialog";
 const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 const Navigation = () => {
-  const { isAuthenticated, signOut, profile, isCreator, isAdmin } = useAuth();
+  const { isAuthenticated, signOut, profile, isCreator, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+  
+  // Only show authenticated links when auth is fully resolved AND user is authenticated
+  const showAuthenticatedLinks = !loading && isAuthenticated;
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -59,7 +62,7 @@ const Navigation = () => {
             >
               RapidPred
             </NavLink>
-            {isAuthenticated && (
+            {showAuthenticatedLinks && (
               <>
                 <NavLink 
                   to="/dashboard"
@@ -77,7 +80,7 @@ const Navigation = () => {
                 </NavLink>
               </>
             )}
-            {isAuthenticated && isCreator && (
+            {showAuthenticatedLinks && isCreator && (
               <NavLink 
                 to="/creator"
                 className="text-sm text-foreground hover:text-primary transition-colors"
@@ -86,7 +89,7 @@ const Navigation = () => {
                 Creator
               </NavLink>
             )}
-            {isAuthenticated && isAdmin && (
+            {showAuthenticatedLinks && isAdmin && (
               <NavLink 
                 to="/admin"
                 className="text-sm text-foreground hover:text-primary transition-colors"
@@ -99,7 +102,7 @@ const Navigation = () => {
 
           <div className="flex items-center gap-2 lg:gap-3">
             {/* Balance Display - Mobile (authenticated) */}
-            {isAuthenticated && profile && (
+            {showAuthenticatedLinks && profile && (
               <Link 
                 to="/dashboard#wallet" 
                 className="flex lg:hidden items-center gap-1.5 px-2 py-1 bg-accent/10 rounded-md hover:bg-accent/20 transition-colors cursor-pointer"
@@ -112,7 +115,7 @@ const Navigation = () => {
             )}
 
             {/* Mobile Sign In Button (unauthenticated) */}
-            {!isAuthenticated && (
+            {!loading && !isAuthenticated && (
               <Button 
                 variant="default"
                 size="sm"
@@ -133,7 +136,7 @@ const Navigation = () => {
               <SheetContent side="right" className="w-[280px] sm:w-[350px] overflow-y-auto">
                 <div className="flex flex-col gap-4 mt-8 pb-8">
                   {/* Prominent Auth Section at Top for Guests */}
-                  {!isAuthenticated && (
+                  {!loading && !isAuthenticated && (
                     <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-2">
                       <p className="text-sm font-medium text-foreground mb-3">
                         Join CricMaxx to start predicting!
@@ -186,7 +189,7 @@ const Navigation = () => {
                   >
                     RapidPred
                   </NavLink>
-                  {isAuthenticated && (
+                  {showAuthenticatedLinks && (
                     <>
                       <NavLink 
                         to="/dashboard"
@@ -206,7 +209,7 @@ const Navigation = () => {
                       </NavLink>
                     </>
                   )}
-                  {isAuthenticated && isCreator && (
+                  {showAuthenticatedLinks && isCreator && (
                     <NavLink 
                       to="/creator"
                       onClick={() => setMobileMenuOpen(false)}
@@ -216,7 +219,7 @@ const Navigation = () => {
                       Creator
                     </NavLink>
                   )}
-                  {isAuthenticated && isAdmin && (
+                  {showAuthenticatedLinks && isAdmin && (
                     <NavLink 
                       to="/admin"
                       onClick={() => setMobileMenuOpen(false)}
@@ -228,7 +231,7 @@ const Navigation = () => {
                   )}
                   
                   <div className="border-t border-border pt-6 mt-4">
-                    {isAuthenticated && profile ? (
+                    {showAuthenticatedLinks && profile ? (
                       <div className="space-y-4">
                         <div className="px-2 py-2 bg-muted rounded-lg">
                           <p className="text-sm font-medium">{profile.name}</p>
@@ -302,7 +305,7 @@ const Navigation = () => {
 
             {/* Desktop User Menu/Auth Buttons */}
             <div className="hidden lg:flex items-center gap-3">
-            {isAuthenticated && profile ? (
+            {showAuthenticatedLinks && profile ? (
               <>
                 {/* Notifications Bell */}
                 <NotificationsBell />
