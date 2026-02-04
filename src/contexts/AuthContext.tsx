@@ -78,58 +78,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isRefreshingRef.current = true;
       
       try {
-        // First check current session state without network call
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        // If no session exists, user is already logged out - don't try to refresh
-        if (!currentSession) {
-          return false;
-        }
-        
-        // Check if the session token looks valid before attempting refresh
-        if (!currentSession.access_token || !currentSession.refresh_token) {
-          console.warn('Invalid session tokens found, clearing session');
-          await supabase.auth.signOut();
-          return false;
-        }
-        
-        // Try to refresh the session
+        // Try to refresh the session directly - this is more reliable than checking first
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         
-        // Check if it's a true auth error vs network error
-        const isAuthError = refreshError && (
-          refreshError.message?.includes('invalid') ||
-          refreshError.message?.includes('expired') ||
-          refreshError.message?.includes('JWT') ||
-          refreshError.message?.includes('missing sub claim') ||
-          refreshError.status === 401 ||
-          refreshError.status === 403
-        );
-        
-        if (isAuthError && !refreshData?.session) {
-          // Session truly expired - notify user and redirect
-          if (isMounted) {
-            // Let onAuthStateChange handle state clearing
-            await supabase.auth.signOut();
-            
-            // Only show toast and navigate if not already on home page
-            if (location.pathname !== '/') {
-              toast.info("Session expired", {
-                description: "You've been logged out due to inactivity. Please sign in again.",
-                duration: 5000,
-              });
+        if (refreshError) {
+          console.warn(`Session refresh failed (${reason}):`, refreshError.message);
+          
+          // Check if it's a true auth error vs network error
+          const isAuthError = 
+            refreshError.message?.includes('invalid') ||
+            refreshError.message?.includes('expired') ||
+            refreshError.message?.includes('JWT') ||
+            refreshError.message?.includes('missing sub claim') ||
+            refreshError.message?.includes('Invalid Refresh Token') ||
+            refreshError.status === 401 ||
+            refreshError.status === 403;
+          
+          if (isAuthError) {
+            // Session truly expired - notify user and redirect
+            if (isMounted) {
+              // Clear local state first
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRoles([]);
               
-              navigate('/');
+              // Then sign out to clear Supabase state
+              await supabase.auth.signOut();
+              
+              // Only show toast and navigate if not already on home page
+              if (location.pathname !== '/') {
+                toast.info("Session expired", {
+                  description: "Please sign in again to continue.",
+                  duration: 5000,
+                });
+                
+                navigate('/');
+              }
             }
+            return false;
           }
+          
+          // Network error - don't log out, just return false
           return false;
         }
         
-        // Session refreshed successfully
+        // Session refreshed successfully - update state
+        if (refreshData?.session && isMounted) {
+          setSession(refreshData.session);
+          setUser(refreshData.session.user);
+          console.log(`Session refreshed successfully (${reason})`);
+        }
+        
         return !!refreshData?.session;
       } catch (err) {
         console.error(`Error during ${reason} session refresh:`, err);
-        // Don't clear state on network/unexpected errors - let normal requests handle it
         return false;
       } finally {
         isRefreshingRef.current = false;
@@ -168,9 +171,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
         
-        // Check if we have a session before trying to refresh
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession) {
+        // Only refresh if we have a user in state (indicates we should be logged in)
+        if (user) {
           await performSessionRefresh('proactive');
         }
       }, PROACTIVE_REFRESH_INTERVAL);
