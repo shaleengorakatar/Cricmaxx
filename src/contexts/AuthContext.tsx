@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef, useC
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted } from "@/lib/authUtils";
+import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted, isSafari } from "@/lib/authUtils";
 
 export interface UserProfile {
   id: string;
@@ -168,12 +168,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.log('[AuthContext] Cleared stale refresh token');
               }
             } else if (refreshData.session && isMounted) {
-              setSession(refreshData.session);
-              setUser(refreshData.session.user);
-              await fetchUserData(refreshData.session.user.id);
-              setLoading(false);
-              initCompleteRef.current = true;
-              return;
+              // Validate the refreshed session before using it
+              const accessToken = refreshData.session.access_token;
+              if (accessToken && accessToken.split('.').length === 3) {
+                setSession(refreshData.session);
+                setUser(refreshData.session.user);
+                await fetchUserData(refreshData.session.user.id);
+                setLoading(false);
+                initCompleteRef.current = true;
+                return;
+              } else {
+                console.log('[AuthContext] Refreshed token invalid, clearing');
+                clearAuthStorage();
+              }
             }
           } catch (refreshErr) {
             // Refresh failed - user is logged out, this is fine
@@ -183,6 +190,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         
         if (!isMounted) return;
+
+        // Validate the session before using it (Safari-specific check)
+        if (initialSession?.access_token) {
+          const parts = initialSession.access_token.split('.');
+          if (parts.length !== 3) {
+            console.log('[AuthContext] Session has invalid JWT structure, clearing');
+            clearAuthStorage();
+            clearAuthState();
+            setLoading(false);
+            initCompleteRef.current = true;
+            return;
+          }
+        }
 
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
