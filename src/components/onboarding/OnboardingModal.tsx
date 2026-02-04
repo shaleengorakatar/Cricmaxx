@@ -34,26 +34,41 @@ export function OnboardingModal() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      checkOnboardingStatus();
-    }
+    let isMounted = true;
+    
+    const checkOnboardingStatus = async () => {
+      if (!user) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from("onboarding_status")
+          .select("completed_at, skipped_at")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!isMounted) return;
+
+        // Show onboarding if no record exists
+        if (!data) {
+          setIsOpen(true);
+        }
+      } catch (err) {
+        // Ignore errors - just don't show onboarding
+        console.warn('Onboarding status check failed:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    checkOnboardingStatus();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
-
-  const checkOnboardingStatus = async () => {
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("onboarding_status")
-      .select("completed_at, skipped_at")
-      .eq("user_id", user.id)
-      .single();
-
-    // Show onboarding if no record exists
-    if (!data) {
-      setIsOpen(true);
-    }
-    setLoading(false);
-  };
 
   const completeOnboarding = async () => {
     if (!user) return;

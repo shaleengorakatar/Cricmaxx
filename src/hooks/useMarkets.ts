@@ -27,10 +27,14 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   const lastFetchTimeRef = useRef(0);
 
   const fetchMarkets = useCallback(async () => {
-    // Debounce rapid calls
+    // Debounce rapid calls - but ensure loading state is correct
     const now = Date.now();
     if (now - lastFetchTimeRef.current < 500) {
-      return;
+      // If we're debouncing but still in initial loading state, don't return
+      // This ensures the first call always goes through
+      if (fetchIdRef.current > 0) {
+        return;
+      }
     }
     lastFetchTimeRef.current = now;
     
