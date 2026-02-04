@@ -87,16 +87,55 @@ const RapidPred = () => {
     setLoading(true);
     const { now, maxExpiry } = getMarketDateRange();
 
-    const { data, error } = await supabase
-      .from("markets")
-      .select("*")
-      .in("status", [...ACTIVE_MARKET_STATUSES])
-      .lte("expiry_time", maxExpiry.toISOString())
-      .gte("expiry_time", now.toISOString())
-      .order("expiry_time", { ascending: true })
-      .limit(50);
+    try {
+      // Use direct REST API to bypass any auth issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const params = new URLSearchParams({
+        select: '*',
+        status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
+        expiry_time: `gte.${now.toISOString()}`,
+        order: 'expiry_time.asc',
+        limit: '50'
+      });
+      
+      const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      
+      const data = await response.json();
 
-    if (error) {
+      if (!data || data.length === 0) {
+        setLoading(false);
+        return;
+      }
+
+      const formattedMarkets: Market[] = data.map((m: any) => ({
+        id: m.id,
+        question: m.question,
+        category: m.category as Market["category"],
+        type: m.type as Market["type"],
+        yesPrice: Number(m.yes_price),
+        noPrice: Number(m.no_price),
+        volume: Number(m.volume),
+        expiryTime: m.expiry_time,
+        description: m.description || "",
+        imageUrl: m.image_url || "",
+      }));
+
+      setMarkets(formattedMarkets);
+      setLoading(false);
+    } catch (error) {
       console.error("Error fetching markets:", error);
       toast({
         title: "Error loading markets",
@@ -104,29 +143,7 @@ const RapidPred = () => {
         variant: "destructive",
       });
       setLoading(false);
-      return;
     }
-
-    if (!data || data.length === 0) {
-      setLoading(false);
-      return;
-    }
-
-    const formattedMarkets: Market[] = data.map((m) => ({
-      id: m.id,
-      question: m.question,
-      category: m.category as Market["category"],
-      type: m.type as Market["type"],
-      yesPrice: Number(m.yes_price),
-      noPrice: Number(m.no_price),
-      volume: Number(m.volume),
-      expiryTime: m.expiry_time,
-      description: m.description || "",
-      imageUrl: m.image_url || "",
-    }));
-
-    setMarkets(formattedMarkets);
-    setLoading(false);
   };
 
   const handleTrade = async (side: "yes" | "no") => {

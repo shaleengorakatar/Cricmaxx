@@ -17,6 +17,39 @@ interface UseMarketsResult {
   refetch: () => void;
 }
 
+// Direct REST API fetch that bypasses auth headers for public data
+async function fetchMarketsDirectly(): Promise<any[]> {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  const { now, maxExpiry } = getMarketDateRange();
+  
+  // Build the query URL with filters
+  const params = new URLSearchParams({
+    select: '*',
+    status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
+    expiry_time: `gte.${now.toISOString()}`,
+    order: 'created_at.desc'
+  });
+  
+  // Add expiry_time lte filter separately  
+  const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
+  
+  const response = await fetch(url, {
+    headers: {
+      'apikey': supabaseKey,
+      'Content-Type': 'application/json',
+      // No Authorization header - use anon key only for public data
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch markets: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
 export function useMarkets(userId: string | null): UseMarketsResult {
   const [markets, setMarkets] = useState<Market[]>([]);
   const [userPositions, setUserPositions] = useState<Map<string, UserPosition>>(new Map());
@@ -25,8 +58,9 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   
   const isMountedRef = useRef(true);
   const fetchCountRef = useRef(0);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchMarkets = useCallback(async () => {
+  const fetchMarkets = useCallback(async (isRetry = false) => {
     const currentFetch = ++fetchCountRef.current;
     
     // Don't reset loading on refetch to avoid flickering
@@ -35,26 +69,12 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     }
     setError(false);
 
-    const { now, maxExpiry } = getMarketDateRange();
-
     try {
-      const { data, error: fetchError } = await supabase
-        .from("markets")
-        .select("*")
-        .in("status", [...ACTIVE_MARKET_STATUSES])
-        .lte("expiry_time", maxExpiry.toISOString())
-        .gte("expiry_time", now.toISOString())
-        .order("created_at", { ascending: false });
+      // Try direct REST API first (bypasses auth issues)
+      const data = await fetchMarketsDirectly();
 
       // Ignore stale responses
       if (!isMountedRef.current || currentFetch !== fetchCountRef.current) {
-        return;
-      }
-
-      if (fetchError) {
-        console.error("Error fetching markets:", fetchError);
-        setError(true);
-        setLoading(false);
         return;
       }
 
@@ -74,11 +94,27 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       setMarkets(formattedMarkets);
       setError(false);
       setLoading(false);
+      
+      // Clear any pending retry
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     } catch (err) {
       if (isMountedRef.current && currentFetch === fetchCountRef.current) {
         console.error("Fetch error:", err);
-        setError(true);
-        setLoading(false);
+        
+        // Auto-retry once after 2 seconds if not already a retry
+        if (!isRetry) {
+          retryTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchMarkets(true);
+            }
+          }, 2000);
+        } else {
+          setError(true);
+          setLoading(false);
+        }
       }
     }
   }, []);
@@ -121,8 +157,19 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     isMountedRef.current = true;
     fetchMarkets();
     
+    // Periodic refresh every 5 minutes to keep data fresh
+    const refreshInterval = setInterval(() => {
+      if (isMountedRef.current && document.visibilityState === 'visible') {
+        fetchMarkets();
+      }
+    }, 5 * 60 * 1000);
+    
     return () => {
       isMountedRef.current = false;
+      clearInterval(refreshInterval);
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
     };
   }, [fetchMarkets]);
 
