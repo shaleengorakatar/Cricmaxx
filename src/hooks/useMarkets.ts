@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { getMarketDateRange, ACTIVE_MARKET_STATUSES, shouldShowMarket } from "@/lib/marketFilters";
@@ -194,26 +194,8 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     };
   }, [fetchMarkets]);
 
-  // Visibility change handler - refresh when returning to tab after inactivity
-  useEffect(() => {
-    let lastHiddenTime = Date.now();
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const timeSinceHidden = Date.now() - lastHiddenTime;
-        // If tab was hidden for more than 1 minute, refetch immediately
-        if (timeSinceHidden > 60 * 1000 && isMountedRef.current) {
-          console.log('useMarkets: Refreshing after tab return');
-          fetchMarkets();
-        }
-      } else {
-        lastHiddenTime = Date.now();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchMarkets]);
+  // Removed visibility listener - Supabase auto-refresh handles tokens
+  // Data refresh happens via the periodic interval in the main useEffect
 
   // Fetch positions when userId changes
   useEffect(() => {

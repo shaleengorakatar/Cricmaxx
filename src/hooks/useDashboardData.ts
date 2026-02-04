@@ -303,26 +303,8 @@ export function useDashboardData(userId: string | undefined): DashboardData {
     };
   }, [userId, fetchAllData]);
 
-  // Visibility change handler - refresh when returning to tab after inactivity
-  useEffect(() => {
-    let lastHiddenTime = Date.now();
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && userId) {
-        const timeSinceHidden = Date.now() - lastHiddenTime;
-        // If tab was hidden for more than 1 minute, refetch immediately
-        if (timeSinceHidden > 60 * 1000 && isMounted.current) {
-          console.log('useDashboardData: Refreshing after tab return');
-          fetchAllData();
-        }
-      } else {
-        lastHiddenTime = Date.now();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [userId, fetchAllData]);
+  // Removed visibility listener - relying on Supabase's autoRefreshToken
+  // The auth context triggers re-renders when session refreshes, which triggers data refetch via userId dependency
 
   return {
     balance,
