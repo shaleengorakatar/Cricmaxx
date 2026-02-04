@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Clock, ArrowRight, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
 import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
@@ -30,52 +29,63 @@ export default function LiveMarketsWidget() {
     
     const { now, maxExpiry } = getMarketDateRange();
 
-    const { data, error: fetchError } = await supabase
-      .from("markets")
-      .select("*")
-      .in("status", [...ACTIVE_MARKET_STATUSES])
-      .lte("expiry_time", maxExpiry.toISOString())
-      .gte("expiry_time", now.toISOString())
-      .order("volume", { ascending: false })
-      .limit(6);
+    try {
+      // Use direct REST API to bypass any auth issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const params = new URLSearchParams({
+        select: '*',
+        status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
+        expiry_time: `gte.${now.toISOString()}`,
+        order: 'volume.desc',
+        limit: '6'
+      });
+      
+      const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      
+      const data = await response.json();
 
-    if (fetchError) {
-      console.error("Error fetching live markets:", fetchError);
+      const formattedMarkets: Market[] = (data || []).map((m: any) => ({
+        id: m.id,
+        question: m.question,
+        category: m.category as Market["category"],
+        type: m.type as Market["type"],
+        yesPrice: Number(m.yes_price),
+        noPrice: Number(m.no_price),
+        volume: Number(m.volume),
+        expiryTime: m.expiry_time,
+        description: m.description || "",
+        imageUrl: m.image_url || "",
+      }));
+
+      setMarkets(formattedMarkets);
+      setError(false);
+      setLoading(false);
+      hasFetchedRef.current = true;
+    } catch (err) {
+      console.error("Error fetching live markets:", err);
       
-      // Check if it's an auth error - if so, wait and retry once
-      const isAuthError = fetchError.message?.includes('JWT') || 
-                          fetchError.code === 'PGRST301' ||
-                          fetchError.message?.includes('invalid') ||
-                          fetchError.message?.includes('missing sub claim');
-      
-      if (isAuthError && !isRetry) {
-        // Wait for token refresh, then retry
+      if (!isRetry) {
+        // Retry once after 2 seconds
         retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), 2000);
         return;
       }
       
       setError(true);
       setLoading(false);
-      return;
     }
-
-    const formattedMarkets: Market[] = (data || []).map((m) => ({
-      id: m.id,
-      question: m.question,
-      category: m.category as Market["category"],
-      type: m.type as Market["type"],
-      yesPrice: Number(m.yes_price),
-      noPrice: Number(m.no_price),
-      volume: Number(m.volume),
-      expiryTime: m.expiry_time,
-      description: m.description || "",
-      imageUrl: m.image_url || "",
-    }));
-
-    setMarkets(formattedMarkets);
-    setError(false);
-    setLoading(false);
-    hasFetchedRef.current = true;
   }, []);
 
   // Initial fetch + failsafe timeout
@@ -98,20 +108,16 @@ export default function LiveMarketsWidget() {
     };
   }, [fetchLiveMarkets]);
 
-  // Listen for auth state changes and re-fetch if we had an error or are stuck loading
+  // Refresh markets periodically
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // Re-fetch when token is refreshed or user signs in
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        // Only re-fetch if we're in an error state or still loading after initial attempt
-        if (error || (loading && hasFetchedRef.current)) {
-          fetchLiveMarkets(true);
-        }
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchLiveMarkets();
       }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [error, loading, fetchLiveMarkets]);
+    }, 5 * 60 * 1000); // Every 5 minutes
+    
+    return () => clearInterval(refreshInterval);
+  }, [fetchLiveMarkets]);
 
   const getTimeUntilExpiry = (expiryTime: string) => {
     const now = new Date();

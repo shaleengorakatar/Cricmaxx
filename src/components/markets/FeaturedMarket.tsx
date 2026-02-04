@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, TrendingUp, Users, ArrowRight, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
 import { Sparkline } from "@/components/ui/sparkline";
@@ -33,68 +32,78 @@ export function FeaturedMarket() {
     
     const { now, maxExpiry } = getMarketDateRange();
 
-    // Get all active markets
-    const { data: allMarkets, error: fetchError } = await supabase
-      .from("markets")
-      .select("*")
-      .in("status", [...ACTIVE_MARKET_STATUSES])
-      .lte("expiry_time", maxExpiry.toISOString())
-      .gte("expiry_time", now.toISOString())
-      .order("volume", { ascending: false });
+    try {
+      // Use direct REST API to bypass any auth issues
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const params = new URLSearchParams({
+        select: '*',
+        status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
+        expiry_time: `gte.${now.toISOString()}`,
+        order: 'volume.desc'
+      });
+      
+      const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      
+      const allMarkets = await response.json();
+    
+      if (!allMarkets || allMarkets.length === 0) {
+        setLoading(false);
+        hasFetchedRef.current = true;
+        return;
+      }
 
-    if (fetchError) {
-      console.error("Error fetching featured market:", fetchError);
+      // Use the current date as a seed for daily rotation
+      const today = new Date();
+      const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+      const marketIndex = dayOfYear % allMarkets.length;
       
-      // Check if it's an auth error - if so, wait and retry once
-      const isAuthError = fetchError.message?.includes('JWT') || 
-                          fetchError.code === 'PGRST301' ||
-                          fetchError.message?.includes('invalid') ||
-                          fetchError.message?.includes('missing sub claim');
+      const data = allMarkets[marketIndex];
+
+      if (data) {
+        setMarket({
+          id: data.id,
+          question: data.question,
+          category: data.category as Market["category"],
+          type: data.type as Market["type"],
+          yesPrice: Number(data.yes_price),
+          noPrice: Number(data.no_price),
+          volume: Number(data.volume),
+          expiryTime: data.expiry_time,
+          description: data.description || "",
+          imageUrl: data.image_url || "",
+          prediction_count: data.prediction_count || 0,
+          price_history: Array.isArray(data.price_history) ? data.price_history : [],
+        });
+      }
+
+      setError(false);
+      setLoading(false);
+      hasFetchedRef.current = true;
+    } catch (err) {
+      console.error("Error fetching featured market:", err);
       
-      if (isAuthError && !isRetry) {
-        // Wait for token refresh, then retry
+      if (!isRetry) {
+        // Retry once after 2 seconds
         retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), 2000);
         return;
       }
       
       setError(true);
       setLoading(false);
-      return;
     }
-    
-    if (!allMarkets || allMarkets.length === 0) {
-      setLoading(false);
-      hasFetchedRef.current = true;
-      return;
-    }
-
-    // Use the current date as a seed for daily rotation
-    const today = new Date();
-    const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-    const marketIndex = dayOfYear % allMarkets.length;
-    
-    const data = allMarkets[marketIndex];
-
-    if (data) {
-      setMarket({
-        id: data.id,
-        question: data.question,
-        category: data.category as Market["category"],
-        type: data.type as Market["type"],
-        yesPrice: Number(data.yes_price),
-        noPrice: Number(data.no_price),
-        volume: Number(data.volume),
-        expiryTime: data.expiry_time,
-        description: data.description || "",
-        imageUrl: data.image_url || "",
-        prediction_count: data.prediction_count || 0,
-        price_history: Array.isArray(data.price_history) ? data.price_history : [],
-      });
-    }
-
-    setError(false);
-    setLoading(false);
-    hasFetchedRef.current = true;
   }, []);
 
   // Initial fetch + failsafe timeout
@@ -117,19 +126,16 @@ export function FeaturedMarket() {
     };
   }, [fetchFeaturedMarket]);
 
-  // Listen for auth state changes and re-fetch if we had an error or are stuck loading
+  // Refresh markets periodically
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      // Re-fetch when token is refreshed or user signs in
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        if (error || (loading && hasFetchedRef.current)) {
-          fetchFeaturedMarket(true);
-        }
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchFeaturedMarket();
       }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [error, loading, fetchFeaturedMarket]);
+    }, 5 * 60 * 1000); // Every 5 minutes
+    
+    return () => clearInterval(refreshInterval);
+  }, [fetchFeaturedMarket]);
 
   if (loading) {
     return (
