@@ -51,8 +51,13 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
         if (error) throw error;
 
         if (data?.url) {
-          // Redirect in same window to avoid popup blockers
-          window.location.href = data.url;
+          // Open Stripe Checkout in new tab
+          window.open(data.url, '_blank');
+          toast({
+            title: "Redirecting to checkout",
+            description: "Complete your payment in the new tab",
+          });
+          onClose();
         } else {
           throw new Error('No checkout URL received');
         }

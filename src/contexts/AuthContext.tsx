@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef, useC
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted, isSafari, forceCleanAuthState } from "@/lib/authUtils";
+import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted } from "@/lib/authUtils";
 
 export interface UserProfile {
   id: string;
@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Check for corrupted tokens BEFORE trying to get session
         if (isAuthTokenCorrupted()) {
           console.log('[AuthContext] Detected corrupted token on init, clearing');
-          forceCleanAuthState();
+          clearAuthStorage();
           if (isMounted) {
             clearAuthState();
             setLoading(false);
@@ -157,45 +157,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
         
-        // Validate session before using it
-        if (initialSession?.access_token) {
-          const parts = initialSession.access_token.split('.');
-          if (parts.length !== 3) {
-            console.log('[AuthContext] Session has invalid JWT structure, clearing');
-            forceCleanAuthState();
-            if (isMounted) {
-              clearAuthState();
-              setLoading(false);
-              initCompleteRef.current = true;
-            }
-            return;
-          }
-          
-          // Validate sub claim exists
-          try {
-            const payload = JSON.parse(atob(parts[1]));
-            if (!payload.sub) {
-              console.log('[AuthContext] JWT missing sub claim, clearing');
-              forceCleanAuthState();
-              if (isMounted) {
-                clearAuthState();
-                setLoading(false);
-                initCompleteRef.current = true;
-              }
-              return;
-            }
-          } catch {
-            console.log('[AuthContext] JWT decode failed, clearing');
-            forceCleanAuthState();
-            if (isMounted) {
-              clearAuthState();
-              setLoading(false);
-              initCompleteRef.current = true;
-            }
-            return;
-          }
-        }
-        
         // No session - try refresh (Safari ITP workaround)
         if (!initialSession) {
           try {
@@ -207,28 +168,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.log('[AuthContext] Cleared stale refresh token');
               }
             } else if (refreshData.session && isMounted) {
-              // Validate the refreshed session before using it
-              const accessToken = refreshData.session.access_token;
-              if (accessToken) {
-                const parts = accessToken.split('.');
-                if (parts.length === 3) {
-                  try {
-                    const payload = JSON.parse(atob(parts[1]));
-                    if (payload.sub) {
-                      setSession(refreshData.session);
-                      setUser(refreshData.session.user);
-                      await fetchUserData(refreshData.session.user.id);
-                      setLoading(false);
-                      initCompleteRef.current = true;
-                      return;
-                    }
-                  } catch {
-                    // Invalid token
-                  }
-                }
-              }
-              console.log('[AuthContext] Refreshed token invalid, clearing');
-              forceCleanAuthState();
+              setSession(refreshData.session);
+              setUser(refreshData.session.user);
+              await fetchUserData(refreshData.session.user.id);
+              setLoading(false);
+              initCompleteRef.current = true;
+              return;
             }
           } catch (refreshErr) {
             // Refresh failed - user is logged out, this is fine
