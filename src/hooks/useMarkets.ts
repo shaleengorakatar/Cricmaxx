@@ -27,16 +27,30 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   const fetchIdRef = useRef(0);
   const lastFetchTimeRef = useRef(0);
   const userIdRef = useRef(userId);
+  const loadingRef = useRef(true);
+  const marketsRef = useRef<Market[]>([]);
 
-  // Keep userId ref in sync
+  // Keep refs in sync
   useEffect(() => {
     userIdRef.current = userId;
   }, [userId]);
+  
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+  
+  useEffect(() => {
+    marketsRef.current = markets;
+  }, [markets]);
 
   const fetchMarkets = useCallback(async () => {
-    // Debounce rapid calls
+    // Debounce rapid calls - but always ensure loading gets set to false
     const now = Date.now();
     if (now - lastFetchTimeRef.current < 500) {
+      // Still debouncing, but if we're stuck loading with data, force it off
+      if (loadingRef.current && marketsRef.current.length > 0) {
+        setLoading(false);
+      }
       return;
     }
     lastFetchTimeRef.current = now;
@@ -63,6 +77,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       
       // Check if this response is stale
       if (thisFetchId !== fetchIdRef.current || !isMounted.current) {
+        // Stale response - but ensure loading state is cleared if this was the only pending request
         return;
       }
       
@@ -75,6 +90,15 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         if (isAuthError) {
           console.warn('Auth error in markets fetch - will retry after session refresh');
           setError('Session issue. Refreshing...');
+          // CRITICAL: Set loading to false to prevent infinite loading state
+          setLoading(false);
+          // Schedule retry after short delay
+          setTimeout(() => {
+            if (isMounted.current) {
+              setLoading(true);
+              fetchMarkets();
+            }
+          }, 3000);
         } else {
           throw fetchError;
         }
@@ -111,6 +135,8 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         
         // Check if still mounted and not stale
         if (thisFetchId !== fetchIdRef.current || !isMounted.current) {
+          // Even if stale, we already set markets - just set loading false
+          setLoading(false);
           return;
         }
         

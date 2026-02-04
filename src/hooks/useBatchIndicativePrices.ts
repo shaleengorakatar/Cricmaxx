@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface IndicativePrice {
@@ -19,9 +19,18 @@ interface IndicativePrice {
 export function useBatchIndicativePrices(marketIds: string[]) {
   const [prices, setPrices] = useState<Map<string, IndicativePrice>>(new Map());
   const [loading, setLoading] = useState(true);
+  
+  // Stable string representation for dependency tracking
+  const marketIdsKey = marketIds.join(",");
+  
+  // Use ref to access current marketIds in callback without stale closure
+  const marketIdsRef = useRef(marketIds);
+  marketIdsRef.current = marketIds;
 
   const fetchPrices = useCallback(async () => {
-    if (marketIds.length === 0) {
+    const currentMarketIds = marketIdsRef.current;
+    
+    if (currentMarketIds.length === 0) {
       setLoading(false);
       return;
     }
@@ -33,11 +42,11 @@ export function useBatchIndicativePrices(marketIds: string[]) {
       supabase
         .from("trades")
         .select("market_id, price, buyer_side, created_at")
-        .in("market_id", marketIds)
+        .in("market_id", currentMarketIds)
         .order("created_at", { ascending: false }),
       
       // Use RPC function to get aggregated order book (security definer)
-      supabase.rpc("get_order_book_aggregated", { market_ids: marketIds }),
+      supabase.rpc("get_order_book_aggregated", { market_ids: currentMarketIds }),
     ]);
 
     // Handle trades gracefully - may be empty due to RLS for anonymous users
@@ -72,7 +81,7 @@ export function useBatchIndicativePrices(marketIds: string[]) {
     // Calculate indicative price for each market
     const newPrices = new Map<string, IndicativePrice>();
 
-    for (const marketId of marketIds) {
+    for (const marketId of currentMarketIds) {
       const lastTrade = lastTradeByMarket.get(marketId);
       const book = orderBookByMarket.get(marketId);
 
@@ -137,7 +146,7 @@ export function useBatchIndicativePrices(marketIds: string[]) {
 
     setPrices(newPrices);
     setLoading(false);
-  }, [marketIds.join(",")]); // Re-run when market IDs change
+  }, [marketIdsKey]); // Use stable string key instead of join in array
 
   useEffect(() => {
     fetchPrices();
