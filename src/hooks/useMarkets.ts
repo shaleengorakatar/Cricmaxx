@@ -194,6 +194,27 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     };
   }, [fetchMarkets]);
 
+  // Visibility change handler - refresh when returning to tab after inactivity
+  useEffect(() => {
+    let lastHiddenTime = Date.now();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceHidden = Date.now() - lastHiddenTime;
+        // If tab was hidden for more than 1 minute, refetch immediately
+        if (timeSinceHidden > 60 * 1000 && isMountedRef.current) {
+          console.log('useMarkets: Refreshing after tab return');
+          fetchMarkets();
+        }
+      } else {
+        lastHiddenTime = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchMarkets]);
+
   // Fetch positions when userId changes
   useEffect(() => {
     fetchUserPositions();

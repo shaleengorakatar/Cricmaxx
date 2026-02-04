@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -54,6 +54,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileError, setProfileError] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Track last activity time for visibility-based refresh
+  const lastActivityRef = useRef(Date.now());
+  const isRefreshingRef = useRef(false);
+
+  // Visibility change handler - refresh session when returning to tab
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+        const TWO_MINUTES = 2 * 60 * 1000;
+        
+        // If tab was hidden for more than 2 minutes and we have a user, proactively refresh
+        if (timeSinceLastActivity > TWO_MINUTES && user && !isRefreshingRef.current) {
+          console.log('Tab returned after inactivity, refreshing session...');
+          isRefreshingRef.current = true;
+          
+          try {
+            const { data, error } = await supabase.auth.refreshSession();
+            if (error) {
+              console.warn('Session refresh failed on tab return:', error.message);
+              // Don't sign out - let the user continue with stale data
+            } else if (data.session) {
+              console.log('Session refreshed successfully on tab return');
+              // Trigger profile refetch
+              if (data.session.user?.id) {
+                setProfileLoading(true);
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', data.session.user.id)
+                  .single();
+                if (profileData) {
+                  setProfile(profileData);
+                  setProfileError(false);
+                }
+                setProfileLoading(false);
+              }
+            }
+          } catch (err) {
+            console.error('Error during visibility refresh:', err);
+          } finally {
+            isRefreshingRef.current = false;
+          }
+        }
+        
+        lastActivityRef.current = Date.now();
+      } else {
+        // Tab is being hidden, record the time
+        lastActivityRef.current = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
 
   useEffect(() => {
     let isMounted = true;
