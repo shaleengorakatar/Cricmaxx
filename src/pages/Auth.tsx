@@ -64,7 +64,10 @@ const Auth = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && profile) {
+    // Wait for auth to settle before redirecting
+    if (authLoading) return;
+    
+    if (isAuthenticated) {
       setLoading(false); // Reset loading when redirect happens
       const redirect = searchParams.get('redirect');
       if (redirect) {
@@ -73,20 +76,20 @@ const Auth = () => {
         navigate('/dashboard');
       }
     }
-  }, [isAuthenticated, profile, navigate, searchParams]);
+  }, [isAuthenticated, authLoading, navigate, searchParams]);
 
   // Safety timeout - if we're stuck in loading state for too long after sign-in succeeds
   useEffect(() => {
-    if (loading && isAuthenticated) {
+    if (loading && isAuthenticated && !authLoading) {
       const timeout = setTimeout(() => {
         // Force redirect even if profile hasn't loaded - dashboard will handle it
         setLoading(false);
         const redirect = searchParams.get('redirect');
         navigate(redirect || '/dashboard');
-      }, 3000); // 3 second safety timeout (reduced from 5)
+      }, 2000); // 2 second safety timeout
       return () => clearTimeout(timeout);
     }
-  }, [loading, isAuthenticated, navigate, searchParams]);
+  }, [loading, isAuthenticated, authLoading, navigate, searchParams]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,11 +239,11 @@ const Auth = () => {
 
   // MFA handling - check from useAuth profile instead
   useEffect(() => {
-    if (isAuthenticated && profile?.mfa_enabled && loading) {
+    if (isAuthenticated && !authLoading && profile?.mfa_enabled && loading) {
       setLoading(false);
       setMfaStep(true);
     }
-  }, [isAuthenticated, profile, loading]);
+  }, [isAuthenticated, authLoading, profile, loading]);
 
   const handleMfaVerify = () => {
     // Simulate MFA verification (accept any code for prototype)
