@@ -89,18 +89,38 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       if (isMountedRef.current && currentFetch === fetchCountRef.current) {
         console.error("Fetch error:", err);
         
-        // Check if auth error - wait for session refresh then retry
+        // Check if auth error - actively refresh session then retry
         const isAuthError = err?.message?.includes('JWT') || 
                            err?.message?.includes('missing sub claim') ||
+                           err?.message?.includes('token') ||
                            err?.code === 'PGRST301';
         
         if (isAuthError && !isRetry) {
-          // Wait 3 seconds for auth context to refresh session, then retry
-          retryTimeoutRef.current = setTimeout(() => {
-            if (isMountedRef.current) {
-              fetchMarkets(true);
+          // Actively refresh the session
+          try {
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (!refreshError && refreshData.session) {
+              // Session refreshed - retry after brief delay
+              retryTimeoutRef.current = setTimeout(() => {
+                if (isMountedRef.current) {
+                  fetchMarkets(true);
+                }
+              }, 500);
+            } else {
+              // No session available - markets are public, try without auth
+              console.warn('Session refresh failed, retrying public fetch...');
+              retryTimeoutRef.current = setTimeout(() => {
+                if (isMountedRef.current) {
+                  fetchMarkets(true);
+                }
+              }, 1000);
             }
-          }, 3000);
+          } catch (refreshErr) {
+            console.error("Session refresh error:", refreshErr);
+            setError(true);
+            setLoading(false);
+          }
         } else if (!isRetry) {
           // Non-auth error - retry once after 2 seconds
           retryTimeoutRef.current = setTimeout(() => {
