@@ -22,10 +22,87 @@ const Markets = () => {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
-
+  const [hasFetched, setHasFetched] = useState(false);
   // Fetch markets immediately on mount (no auth dependency for public data)
   useEffect(() => {
-    fetchPublicMarkets();
+    let isMounted = true;
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let failsafeTimeout: NodeJS.Timeout | null = null;
+
+    const doFetch = async (isRetry = false) => {
+      if (isRetry) {
+        setLoading(true);
+        setFetchError(false);
+      }
+      
+      const { now, maxExpiry } = getMarketDateRange();
+
+      try {
+        const { data: activeMarkets, error: activeError } = await supabase
+          .from("markets")
+          .select("*")
+          .in("status", [...ACTIVE_MARKET_STATUSES])
+          .lte("expiry_time", maxExpiry.toISOString())
+          .gte("expiry_time", now.toISOString())
+          .order("created_at", { ascending: false });
+
+        if (!isMounted) return;
+
+        if (activeError) {
+          console.error("Error fetching markets:", activeError);
+          
+          const isAuthError = activeError.message?.includes('JWT') || 
+                              activeError.code === 'PGRST301' ||
+                              activeError.message?.includes('invalid') ||
+                              activeError.message?.includes('missing sub claim');
+          
+          if (isAuthError && !isRetry) {
+            retryTimeout = setTimeout(() => doFetch(true), 2000);
+            return;
+          }
+          
+          setFetchError(true);
+          setLoading(false);
+          setHasFetched(true);
+          return;
+        }
+
+        const formattedMarkets: Market[] = (activeMarkets || []).map((m: any) => ({
+          id: m.id,
+          question: m.question,
+          category: m.category as Market["category"],
+          type: m.type as Market["type"],
+          yesPrice: Number(m.yes_price),
+          noPrice: Number(m.no_price),
+          volume: Number(m.volume),
+          expiryTime: m.expiry_time,
+          description: m.description || "",
+          imageUrl: m.image_url || "",
+        }));
+
+        setAllMarkets(formattedMarkets);
+        setFetchError(false);
+        setLoading(false);
+        setHasFetched(true);
+      } catch (err) {
+        if (isMounted) {
+          console.error("Fetch error:", err);
+          setFetchError(true);
+          setLoading(false);
+          setHasFetched(true);
+        }
+      }
+    };
+
+    doFetch();
+
+    // Failsafe: if still loading after 10 seconds, force retry
+    failsafeTimeout = setTimeout(() => {
+      if (isMounted && loading && !hasFetched) {
+        console.log('Markets: Failsafe triggered - forcing retry');
+        doFetch(true);
+      }
+    }, 10000);
 
     // Real-time subscription for market updates
     const channel = supabase
@@ -42,7 +119,6 @@ const Markets = () => {
           
           if (payload.eventType === 'INSERT') {
             const data = payload.new as any;
-            // Only add if it's approved/open and within visibility window
             if (shouldShowMarket(data.status, data.expiry_time)) {
               const newMarket: Market = {
                 id: data.id,
@@ -79,8 +155,21 @@ const Markets = () => {
       )
       .subscribe();
 
+    // Listen for auth state changes to re-fetch if needed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        if (fetchError || (loading && hasFetched)) {
+          doFetch(true);
+        }
+      }
+    });
+
     return () => {
+      isMounted = false;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (failsafeTimeout) clearTimeout(failsafeTimeout);
       supabase.removeChannel(channel);
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -92,62 +181,6 @@ const Markets = () => {
       setUserPositions(new Map());
     }
   }, [isAuthenticated]);
-
-  // Fetch public markets (no auth required)
-  const fetchPublicMarkets = useCallback(async (retry = false) => {
-    if (retry) {
-      setLoading(true);
-      setFetchError(false);
-    }
-    
-    const { now, maxExpiry } = getMarketDateRange();
-
-    const { data: activeMarkets, error: activeError } = await supabase
-      .from("markets")
-      .select("*")
-      .in("status", [...ACTIVE_MARKET_STATUSES])
-      .lte("expiry_time", maxExpiry.toISOString())
-      .gte("expiry_time", now.toISOString())
-      .order("created_at", { ascending: false });
-
-    if (activeError) {
-      console.error("Error fetching markets:", activeError);
-      
-      // Check if it's an auth error - if so, wait and retry once
-      const isAuthError = activeError.message?.includes('JWT') || 
-                          activeError.code === 'PGRST301' ||
-                          activeError.message?.includes('invalid');
-      
-      if (isAuthError && !retry) {
-        // Wait for potential token refresh, then retry
-        setTimeout(() => fetchPublicMarkets(true), 2000);
-        return;
-      }
-      
-      setFetchError(true);
-      setLoading(false);
-      return;
-    }
-
-    const formattedMarkets: (Market & { prediction_count?: number; price_history?: any[] })[] = (activeMarkets || []).map((m: any) => ({
-      id: m.id,
-      question: m.question,
-      category: m.category as Market["category"],
-      type: m.type as Market["type"],
-      yesPrice: Number(m.yes_price),
-      noPrice: Number(m.no_price),
-      volume: Number(m.volume),
-      expiryTime: m.expiry_time,
-      description: m.description || "",
-      imageUrl: m.image_url || "",
-      prediction_count: m.prediction_count || 0,
-      price_history: Array.isArray(m.price_history) ? m.price_history : [],
-    }));
-
-    setAllMarkets(formattedMarkets);
-    setFetchError(false);
-    setLoading(false);
-  }, []);
 
   // Fetch user positions (requires auth)
   const fetchUserPositions = async () => {
@@ -182,7 +215,6 @@ const Markets = () => {
         const missingMarketIds = positionMarketIds.filter(id => !existingMarketIds.has(id));
         
         if (missingMarketIds.length > 0) {
-          // Fetch missing markets async and update state
           supabase
             .from("markets")
             .select("*")
@@ -202,7 +234,6 @@ const Markets = () => {
                   description: m.description || "",
                   imageUrl: m.image_url || "",
                 }));
-                // Deduplicate when adding
                 setAllMarkets(current => {
                   const currentIds = new Set(current.map(m => m.id));
                   const uniqueAdditional = additionalMarkets.filter(m => !currentIds.has(m.id));
@@ -328,7 +359,7 @@ const Markets = () => {
               </p>
               <Button 
                 variant="outline" 
-                onClick={() => fetchPublicMarkets(true)}
+                onClick={() => window.location.reload()}
                 className="gap-2"
               >
                 <RefreshCw className="h-4 w-4" />
