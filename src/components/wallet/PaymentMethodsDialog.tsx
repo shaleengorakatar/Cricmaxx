@@ -51,13 +51,35 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
         if (error) throw error;
 
         if (data?.url) {
-          // Open Stripe Checkout in new tab
-          window.open(data.url, '_blank');
-          toast({
-            title: "Redirecting to checkout",
-            description: "Complete your payment in the new tab",
-          });
-          onClose();
+          // Try to open in new tab - detect if blocked
+          const newWindow = window.open(data.url, '_blank');
+          
+          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+            // Popup was blocked - show fallback with clickable link
+            toast({
+              title: "Popup blocked",
+              description: (
+                <div className="space-y-2">
+                  <p>Your browser blocked the checkout window.</p>
+                  <a 
+                    href={data.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block underline text-accent font-medium"
+                  >
+                    Click here to open checkout →
+                  </a>
+                </div>
+              ),
+              duration: 15000, // Keep visible longer
+            });
+          } else {
+            toast({
+              title: "Checkout opened",
+              description: "Complete your payment in the new tab",
+            });
+            onClose();
+          }
         } else {
           throw new Error('No checkout URL received');
         }
