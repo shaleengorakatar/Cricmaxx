@@ -123,26 +123,8 @@ export function FeaturedMarket() {
     };
   }, [fetchFeaturedMarket]);
 
-  // Refresh when tab becomes visible again (handles long inactivity)
-  useEffect(() => {
-    let lastHiddenTime = Date.now();
-    
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const timeSinceHidden = Date.now() - lastHiddenTime;
-        // If tab was hidden for more than 1 minute, refetch immediately
-        if (timeSinceHidden > 60 * 1000) {
-          console.log('FeaturedMarket: Refreshing after tab return');
-          fetchFeaturedMarket();
-        }
-      } else {
-        lastHiddenTime = Date.now();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchFeaturedMarket]);
+  // Removed visibility listener - periodic refresh handles data freshness
+  // Supabase autoRefreshToken handles session management
 
   // Refresh markets periodically
   useEffect(() => {
