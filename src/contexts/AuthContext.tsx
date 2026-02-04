@@ -59,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const userRef = useRef<User | null>(null);
   const isRefreshingRef = useRef(false);
   const lastActivityRef = useRef<number>(Date.now());
+  const isSigningOutRef = useRef(false);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -213,7 +214,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         
         // If away for more than 2 minutes and we have a user, proactively refresh
-        if (timeSinceActivity > 2 * 60 * 1000 && userRef.current && !isRefreshingRef.current) {
+        // Skip if signing out to prevent race conditions
+        if (timeSinceActivity > 2 * 60 * 1000 && userRef.current && !isRefreshingRef.current && !isSigningOutRef.current) {
           isRefreshingRef.current = true;
           
           try {
@@ -280,7 +282,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    // Clear local state first
+    // Mark that we're signing out to prevent race conditions with visibility handler
+    isSigningOutRef.current = true;
+    
+    // Clear refs immediately to prevent stale closure issues
+    userRef.current = null;
+    
+    // Clear local state
     setSession(null);
     setUser(null);
     setProfile(null);
@@ -288,6 +296,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Then call Supabase signOut
     const { error } = await supabase.auth.signOut();
+    
+    // Reset signing out flag
+    isSigningOutRef.current = false;
     
     // Navigate after sign out completes
     if (!error) {

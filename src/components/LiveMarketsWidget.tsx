@@ -86,21 +86,35 @@ export default function LiveMarketsWidget() {
 
   // Initial fetch + failsafe timeout
   useEffect(() => {
+    let isMounted = true;
+    
     fetchLiveMarkets();
     
-    // Failsafe: if still loading after 15 seconds, force retry
+    // Failsafe: if still loading after 10 seconds, force retry
     const failsafeTimeout = setTimeout(() => {
-      if (loadingRef.current && !hasFetchedRef.current) {
+      if (isMounted && loadingRef.current && !hasFetchedRef.current) {
         console.log('LiveMarketsWidget: Failsafe triggered - forcing retry');
         fetchLiveMarkets(true);
       }
-    }, 15000);
+    }, 10000);
+    
+    // Second failsafe: if still loading after 20 seconds, force error state
+    const hardFailsafe = setTimeout(() => {
+      if (isMounted && loadingRef.current) {
+        console.log('LiveMarketsWidget: Hard failsafe - showing error state');
+        setError(true);
+        setLoading(false);
+        loadingRef.current = false;
+      }
+    }, 20000);
     
     return () => {
+      isMounted = false;
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
       clearTimeout(failsafeTimeout);
+      clearTimeout(hardFailsafe);
     };
   }, [fetchLiveMarkets]);
 
