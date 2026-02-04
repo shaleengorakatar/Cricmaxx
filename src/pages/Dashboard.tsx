@@ -32,6 +32,22 @@ const Dashboard = () => {
     const paymentStatus = searchParams.get("payment");
     const amount = searchParams.get("amount");
     
+    // If returning from payment but no user yet, try to restore session
+    if (paymentStatus && !user?.id && !loading) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          // Session truly lost - redirect to re-authenticate
+          toast({
+            title: "Session expired",
+            description: "Please sign in again to continue.",
+            variant: "destructive",
+          });
+          navigate('/auth?mode=login&redirect=/dashboard', { replace: true });
+        }
+      });
+      return;
+    }
+    
     if (paymentStatus === "success" && user?.id) {
       setSearchParams({});
       
@@ -97,7 +113,7 @@ const Dashboard = () => {
       });
       setSearchParams({});
     }
-  }, [searchParams, user?.id, setSearchParams, toast, dashboardData]);
+  }, [searchParams, user?.id, loading, setSearchParams, toast, dashboardData, navigate]);
 
   // Redirect if not authenticated
   useEffect(() => {
