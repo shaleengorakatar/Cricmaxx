@@ -136,6 +136,9 @@ export function useBatchIndicativePrices(marketIds: string[]) {
     }
   }, []);
 
+  // Memoize the market IDs key to prevent infinite loops
+  const marketIdsKey = marketIds.join(",");
+  
   useEffect(() => {
     isMountedRef.current = true;
     fetchPrices();
@@ -143,7 +146,7 @@ export function useBatchIndicativePrices(marketIds: string[]) {
     return () => {
       isMountedRef.current = false;
     };
-  }, [fetchPrices, marketIds.join(",")]);
+  }, [fetchPrices, marketIdsKey]);
 
   return { prices, loading, refetch: fetchPrices };
 }

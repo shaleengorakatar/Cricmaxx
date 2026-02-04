@@ -314,8 +314,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    // Clear any stale tokens before signing in
+    // Clear any stale tokens and state before signing in
     clearAuthStorage();
+    clearAuthState();
     
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
