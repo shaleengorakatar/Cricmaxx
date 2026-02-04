@@ -91,9 +91,20 @@ export function FeaturedMarket() {
                          err?.code === 'PGRST301';
       
       if (!isRetry) {
-        // Retry after delay (longer for auth errors to allow refresh)
+        // Schedule retry - but DON'T keep loading state indefinitely
         const delay = isAuthError ? 3000 : 2000;
         retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), delay);
+        
+        // If we have no market yet, set a hard limit to prevent infinite loading
+        if (!market) {
+          setTimeout(() => {
+            if (loadingRef.current) {
+              console.log('FeaturedMarket: Forcing hide after retry delay');
+              setLoading(false);
+              loadingRef.current = false;
+            }
+          }, delay + 5000);
+        }
         return;
       }
       

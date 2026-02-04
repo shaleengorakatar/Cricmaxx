@@ -73,8 +73,23 @@ export default function LiveMarketsWidget() {
                          err?.code === 'PGRST301';
       
       if (!isRetry) {
+        // Schedule retry - but DON'T keep loading state indefinitely
+        // Show content while retrying if we have cached data
         const delay = isAuthError ? 3000 : 2000;
         retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), delay);
+        
+        // If we have no markets yet, keep loading state but set a hard limit
+        if (markets.length === 0) {
+          // Set loading false after 5 seconds max to prevent infinite loading
+          setTimeout(() => {
+            if (loadingRef.current) {
+              console.log('LiveMarketsWidget: Forcing error state after retry delay');
+              setError(true);
+              setLoading(false);
+              loadingRef.current = false;
+            }
+          }, delay + 5000);
+        }
         return;
       }
       
