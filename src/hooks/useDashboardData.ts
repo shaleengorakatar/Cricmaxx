@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -62,10 +62,14 @@ export function useDashboardData(userId: string | undefined): DashboardData {
   const [positions, setPositions] = useState<Position[]>([]);
   const [pendingOrders, setPendingOrders] = useState<Position[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([]);
+  // Initialize with default chart data to prevent empty state
+  const [chartData, setChartData] = useState<Array<{ date: string; value: number }>>([
+    { date: 'Today', value: 0 }
+  ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const isMounted = useRef(true);
 
   const fetchAllData = useCallback(async () => {
     if (!userId) {
@@ -73,7 +77,10 @@ export function useDashboardData(userId: string | undefined): DashboardData {
       return;
     }
 
-    setLoading(true);
+    // Only show loading on first load
+    if (retryCount === 0) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -272,20 +279,28 @@ export function useDashboardData(userId: string | undefined): DashboardData {
       }
 
       setRetryCount(0); // Reset retry count on success
+      
+      if (!isMounted.current) return;
+      setLoading(false);
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data');
-    } finally {
-      setLoading(false);
+      if (isMounted.current) {
+        setError('Failed to load dashboard data');
+        setLoading(false);
+      }
     }
   }, [userId, retryCount]);
 
   // Initial fetch when userId is available
   useEffect(() => {
+    isMounted.current = true;
     if (userId) {
       fetchAllData();
     }
+    return () => {
+      isMounted.current = false;
+    };
   }, [userId, fetchAllData]);
 
   return {
