@@ -42,8 +42,17 @@ export default function LiveMarketsWidget() {
         .order("volume", { ascending: false })
         .limit(6);
 
+      // Always clear loading on any response - don't throw
       if (fetchError) {
-        throw fetchError;
+        console.error("LiveMarketsWidget fetch error:", fetchError);
+        setLoading(false);
+        loadingRef.current = false;
+        if (!isRetry) {
+          retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), 3000);
+        } else {
+          setError(true);
+        }
+        return;
       }
 
       const formattedMarkets: Market[] = (data || []).map((m) => ({
@@ -66,36 +75,15 @@ export default function LiveMarketsWidget() {
       hasFetchedRef.current = true;
     } catch (err: any) {
       console.error("Error fetching live markets:", err);
-      
-      // Check if auth error - wait for session refresh then retry
-      const isAuthError = err?.message?.includes('JWT') || 
-                         err?.message?.includes('missing sub claim') ||
-                         err?.code === 'PGRST301';
-      
-      if (!isRetry) {
-        // Schedule retry - but DON'T keep loading state indefinitely
-        // Show content while retrying if we have cached data
-        const delay = isAuthError ? 3000 : 2000;
-        retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), delay);
-        
-        // If we have no markets yet, keep loading state but set a hard limit
-        if (markets.length === 0) {
-          // Set loading false after 5 seconds max to prevent infinite loading
-          setTimeout(() => {
-            if (loadingRef.current) {
-              console.log('LiveMarketsWidget: Forcing error state after retry delay');
-              setError(true);
-              setLoading(false);
-              loadingRef.current = false;
-            }
-          }, delay + 5000);
-        }
-        return;
-      }
-      
-      setError(true);
+      // Always clear loading state to prevent infinite loading
       setLoading(false);
       loadingRef.current = false;
+      
+      if (!isRetry) {
+        retryTimeoutRef.current = setTimeout(() => fetchLiveMarkets(true), 3000);
+      } else {
+        setError(true);
+      }
     }
   }, []);
 
