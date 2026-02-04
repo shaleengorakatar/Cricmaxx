@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Circle, CheckCircle2, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Position {
   id: string;
@@ -20,69 +18,16 @@ interface Position {
 
 interface ActivePositionsProps {
   positions: Position[];
+  pendingOrders?: Position[];
 }
 
 /**
  * Positions display using prediction market-safe language
  * Shows "tokens committed" and "tokens returned" instead of P&L
  */
-const ActivePositions = ({ positions: initialPositions }: ActivePositionsProps) => {
-  const [positions, setPositions] = useState<Position[]>(initialPositions);
-  const [pendingOrders, setPendingOrders] = useState<Position[]>([]);
+const ActivePositions = ({ positions, pendingOrders = [] }: ActivePositionsProps) => {
 
-  useEffect(() => {
-    setPositions(initialPositions);
-  }, [initialPositions]);
-
-  useEffect(() => {
-    fetchPendingOrders();
-  }, []);
-
-  const fetchPendingOrders = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        id,
-        side,
-        quantity,
-        filled_quantity,
-        price,
-        status,
-        created_at,
-        markets (question, expiry_time)
-      `)
-      .eq('user_id', user.id)
-      .in('status', ['pending', 'partial'])
-      .order('created_at', { ascending: false });
-
-    if (data && !error) {
-      const orders: Position[] = data.map((o: any) => {
-        const unfilled = Number(o.quantity) - Number(o.filled_quantity);
-        const tokensCommitted = Math.round(unfilled * Number(o.price));
-        const isExpiringSoon = o.markets?.expiry_time ? 
-          new Date(o.markets.expiry_time).getTime() - Date.now() < 24 * 60 * 60 * 1000 : false;
-
-        return {
-          id: o.id,
-          market: o.markets?.question || 'Unknown Market',
-          side: o.side === 'yes' ? 'Yes' : 'No',
-          quantity: unfilled,
-          entryPrice: Number(o.price),
-          currentPrice: Number(o.price),
-          tokensCommitted,
-          status: 'pending' as const,
-          expiring: isExpiringSoon,
-          type: 'order' as const
-        };
-      });
-      setPendingOrders(orders);
-    }
-  };
-
-  const activePositions = positions.filter(p => p.status === "active");
+  const activePositions = positions.filter(p => p.status === "active" || p.status === undefined);
   const settledPositions = positions.filter(p => p.status === "settled");
 
   const allEmpty = activePositions.length === 0 && pendingOrders.length === 0 && settledPositions.length === 0;

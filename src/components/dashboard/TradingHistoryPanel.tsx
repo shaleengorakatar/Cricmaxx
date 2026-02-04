@@ -20,20 +20,41 @@ interface Trade {
   marketQuestion?: string;
 }
 
+// Check if an error is auth-related
+function isAuthError(error: any): boolean {
+  if (!error) return false;
+  const message = error.message?.toLowerCase() || '';
+  const code = error.code || '';
+  return (
+    message.includes('jwt') ||
+    message.includes('token') ||
+    message.includes('auth') ||
+    message.includes('permission denied') ||
+    message.includes('missing sub claim') ||
+    code === '401' ||
+    code === 'PGRST301' ||
+    code === '42501'
+  );
+}
+
 const TradingHistoryPanel = () => {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "open" | "closed" | "pending">("all");
   const { toast } = useToast();
-
-  useEffect(() => {
-    fetchTrades();
-  }, [filter]);
+  const [hasRetried, setHasRetried] = useState(false);
 
   const fetchTrades = async () => {
     try {
+      setLoading(true);
+      setError(null);
+      
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       let allTrades: Trade[] = [];
 
@@ -63,7 +84,21 @@ const TradingHistoryPanel = () => {
         }
 
         const { data: positions, error: posError } = await positionQuery;
-        if (posError) throw posError;
+        
+        if (posError) {
+          if (isAuthError(posError)) {
+            console.warn('Auth error in trading history, attempting session refresh...');
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              setError('Session expired. Please refresh the page.');
+              setLoading(false);
+              return;
+            }
+            // Retry once after refresh
+            return fetchTrades();
+          }
+          throw posError;
+        }
 
         const positionTrades: Trade[] = (positions || []).map((p: any) => ({
           id: p.id,
@@ -122,17 +157,23 @@ const TradingHistoryPanel = () => {
       allTrades.sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime());
 
       setTrades(allTrades);
-    } catch (error) {
-      console.error('Error fetching trades:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load trading history",
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      console.error('Error fetching trades:', err);
+      if (isAuthError(err)) {
+        setError('Session expired. Please refresh the page.');
+      } else {
+        setError('Failed to load trading history');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // Fetch trades when filter changes
+  useEffect(() => {
+    fetchTrades();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter]);
 
   const calculateStats = () => {
     const positions = trades.filter(t => t.type === 'position');
@@ -213,10 +254,19 @@ const TradingHistoryPanel = () => {
         </div>
       </div>
 
-      {/* Trades List */}
       <div className="space-y-3">
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">Loading...</div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-destructive mb-2">{error}</p>
+            <button 
+              className="text-sm text-primary underline"
+              onClick={() => fetchTrades()}
+            >
+              Try again
+            </button>
+          </div>
         ) : trades.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             No {filter !== 'all' ? filter : ''} trades found
