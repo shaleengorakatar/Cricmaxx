@@ -32,12 +32,25 @@ const FeatureHelpTooltip = ({ title, description, faqId }: FeatureHelpTooltipPro
   if (isMobile) {
     return (
       <>
-        <button 
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center justify-center focus:outline-none"
+        {/* Use span instead of button to avoid DOM nesting violations when inside TabsTrigger */}
+        <span 
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsOpen(true);
+          }}
+          className="inline-flex items-center justify-center focus:outline-none cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsOpen(true);
+            }
+          }}
         >
           <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-help" />
-        </button>
+        </span>
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerContent>
             <DrawerHeader className="text-left">
@@ -64,13 +77,18 @@ const FeatureHelpTooltip = ({ title, description, faqId }: FeatureHelpTooltipPro
     );
   }
 
-  // Desktop: Use hover card
+  // Desktop: Use hover card with span trigger (not button to avoid nesting issues)
   return (
     <HoverCard openDelay={100} closeDelay={100}>
       <HoverCardTrigger asChild>
-        <button className="inline-flex items-center justify-center focus:outline-none">
+        <span 
+          className="inline-flex items-center justify-center focus:outline-none cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onClick={(e) => e.stopPropagation()}
+        >
           <HelpCircle className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors cursor-help" />
-        </button>
+        </span>
       </HoverCardTrigger>
       <HoverCardContent className="w-80 max-w-[calc(100vw-2rem)] z-50" align="start" sideOffset={5}>
         <div className="space-y-2">

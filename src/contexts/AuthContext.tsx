@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode, useRef } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useRef, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -55,72 +55,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Track session recovery state
-  const sessionRecoveryAttempted = useRef(false);
+  // Refs to track current state for use in callbacks (prevents stale closures)
+  const userRef = useRef<User | null>(null);
+  const isRefreshingRef = useRef(false);
+  const lastActivityRef = useRef<number>(Date.now());
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Fetch user profile and roles
+  const fetchUserData = useCallback(async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
+    try {
+      if (isPostAuthFetch) {
+        setProfileLoading(true);
+      }
+      
+      // Fetch profile
+      const { data: profileData, error: fetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        
+        // Check if this is a permission/RLS error (indicates bad JWT)
+        const isPermissionError = fetchError.message?.includes('permission denied') || 
+                                  fetchError.code === '42501' ||
+                                  fetchError.code === 'PGRST301';
+        
+        setProfileError(true);
+        setProfileLoading(false);
+        
+        return isPermissionError ? 'permission_denied' : 'error';
+      }
+      
+      setProfile(profileData);
+      setProfileError(false);
+      setProfileLoading(false);
+
+      // Fetch roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      if (rolesError) {
+        console.error('Error fetching roles:', rolesError);
+        // Don't fail completely for roles error, profile is more important
+      } else {
+        setRoles(rolesData.map((r: UserRole) => r.role));
+      }
+      
+      return 'success';
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setProfileError(true);
+      setProfileLoading(false);
+      return 'error';
+    }
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
-
-    // Fetch user profile and roles - defined inside to access isMounted
-    const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
-      try {
-        if (isPostAuthFetch && isMounted) {
-          setProfileLoading(true);
-        }
-        
-        // Fetch profile
-        const { data: profileData, error: fetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-
-        if (fetchError) {
-          console.error('Error fetching profile:', fetchError);
-          
-          // Check if this is a permission/RLS error (indicates bad JWT)
-          const isPermissionError = fetchError.message?.includes('permission denied') || 
-                                    fetchError.code === '42501' ||
-                                    fetchError.code === 'PGRST301';
-          
-          if (isMounted) {
-            setProfileError(true);
-            setProfileLoading(false);
-          }
-          
-          return isPermissionError ? 'permission_denied' : 'error';
-        }
-        
-        if (isMounted) {
-          setProfile(profileData);
-          setProfileError(false);
-          setProfileLoading(false);
-        }
-
-        // Fetch roles
-        const { data: rolesData, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId);
-
-        if (rolesError) {
-          console.error('Error fetching roles:', rolesError);
-          // Don't fail completely for roles error, profile is more important
-        } else if (isMounted) {
-          setRoles(rolesData.map((r: UserRole) => r.role));
-        }
-        
-        return 'success';
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        if (isMounted) {
-          setProfileError(true);
-          setProfileLoading(false);
-        }
-        return 'error';
-      }
-    };
 
     // INITIAL load (controls loading state) - must complete before onAuthStateChange matters
     const initializeAuth = async () => {
@@ -206,11 +207,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
+    // Visibility change handler - refresh session when returning to tab after extended absence
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceActivity = Date.now() - lastActivityRef.current;
+        
+        // If away for more than 2 minutes and we have a user, proactively refresh
+        if (timeSinceActivity > 2 * 60 * 1000 && userRef.current && !isRefreshingRef.current) {
+          isRefreshingRef.current = true;
+          
+          try {
+            const { data, error } = await supabase.auth.refreshSession();
+            
+            if (error) {
+              console.warn('Session refresh failed on visibility change:', error.message);
+              // If refresh fails, sign out to force re-login
+              if (error.message?.includes('invalid') || error.message?.includes('expired')) {
+                await supabase.auth.signOut();
+              }
+            } else if (data.session && isMounted) {
+              // Session refreshed successfully - refetch profile data
+              await fetchUserData(data.session.user.id);
+            }
+          } catch (err) {
+            console.error('Error during visibility refresh:', err);
+          } finally {
+            isRefreshingRef.current = false;
+          }
+        }
+        
+        lastActivityRef.current = Date.now();
+      } else {
+        // Tab hidden - record time
+        lastActivityRef.current = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [navigate]);
+  }, [navigate, fetchUserData]);
 
   const signUp = async (email: string, password: string, name: string, accountType: 'trader' | 'creator') => {
     const redirectUrl = `${window.location.origin}/`;
@@ -261,14 +301,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Retry profile fetch function for recovery
-  const refetchProfile = async () => {
-    if (user?.id) {
+  const refetchProfile = useCallback(async () => {
+    if (userRef.current?.id) {
       setProfileError(false);
       setProfileLoading(true);
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userRef.current.id)
         .single();
 
       setProfileLoading(false);
@@ -278,7 +318,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setProfileError(true);
       }
     }
-  };
+  }, []);
 
   const value: AuthContextType = {
     user,
