@@ -68,19 +68,35 @@ export function useDashboardData(userId: string | undefined): DashboardData {
   ]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  
+  // Refs for preventing stale closure issues
   const isMounted = useRef(true);
+  const fetchIdRef = useRef(0);
+  const userIdRef = useRef(userId);
+  const lastFetchTimeRef = useRef(0);
+
+  // Keep userId ref in sync
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   const fetchAllData = useCallback(async () => {
-    if (!userId) {
+    const currentUserId = userIdRef.current;
+    if (!currentUserId) {
       setLoading(false);
       return;
     }
 
-    // Only show loading on first load
-    if (retryCount === 0) {
-      setLoading(true);
+    // Debounce rapid calls
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < 1000) {
+      return;
     }
+    lastFetchTimeRef.current = now;
+
+    // Increment fetch ID to track stale responses
+    const thisFetchId = ++fetchIdRef.current;
+
     setError(null);
 
     try {
@@ -89,12 +105,12 @@ export function useDashboardData(userId: string | undefined): DashboardData {
         supabase
           .from('profiles')
           .select('balance')
-          .eq('id', userId)
+          .eq('id', currentUserId)
           .single(),
         supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', userId)
+          .eq('user_id', currentUserId)
           .order('created_at', { ascending: false })
           .limit(10),
         supabase
@@ -112,7 +128,7 @@ export function useDashboardData(userId: string | undefined): DashboardData {
               expiry_time
             )
           `)
-          .eq('user_id', userId)
+          .eq('user_id', currentUserId)
           .eq('status', 'open')
           .order('opened_at', { ascending: false })
           .limit(10),
@@ -128,10 +144,15 @@ export function useDashboardData(userId: string | undefined): DashboardData {
             created_at,
             markets (question, expiry_time)
           `)
-          .eq('user_id', userId)
+          .eq('user_id', currentUserId)
           .in('status', ['pending', 'partial'])
           .order('created_at', { ascending: false })
       ]);
+
+      // Check if this response is stale
+      if (thisFetchId !== fetchIdRef.current || !isMounted.current) {
+        return;
+      }
 
       // Check for auth errors in any response
       const authErrorFound = [profileRes, transactionsRes, positionsRes, ordersRes].some(
@@ -139,29 +160,11 @@ export function useDashboardData(userId: string | undefined): DashboardData {
       );
 
       if (authErrorFound) {
-        console.warn('Auth error detected in dashboard data fetch, refreshing session...');
-        
-        // Try to refresh the session
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError || !refreshData.session) {
-          // Session is truly invalid, need to re-login
-          setError('Session expired. Please log in again.');
-          toast.error('Session expired', { description: 'Please log in again to continue.' });
-          
-          // Sign out to clear stale session
-          await supabase.auth.signOut();
-          return;
-        }
-        
-        // Session refreshed, retry once
-        if (retryCount < 1) {
-          setRetryCount(prev => prev + 1);
-          // Small delay to let the new token propagate
-          await new Promise(r => setTimeout(r, 500));
-          await fetchAllData();
-          return;
-        }
+        console.warn('Auth error detected in dashboard data fetch');
+        // Don't try to refresh here - let AuthContext handle it
+        setError('Session issue detected. Data will refresh automatically.');
+        setLoading(false);
+        return;
       }
 
       // Process balance
@@ -277,34 +280,30 @@ export function useDashboardData(userId: string | undefined): DashboardData {
         });
         setPendingOrders(formattedOrders);
       }
-
-      setRetryCount(0); // Reset retry count on success
       
       if (!isMounted.current) return;
       setLoading(false);
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      if (isMounted.current) {
+      if (isMounted.current && fetchIdRef.current === thisFetchId) {
         setError('Failed to load dashboard data');
         setLoading(false);
       }
     }
-  }, [userId, retryCount]);
+  }, []);
 
   // Initial fetch when userId is available
   useEffect(() => {
     isMounted.current = true;
     if (userId) {
+      setLoading(true);
       fetchAllData();
     }
     return () => {
       isMounted.current = false;
     };
   }, [userId, fetchAllData]);
-
-  // Removed visibility listener - relying on Supabase's autoRefreshToken
-  // The auth context triggers re-renders when session refreshes, which triggers data refetch via userId dependency
 
   return {
     balance,
