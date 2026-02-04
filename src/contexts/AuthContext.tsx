@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export interface UserProfile {
@@ -54,129 +54,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileError, setProfileError] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Use ref for lastActiveTime to persist across re-renders
-  const lastActiveTimeRef = useRef<number>(Date.now());
-  // Ref to prevent concurrent refresh calls (debouncing)
-  const isRefreshingRef = useRef<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
     let isInitialized = false; // Track if initial load is complete
-    let proactiveRefreshInterval: NodeJS.Timeout | null = null;
-    const STALE_SESSION_THRESHOLD = 15 * 60 * 1000; // 15 minutes - refresh session if away longer than this
-    const PROACTIVE_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes - proactively refresh token
-
-    // Core session refresh logic - used by both visibility change and proactive refresh
-    const performSessionRefresh = async (reason: 'visibility' | 'proactive'): Promise<boolean> => {
-      // Prevent concurrent refresh calls (debouncing)
-      if (isRefreshingRef.current) {
-        return false;
-      }
-      
-      isRefreshingRef.current = true;
-      
-      try {
-        // Try to refresh the session directly - this is more reliable than checking first
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        
-        if (refreshError) {
-          console.warn(`Session refresh failed (${reason}):`, refreshError.message);
-          
-          // Check if it's a true auth error vs network error
-          const isAuthError = 
-            refreshError.message?.includes('invalid') ||
-            refreshError.message?.includes('expired') ||
-            refreshError.message?.includes('JWT') ||
-            refreshError.message?.includes('missing sub claim') ||
-            refreshError.message?.includes('Invalid Refresh Token') ||
-            refreshError.status === 401 ||
-            refreshError.status === 403;
-          
-          if (isAuthError) {
-            // Session truly expired - notify user and redirect
-            if (isMounted) {
-              // Clear local state first
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setRoles([]);
-              
-              // Then sign out to clear Supabase state
-              await supabase.auth.signOut();
-              
-              // Only show toast and navigate if not already on home page
-              if (location.pathname !== '/') {
-                toast.info("Session expired", {
-                  description: "Please sign in again to continue.",
-                  duration: 5000,
-                });
-                
-                navigate('/');
-              }
-            }
-            return false;
-          }
-          
-          // Network error - don't log out, just return false
-          return false;
-        }
-        
-        // Session refreshed successfully - update state
-        if (refreshData?.session && isMounted) {
-          setSession(refreshData.session);
-          setUser(refreshData.session.user);
-          console.log(`Session refreshed successfully (${reason})`);
-        }
-        
-        return !!refreshData?.session;
-      } catch (err) {
-        console.error(`Error during ${reason} session refresh:`, err);
-        return false;
-      } finally {
-        isRefreshingRef.current = false;
-        lastActiveTimeRef.current = Date.now();
-      }
-    };
-
-    // Session refresh on tab visibility change - only if user was away for a while
-    const refreshSessionOnVisibility = async () => {
-      if (document.visibilityState !== 'visible') {
-        // Track when user left
-        lastActiveTimeRef.current = Date.now();
-        return;
-      }
-      
-      // Don't run during initial auth load - wait for initialization
-      if (!isInitialized) {
-        return;
-      }
-      
-      // Only refresh if user was away for more than threshold
-      const timeSinceActive = Date.now() - lastActiveTimeRef.current;
-      if (timeSinceActive < STALE_SESSION_THRESHOLD) {
-        // Not away long enough - no need to refresh, just update active time
-        lastActiveTimeRef.current = Date.now();
-        return;
-      }
-      
-      await performSessionRefresh('visibility');
-    };
-
-    // Proactive session refresh - runs every 10 minutes to keep token fresh
-    const startProactiveRefresh = () => {
-      proactiveRefreshInterval = setInterval(async () => {
-        if (!isInitialized || document.visibilityState !== 'visible') {
-          return;
-        }
-        
-        // Only refresh if we have a user in state (indicates we should be logged in)
-        if (user) {
-          await performSessionRefresh('proactive');
-        }
-      }, PROACTIVE_REFRESH_INTERVAL);
-    };
 
     // Fetch user profile and roles - defined inside to access isMounted
     const fetchUserData = async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
@@ -284,12 +165,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Start initialization immediately
-    initializeAuth().then(() => {
-      // Start proactive refresh after auth is initialized
-      startProactiveRefresh();
-    });
+    initializeAuth();
 
     // Listener for ONGOING auth changes (only matters AFTER initial load)
+    // Supabase's autoRefreshToken handles token refresh automatically
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         // Skip if still in initial loading - initializeAuth handles this
@@ -324,18 +203,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Add visibility change listener to refresh session when tab becomes active
-    document.addEventListener('visibilitychange', refreshSessionOnVisibility);
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', refreshSessionOnVisibility);
-      if (proactiveRefreshInterval) {
-        clearInterval(proactiveRefreshInterval);
-      }
     };
-  }, [navigate, location.pathname]);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string, name: string, accountType: 'trader' | 'creator') => {
     const redirectUrl = `${window.location.origin}/`;
