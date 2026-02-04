@@ -44,8 +44,17 @@ export function FeaturedMarket() {
         .gte("expiry_time", now.toISOString())
         .order("volume", { ascending: false });
 
+      // Always clear loading on any response - don't throw
       if (fetchError) {
-        throw fetchError;
+        console.error("FeaturedMarket fetch error:", fetchError);
+        setLoading(false);
+        loadingRef.current = false;
+        if (!isRetry) {
+          retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), 3000);
+        } else {
+          setError(true);
+        }
+        return;
       }
     
       if (!allMarkets || allMarkets.length === 0) {
@@ -84,33 +93,15 @@ export function FeaturedMarket() {
       hasFetchedRef.current = true;
     } catch (err: any) {
       console.error("Error fetching featured market:", err);
-      
-      // Check if auth error - wait for session refresh then retry
-      const isAuthError = err?.message?.includes('JWT') || 
-                         err?.message?.includes('missing sub claim') ||
-                         err?.code === 'PGRST301';
-      
-      if (!isRetry) {
-        // Schedule retry - but DON'T keep loading state indefinitely
-        const delay = isAuthError ? 3000 : 2000;
-        retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), delay);
-        
-        // If we have no market yet, set a hard limit to prevent infinite loading
-        if (!market) {
-          setTimeout(() => {
-            if (loadingRef.current) {
-              console.log('FeaturedMarket: Forcing hide after retry delay');
-              setLoading(false);
-              loadingRef.current = false;
-            }
-          }, delay + 5000);
-        }
-        return;
-      }
-      
-      setError(true);
+      // Always clear loading state to prevent infinite loading
       setLoading(false);
       loadingRef.current = false;
+      
+      if (!isRetry) {
+        retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), 3000);
+      } else {
+        setError(true);
+      }
     }
   }, []);
 

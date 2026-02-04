@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef, useC
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted } from "@/lib/authUtils";
 
 export interface UserProfile {
   id: string;
@@ -55,25 +55,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profileLoading, setProfileLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Refs to track current state for use in callbacks (prevents stale closures)
+  // Refs to track current state for use in callbacks
   const userRef = useRef<User | null>(null);
   const isRefreshingRef = useRef(false);
   const lastActivityRef = useRef<number>(Date.now());
   const isSigningOutRef = useRef(false);
+  const initCompleteRef = useRef(false);
 
-  // Keep refs in sync with state
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
+  // Clear all auth state
+  const clearAuthState = useCallback(() => {
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setRoles([]);
+    setProfileError(false);
+    setProfileLoading(false);
+    userRef.current = null;
+  }, []);
+
   // Fetch user profile and roles
-  const fetchUserData = useCallback(async (userId: string, isPostAuthFetch = false): Promise<'success' | 'permission_denied' | 'error'> => {
+  const fetchUserData = useCallback(async (userId: string): Promise<'success' | 'permission_denied' | 'error'> => {
     try {
-      if (isPostAuthFetch) {
-        setProfileLoading(true);
-      }
+      setProfileLoading(true);
       
-      // Fetch profile
       const { data: profileData, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
@@ -83,7 +91,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (fetchError) {
         console.error('Error fetching profile:', fetchError);
         
-        // Check if this is a permission/RLS error (indicates bad JWT)
         const isPermissionError = fetchError.message?.includes('permission denied') || 
                                   fetchError.code === '42501' ||
                                   fetchError.code === 'PGRST301';
@@ -104,10 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('role')
         .eq('user_id', userId);
 
-      if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
-        // Don't fail completely for roles error, profile is more important
-      } else {
+      if (!rolesError && rolesData) {
         setRoles(rolesData.map((r: UserRole) => r.role));
       }
       
@@ -122,24 +126,59 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
-    let isInitialized = false; // Track if initial load is complete
 
-    // INITIAL load (controls loading state) - must complete before onAuthStateChange matters
     const initializeAuth = async () => {
       try {
-        // Get existing session - this is synchronous from localStorage
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        // Check for corrupted tokens BEFORE trying to get session
+        if (isAuthTokenCorrupted()) {
+          console.log('[AuthContext] Detected corrupted token on init, clearing');
+          clearAuthStorage();
+          if (isMounted) {
+            clearAuthState();
+            setLoading(false);
+            initCompleteRef.current = true;
+          }
+          return;
+        }
+
+        // Get existing session
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
-        // Only try refresh if no session found (Safari ITP workaround)
-        if (!initialSession) {
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          if (refreshData.session) {
+        // Handle session errors
+        if (sessionError) {
+          console.warn('[AuthContext] Session error:', sessionError.message);
+          if (handleAuthError(sessionError)) {
             if (isMounted) {
+              clearAuthState();
+              setLoading(false);
+              initCompleteRef.current = true;
+            }
+            return;
+          }
+        }
+        
+        // No session - try refresh (Safari ITP workaround)
+        if (!initialSession) {
+          try {
+            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+            
+            if (refreshError) {
+              // This is expected for logged-out users, don't treat as error
+              if (handleAuthError(refreshError)) {
+                console.log('[AuthContext] Cleared stale refresh token');
+              }
+            } else if (refreshData.session && isMounted) {
               setSession(refreshData.session);
               setUser(refreshData.session.user);
               await fetchUserData(refreshData.session.user.id);
+              setLoading(false);
+              initCompleteRef.current = true;
+              return;
             }
-            return;
+          } catch (refreshErr) {
+            // Refresh failed - user is logged out, this is fine
+            console.log('[AuthContext] Refresh failed, user is logged out');
+            handleAuthError(refreshErr);
           }
         }
         
@@ -148,73 +187,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(initialSession);
         setUser(initialSession?.user ?? null);
 
-        // Fetch profile data BEFORE setting loading false
         if (initialSession?.user) {
           const result = await fetchUserData(initialSession.user.id);
           if (result === 'permission_denied' && isMounted) {
-            console.warn('Profile fetch permission denied - signing out');
+            console.warn('[AuthContext] Profile fetch permission denied - clearing session');
+            clearAuthStorage();
             await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
+            clearAuthState();
           }
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (isMounted) setProfileError(true);
+        console.error('[AuthContext] Init error:', error);
+        handleAuthError(error);
+        if (isMounted) {
+          clearAuthState();
+        }
       } finally {
         if (isMounted) {
           setLoading(false);
-          isInitialized = true;
+          initCompleteRef.current = true;
         }
       }
     };
 
-    // Start initialization immediately
     initializeAuth();
 
-    // Listener for ONGOING auth changes (only matters AFTER initial load)
-    // Supabase's autoRefreshToken handles token refresh automatically
+    // Auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        // Skip if still in initial loading - initializeAuth handles this
-        if (!isInitialized) return;
+        if (!initCompleteRef.current) return;
         if (!isMounted) return;
+        
+        // Handle SIGNED_OUT event
+        if (event === 'SIGNED_OUT') {
+          clearAuthState();
+          return;
+        }
+        
+        // Handle TOKEN_REFRESHED errors
+        if (event === 'TOKEN_REFRESHED' && !currentSession) {
+          console.log('[AuthContext] Token refresh failed');
+          clearAuthStorage();
+          clearAuthState();
+          return;
+        }
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          setProfileLoading(true);
-          
-          const timeoutId = setTimeout(() => {
-            if (isMounted) {
-              setProfileError(true);
-              setProfileLoading(false);
+          // Use setTimeout to avoid Supabase deadlock
+          setTimeout(async () => {
+            if (!isMounted) return;
+            const result = await fetchUserData(currentSession.user.id);
+            if (result === 'permission_denied' && isMounted) {
+              clearAuthStorage();
+              await supabase.auth.signOut();
+              clearAuthState();
             }
-          }, 10000);
-          
-          const result = await fetchUserData(currentSession.user.id, true);
-          clearTimeout(timeoutId);
-          
-          if (result === 'permission_denied' && isMounted) {
-            await supabase.auth.signOut();
-          }
+          }, 0);
         } else {
           setProfile(null);
           setRoles([]);
-          setProfileError(false);
-          setProfileLoading(false);
         }
       }
     );
 
-    // Visibility change handler - refresh session when returning to tab after extended absence
+    // Visibility change handler
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         
-        // If away for more than 2 minutes and we have a user, proactively refresh
-        // Skip if signing out to prevent race conditions
         if (timeSinceActivity > 2 * 60 * 1000 && userRef.current && !isRefreshingRef.current && !isSigningOutRef.current) {
           isRefreshingRef.current = true;
           
@@ -222,17 +265,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const { data, error } = await supabase.auth.refreshSession();
             
             if (error) {
-              console.warn('Session refresh failed on visibility change:', error.message);
-              // If refresh fails, sign out to force re-login
-              if (error.message?.includes('invalid') || error.message?.includes('expired')) {
-                await supabase.auth.signOut();
+              console.warn('[AuthContext] Visibility refresh failed:', error.message);
+              if (handleAuthError(error)) {
+                clearAuthState();
               }
             } else if (data.session && isMounted) {
-              // Session refreshed successfully - refetch profile data
               await fetchUserData(data.session.user.id);
             }
           } catch (err) {
-            console.error('Error during visibility refresh:', err);
+            console.error('[AuthContext] Visibility refresh error:', err);
+            handleAuthError(err);
           } finally {
             isRefreshingRef.current = false;
           }
@@ -240,7 +282,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         
         lastActivityRef.current = Date.now();
       } else {
-        // Tab hidden - record time
         lastActivityRef.current = Date.now();
       }
     };
@@ -252,7 +293,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription.unsubscribe();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [navigate, fetchUserData]);
+  }, [navigate, fetchUserData, clearAuthState]);
 
   const signUp = async (email: string, password: string, name: string, accountType: 'trader' | 'creator') => {
     const redirectUrl = `${window.location.origin}/`;
@@ -273,6 +314,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
+    // Clear any stale tokens before signing in
+    clearAuthStorage();
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -282,36 +326,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    // Mark that we're signing out to prevent race conditions with visibility handler
     isSigningOutRef.current = true;
-    
-    // Clear refs immediately to prevent stale closure issues
     userRef.current = null;
     
-    // Clear local state
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setRoles([]);
+    // Clear state first
+    clearAuthState();
     
-    // Then call Supabase signOut
+    // Clear storage
+    clearAuthStorage();
+    
+    // Then sign out from Supabase
     const { error } = await supabase.auth.signOut();
     
-    // Reset signing out flag
     isSigningOutRef.current = false;
     
-    // Navigate after sign out completes
     if (!error) {
       navigate('/');
     }
     return { error };
   };
 
-  const hasRole = (role: string) => {
-    return roles.includes(role);
-  };
+  const hasRole = (role: string) => roles.includes(role);
 
-  // Retry profile fetch function for recovery
   const refetchProfile = useCallback(async () => {
     if (userRef.current?.id) {
       setProfileError(false);

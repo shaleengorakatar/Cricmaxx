@@ -22,50 +22,29 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Refs for preventing stale closure issues
-  const isMounted = useRef(true);
+  const isMountedRef = useRef(true);
   const fetchIdRef = useRef(0);
   const lastFetchTimeRef = useRef(0);
-  const userIdRef = useRef(userId);
-  const loadingRef = useRef(true);
-  const marketsRef = useRef<Market[]>([]);
-
-  // Keep refs in sync
-  useEffect(() => {
-    userIdRef.current = userId;
-  }, [userId]);
-  
-  useEffect(() => {
-    loadingRef.current = loading;
-  }, [loading]);
-  
-  useEffect(() => {
-    marketsRef.current = markets;
-  }, [markets]);
 
   const fetchMarkets = useCallback(async () => {
-    // Debounce rapid calls - but always ensure loading gets set to false
+    // Debounce rapid calls
     const now = Date.now();
     if (now - lastFetchTimeRef.current < 500) {
-      // Still debouncing, but if we're stuck loading with data, force it off
-      if (loadingRef.current && marketsRef.current.length > 0) {
-        setLoading(false);
-      }
       return;
     }
     lastFetchTimeRef.current = now;
     
-    // Increment fetch ID to track stale responses
     const thisFetchId = ++fetchIdRef.current;
     
+    // Always start with loading true
+    setLoading(true);
     setError(null);
     
     try {
-      // Filter to show markets expiring within next 60 days, ordered by volume
       const nowDate = new Date();
       const sixtyDaysFromNow = new Date(nowDate.getTime() + 60 * 24 * 60 * 60 * 1000);
       
-      const query = supabase
+      const { data, error: fetchError } = await supabase
         .from('markets')
         .select('*')
         .in('status', ['approved', 'open'])
@@ -73,39 +52,18 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         .gte('expiry_time', nowDate.toISOString())
         .order('volume', { ascending: false });
       
-      const { data, error: fetchError } = await query;
-      
-      // Check if this response is stale
-      if (thisFetchId !== fetchIdRef.current || !isMounted.current) {
-        // Stale response - but ensure loading state is cleared if this was the only pending request
+      // Check if stale or unmounted
+      if (thisFetchId !== fetchIdRef.current || !isMountedRef.current) {
         return;
       }
       
       if (fetchError) {
-        // Check for auth errors
-        const isAuthError = fetchError.message?.toLowerCase().includes('jwt') ||
-                           fetchError.message?.toLowerCase().includes('token') ||
-                           fetchError.code === 'PGRST301';
-        
-        if (isAuthError) {
-          console.warn('Auth error in markets fetch - will retry after session refresh');
-          setError('Session issue. Refreshing...');
-          // CRITICAL: Set loading to false to prevent infinite loading state
-          setLoading(false);
-          // Schedule retry after short delay
-          setTimeout(() => {
-            if (isMounted.current) {
-              setLoading(true);
-              fetchMarkets();
-            }
-          }, 3000);
-        } else {
-          throw fetchError;
-        }
+        console.error('Markets fetch error:', fetchError);
+        setError(fetchError.message || 'Failed to load markets');
+        setLoading(false);
         return;
       }
       
-      // Transform database format to Market type
       const transformedMarkets: Market[] = (data || []).map(m => ({
         id: m.id,
         question: m.question,
@@ -121,35 +79,36 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       
       setMarkets(transformedMarkets);
       
-      // Fetch user positions if userId is available
-      const currentUserId = userIdRef.current;
-      if (currentUserId && transformedMarkets.length > 0) {
-        const marketIds = transformedMarkets.map(m => m.id);
-        
-        const { data: positionsData, error: positionsError } = await supabase
-          .from('positions')
-          .select('market_id, side, size, entry_price')
-          .eq('user_id', currentUserId)
-          .eq('status', 'open')
-          .in('market_id', marketIds);
-        
-        // Check if still mounted and not stale
-        if (thisFetchId !== fetchIdRef.current || !isMounted.current) {
-          // Even if stale, we already set markets - just set loading false
-          setLoading(false);
-          return;
-        }
-        
-        if (!positionsError && positionsData) {
-          const positionsMap = new Map<string, UserPosition>();
-          positionsData.forEach(p => {
-            positionsMap.set(p.market_id, {
-              side: p.side as "yes" | "no",
-              size: Number(p.size),
-              entryPrice: Number(p.entry_price),
+      // Fetch user positions if we have a userId and markets
+      if (userId && transformedMarkets.length > 0) {
+        try {
+          const marketIds = transformedMarkets.map(m => m.id);
+          
+          const { data: positionsData, error: positionsError } = await supabase
+            .from('positions')
+            .select('market_id, side, size, entry_price')
+            .eq('user_id', userId)
+            .eq('status', 'open')
+            .in('market_id', marketIds);
+          
+          if (!isMountedRef.current || thisFetchId !== fetchIdRef.current) {
+            return;
+          }
+          
+          if (!positionsError && positionsData) {
+            const positionsMap = new Map<string, UserPosition>();
+            positionsData.forEach(p => {
+              positionsMap.set(p.market_id, {
+                side: p.side as "yes" | "no",
+                size: Number(p.size),
+                entryPrice: Number(p.entry_price),
+              });
             });
-          });
-          setUserPositions(positionsMap);
+            setUserPositions(positionsMap);
+          }
+        } catch (posErr) {
+          // Positions fetch failed - not critical, continue without them
+          console.warn('Positions fetch failed:', posErr);
         }
       } else {
         setUserPositions(new Map());
@@ -158,25 +117,25 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       setLoading(false);
     } catch (err: any) {
       console.error('Error fetching markets:', err);
-      if (isMounted.current && fetchIdRef.current === thisFetchId) {
+      if (isMountedRef.current && fetchIdRef.current === thisFetchId) {
         setError(err.message || 'Failed to load markets');
         setLoading(false);
       }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
-    isMounted.current = true;
+    isMountedRef.current = true;
     fetchMarkets();
     
-    // Set up periodic refresh (every 5 minutes)
+    // Periodic refresh
     const intervalId = setInterval(fetchMarkets, 5 * 60 * 1000);
     
     return () => {
-      isMounted.current = false;
+      isMountedRef.current = false;
       clearInterval(intervalId);
     };
-  }, [fetchMarkets, userId]);
+  }, [fetchMarkets]);
 
   return {
     markets,
