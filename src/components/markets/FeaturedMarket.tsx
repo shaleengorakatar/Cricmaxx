@@ -18,6 +18,7 @@ export function FeaturedMarket() {
   const { formatOdds } = useTradingPreferences();
   const hasFetchedRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadingRef = useRef(true); // Track loading state in ref for timeout closure
 
   const fetchFeaturedMarket = useCallback(async (isRetry = false) => {
     // Clear any pending retry
@@ -28,6 +29,7 @@ export function FeaturedMarket() {
 
     if (isRetry) {
       setLoading(true);
+      loadingRef.current = true;
       setError(false);
     }
     
@@ -78,6 +80,7 @@ export function FeaturedMarket() {
 
       setError(false);
       setLoading(false);
+      loadingRef.current = false;
       hasFetchedRef.current = true;
     } catch (err: any) {
       console.error("Error fetching featured market:", err);
@@ -96,6 +99,7 @@ export function FeaturedMarket() {
       
       setError(true);
       setLoading(false);
+      loadingRef.current = false;
     }
   }, []);
 
@@ -105,7 +109,7 @@ export function FeaturedMarket() {
     
     // Failsafe: if still loading after 15 seconds, force retry
     const failsafeTimeout = setTimeout(() => {
-      if (loading && !error) {
+      if (loadingRef.current && !hasFetchedRef.current) {
         console.log('FeaturedMarket: Failsafe triggered - forcing retry');
         fetchFeaturedMarket(true);
       }

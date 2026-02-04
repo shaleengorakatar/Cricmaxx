@@ -60,7 +60,7 @@ const UserRatingModal = ({ user, isOpen, onClose }: UserRatingModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" hideDescription>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="w-12 h-12">

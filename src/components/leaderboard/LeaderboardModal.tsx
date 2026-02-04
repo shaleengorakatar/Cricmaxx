@@ -178,7 +178,7 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-hidden flex flex-col" hideDescription>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-primary" />
