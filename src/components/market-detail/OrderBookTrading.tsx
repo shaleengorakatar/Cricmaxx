@@ -77,7 +77,7 @@ const OrderBookTrading = ({
   platformFeePercent = 3,
   creatorFeePercent = 0
 }: OrderBookTradingProps) => {
-  const { user } = useAuth();
+  const { user, refetchProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { trigger: haptic } = useHaptics();
@@ -371,6 +371,9 @@ const OrderBookTrading = ({
       refetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
+      
+      // Refresh balance immediately after trade
+      refetchProfile();
     } catch (error: any) {
       haptic('error');
       toast({
@@ -436,13 +439,23 @@ const OrderBookTrading = ({
 
       if (error) throw error;
 
-      const status = data.order?.filledQuantity >= qty ? 'Filled' : 
-        data.order?.filledQuantity > 0 ? 'Partially filled' : 'Placed in order book';
+      const filledQty = data.order?.filledQuantity || 0;
+      const isFilled = filledQty >= qty;
+      const isPartial = filledQty > 0 && filledQty < qty;
+      const isPending = filledQty === 0;
+      
+      const status = isFilled ? 'Order Filled!' : 
+        isPartial ? 'Partially Filled' : 'Pending in Order Book';
+      
+      // Better description for pending orders
+      const description = isPending 
+        ? `Waiting for a match: ${qty} shares @ $${price.toFixed(2)}`
+        : `${filledQty}/${qty} shares @ $${price.toFixed(2)}`;
 
       haptic('success');
       toast({
         title: status,
-        description: `${data.order?.filledQuantity || 0}/${qty} shares @ $${price.toFixed(2)}`,
+        description,
       });
 
       setLimitPrice("");
@@ -450,6 +463,9 @@ const OrderBookTrading = ({
       refetchOrderBook();
       fetchUserOrders();
       fetchUserPosition();
+      
+      // Refresh balance after trade (tokens are reserved for pending orders)
+      refetchProfile();
     } catch (error: any) {
       haptic('error');
       toast({
