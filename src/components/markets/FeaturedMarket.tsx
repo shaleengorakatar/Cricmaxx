@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Star, TrendingUp, Users, ArrowRight, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
 import { Sparkline } from "@/components/ui/sparkline";
@@ -33,31 +34,17 @@ export function FeaturedMarket() {
     const { now, maxExpiry } = getMarketDateRange();
 
     try {
-      // Use direct REST API to bypass any auth issues
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      const params = new URLSearchParams({
-        select: '*',
-        status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
-        expiry_time: `gte.${now.toISOString()}`,
-        order: 'volume.desc'
-      });
-      
-      const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'apikey': supabaseKey,
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+      const { data: allMarkets, error: fetchError } = await supabase
+        .from("markets")
+        .select("*")
+        .in("status", [...ACTIVE_MARKET_STATUSES])
+        .lte("expiry_time", maxExpiry.toISOString())
+        .gte("expiry_time", now.toISOString())
+        .order("volume", { ascending: false });
+
+      if (fetchError) {
+        throw fetchError;
       }
-      
-      const allMarkets = await response.json();
     
       if (!allMarkets || allMarkets.length === 0) {
         setLoading(false);
@@ -92,12 +79,18 @@ export function FeaturedMarket() {
       setError(false);
       setLoading(false);
       hasFetchedRef.current = true;
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching featured market:", err);
       
+      // Check if auth error - wait for session refresh then retry
+      const isAuthError = err?.message?.includes('JWT') || 
+                         err?.message?.includes('missing sub claim') ||
+                         err?.code === 'PGRST301';
+      
       if (!isRetry) {
-        // Retry once after 2 seconds
-        retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), 2000);
+        // Retry after delay (longer for auth errors to allow refresh)
+        const delay = isAuthError ? 3000 : 2000;
+        retryTimeoutRef.current = setTimeout(() => fetchFeaturedMarket(true), delay);
         return;
       }
       

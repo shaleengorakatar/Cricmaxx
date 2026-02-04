@@ -17,37 +17,23 @@ interface UseMarketsResult {
   refetch: () => void;
 }
 
-// Direct REST API fetch that bypasses auth headers for public data
-async function fetchMarketsDirectly(): Promise<any[]> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-  
+// Fetch markets using Supabase client (includes auth for proper RLS)
+async function fetchMarketsFromSupabase(): Promise<any[]> {
   const { now, maxExpiry } = getMarketDateRange();
   
-  // Build the query URL with filters
-  const params = new URLSearchParams({
-    select: '*',
-    status: `in.(${ACTIVE_MARKET_STATUSES.join(',')})`,
-    expiry_time: `gte.${now.toISOString()}`,
-    order: 'created_at.desc'
-  });
+  const { data, error } = await supabase
+    .from("markets")
+    .select("*")
+    .in("status", [...ACTIVE_MARKET_STATUSES])
+    .lte("expiry_time", maxExpiry.toISOString())
+    .gte("expiry_time", now.toISOString())
+    .order("created_at", { ascending: false });
   
-  // Add expiry_time lte filter separately  
-  const url = `${supabaseUrl}/rest/v1/markets?${params.toString()}&expiry_time=lte.${maxExpiry.toISOString()}`;
-  
-  const response = await fetch(url, {
-    headers: {
-      'apikey': supabaseKey,
-      'Content-Type': 'application/json',
-      // No Authorization header - use anon key only for public data
-    }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch markets: ${response.status}`);
+  if (error) {
+    throw error;
   }
   
-  return response.json();
+  return data || [];
 }
 
 export function useMarkets(userId: string | null): UseMarketsResult {
@@ -70,8 +56,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     setError(false);
 
     try {
-      // Try direct REST API first (bypasses auth issues)
-      const data = await fetchMarketsDirectly();
+      const data = await fetchMarketsFromSupabase();
 
       // Ignore stale responses
       if (!isMountedRef.current || currentFetch !== fetchCountRef.current) {
@@ -100,12 +85,24 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         clearTimeout(retryTimeoutRef.current);
         retryTimeoutRef.current = null;
       }
-    } catch (err) {
+    } catch (err: any) {
       if (isMountedRef.current && currentFetch === fetchCountRef.current) {
         console.error("Fetch error:", err);
         
-        // Auto-retry once after 2 seconds if not already a retry
-        if (!isRetry) {
+        // Check if auth error - wait for session refresh then retry
+        const isAuthError = err?.message?.includes('JWT') || 
+                           err?.message?.includes('missing sub claim') ||
+                           err?.code === 'PGRST301';
+        
+        if (isAuthError && !isRetry) {
+          // Wait 3 seconds for auth context to refresh session, then retry
+          retryTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchMarkets(true);
+            }
+          }, 3000);
+        } else if (!isRetry) {
+          // Non-auth error - retry once after 2 seconds
           retryTimeoutRef.current = setTimeout(() => {
             if (isMountedRef.current) {
               fetchMarkets(true);
