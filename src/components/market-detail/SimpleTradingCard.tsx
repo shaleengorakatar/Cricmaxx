@@ -47,7 +47,7 @@ const SimpleTradingCard = ({
   platformFeePercent = 3,
   creatorFeePercent = 0
 }: SimpleTradingCardProps) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, refetchProfile } = useAuth();
   const navigate = useNavigate();
   const [stakeAmount, setStakeAmount] = useState(10);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
@@ -211,6 +211,9 @@ const SimpleTradingCard = ({
         celebrateStreak(newStreak);
         if (soundEnabled && newStreak % 3 === 0) playSound('streak');
       }
+      
+      // Refresh balance immediately after successful trade
+      refetchProfile();
 
     } catch (error: any) {
       setTradeStatus('failed');
