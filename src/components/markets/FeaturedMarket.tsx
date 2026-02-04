@@ -105,21 +105,34 @@ export function FeaturedMarket() {
 
   // Initial fetch + failsafe timeout
   useEffect(() => {
+    let isMounted = true;
+    
     fetchFeaturedMarket();
     
-    // Failsafe: if still loading after 15 seconds, force retry
+    // Failsafe: if still loading after 10 seconds, force retry
     const failsafeTimeout = setTimeout(() => {
-      if (loadingRef.current && !hasFetchedRef.current) {
+      if (isMounted && loadingRef.current && !hasFetchedRef.current) {
         console.log('FeaturedMarket: Failsafe triggered - forcing retry');
         fetchFeaturedMarket(true);
       }
-    }, 15000);
+    }, 10000);
+    
+    // Hard failsafe: if still loading after 20 seconds, show nothing instead of infinite spinner
+    const hardFailsafe = setTimeout(() => {
+      if (isMounted && loadingRef.current) {
+        console.log('FeaturedMarket: Hard failsafe - hiding component');
+        setLoading(false);
+        loadingRef.current = false;
+      }
+    }, 20000);
     
     return () => {
+      isMounted = false;
       if (retryTimeoutRef.current) {
         clearTimeout(retryTimeoutRef.current);
       }
       clearTimeout(failsafeTimeout);
+      clearTimeout(hardFailsafe);
     };
   }, [fetchFeaturedMarket]);
 
