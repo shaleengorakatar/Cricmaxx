@@ -104,6 +104,27 @@ export default function LiveMarketsWidget() {
     };
   }, [fetchLiveMarkets]);
 
+  // Refresh when tab becomes visible again (handles long inactivity)
+  useEffect(() => {
+    let lastHiddenTime = Date.now();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceHidden = Date.now() - lastHiddenTime;
+        // If tab was hidden for more than 1 minute, refetch immediately
+        if (timeSinceHidden > 60 * 1000) {
+          console.log('LiveMarketsWidget: Refreshing after tab return');
+          fetchLiveMarkets();
+        }
+      } else {
+        lastHiddenTime = Date.now();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchLiveMarkets]);
+
   // Refresh markets periodically
   useEffect(() => {
     const refreshInterval = setInterval(() => {
