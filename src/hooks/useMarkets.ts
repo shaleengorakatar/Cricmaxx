@@ -45,12 +45,13 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   const isMountedRef = useRef(true);
   const fetchCountRef = useRef(0);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasLoadedOnce = useRef(false);
 
   const fetchMarkets = useCallback(async (isRetry = false) => {
     const currentFetch = ++fetchCountRef.current;
     
-    // Don't reset loading on refetch to avoid flickering
-    if (fetchCountRef.current === 1) {
+    // Only show loading on first load, not on refetch
+    if (!hasLoadedOnce.current) {
       setLoading(true);
     }
     setError(false);
@@ -79,6 +80,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       setMarkets(formattedMarkets);
       setError(false);
       setLoading(false);
+      hasLoadedOnce.current = true;
       
       // Clear any pending retry
       if (retryTimeoutRef.current) {
@@ -172,6 +174,8 @@ export function useMarkets(userId: string | null): UseMarketsResult {
   // Initial fetch
   useEffect(() => {
     isMountedRef.current = true;
+    fetchCountRef.current = 0; // Reset on mount
+    hasLoadedOnce.current = false; // Reset on mount
     fetchMarkets();
     
     // Periodic refresh every 5 minutes to keep data fresh
