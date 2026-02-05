@@ -21,6 +21,7 @@ const FriendInvite = lazy(() => import("./pages/FriendInvite"));
 const TermsOfUse = lazy(() => import("./pages/TermsOfUse"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const FAQ = lazy(() => import("./pages/FAQ"));
+const Contact = lazy(() => import("./pages/Contact"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const PasswordReset = lazy(() => import("./pages/PasswordReset"));
@@ -97,6 +98,7 @@ const App = () => {
                     <Route path="/terms" element={<TermsOfUse />} />
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/faq" element={<FAQ />} />
+                    <Route path="/contact" element={<Contact />} />
                     {/* Mobile Routes */}
                     <Route path="/mobile" element={<MobileHome />} />
                     <Route path="/mobile/auth" element={<MobileAuth />} />

@@ -42,7 +42,7 @@ const Footer = () => {
               FAQ
             </a>
             <a 
-              href="#" 
+              href="/contact" 
               className="text-foreground hover:text-accent transition-colors font-medium"
             >
               Contact Support
