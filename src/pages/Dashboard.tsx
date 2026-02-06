@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import PortfolioSummary from "@/components/dashboard/PortfolioSummary";
 import PLChart from "@/components/dashboard/PLChart";
 import WalletActions from "@/components/dashboard/WalletActions";
@@ -245,9 +246,15 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-4 md:space-y-6">
-            <TradingHistoryPanel />
-            <ActivePositions positions={dashboardData.positions} pendingOrders={dashboardData.pendingOrders} />
-            <TransactionHistory transactions={dashboardData.transactions} />
+            <ErrorBoundary fallbackTitle="Failed to load trading history">
+              <TradingHistoryPanel />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Failed to load positions">
+              <ActivePositions positions={dashboardData.positions} pendingOrders={dashboardData.pendingOrders} />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Failed to load transactions">
+              <TransactionHistory transactions={dashboardData.transactions} />
+            </ErrorBoundary>
           </div>
         </div>
       </main>
