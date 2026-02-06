@@ -75,7 +75,7 @@ const ActivePositions = ({ positions, pendingOrders = [] }: ActivePositionsProps
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Limit price:</span>
-                      <span className="font-medium">${order.entryPrice.toFixed(2)}</span>
+                      <span className="font-medium">${(order.entryPrice ?? 0).toFixed(2)}</span>
                     </div>
                   </div>
                 ))}
@@ -112,7 +112,7 @@ const ActivePositions = ({ positions, pendingOrders = [] }: ActivePositionsProps
                           </Badge>
                         </td>
                         <td className="py-4 text-right text-sm font-medium">
-                          ${order.entryPrice.toFixed(2)}
+                          ${(order.entryPrice ?? 0).toFixed(2)}
                         </td>
                         <td className="py-4 text-right text-sm font-medium">
                           {order.tokensCommitted} tokens

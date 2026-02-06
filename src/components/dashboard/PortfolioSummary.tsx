@@ -34,7 +34,7 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, onBuyTo
                 <p className="text-xs text-muted-foreground">{WALLET_TERMS.AVAILABLE}</p>
               </div>
               <p className="text-xl font-bold text-foreground">
-                {balance.toLocaleString()}
+                {(balance ?? 0).toLocaleString()}
               </p>
             </div>
             <Button
@@ -57,7 +57,7 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, onBuyTo
                 <p className="text-xs text-muted-foreground">{WALLET_TERMS.IN_PLAY}</p>
               </div>
               <p className="text-xl font-bold text-foreground">
-                {tokensInPlay.toLocaleString()}
+                {(tokensInPlay ?? 0).toLocaleString()}
               </p>
             </div>
             <p className="text-xs text-muted-foreground sm:mt-0.5">
@@ -75,7 +75,7 @@ const PortfolioSummary = ({ balance, profitLoss, pendingOrderTokens = 0, onBuyTo
                 <p className="text-xs text-muted-foreground">Pending</p>
               </div>
               <p className="text-xl font-bold text-foreground">
-                {pendingOrderTokens.toLocaleString()}
+                {(pendingOrderTokens ?? 0).toLocaleString()}
               </p>
             </div>
             <p className="text-xs text-muted-foreground sm:mt-0.5">

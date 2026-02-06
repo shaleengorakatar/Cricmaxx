@@ -48,9 +48,11 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
 
   const pnl = calculatePnL();
 
-  // Calculate potential payout at $10 stake
-  const yesPayout = (10 / market.yesPrice).toFixed(2);
-  const noPayout = (10 / market.noPrice).toFixed(2);
+  // Calculate potential payout at $10 stake (guard against null/zero division)
+  const yesPrice = Number(market.yesPrice) || 0.5;
+  const noPrice = Number(market.noPrice) || 0.5;
+  const yesPayout = (10 / yesPrice).toFixed(2);
+  const noPayout = (10 / noPrice).toFixed(2);
 
   // Extract price history for sparkline
   const priceData = market.price_history?.map((p: any) => p.y) || [];
@@ -96,7 +98,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
                         {position.size} shares on <span className={position.side === 'yes' ? 'text-success' : 'text-destructive'}>{position.side.toUpperCase()}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Entry: ${position.entryPrice.toFixed(2)}
+                        Entry: ${(position.entryPrice ?? 0).toFixed(2)}
                       </p>
                       {pnl !== null && (
                         <p className={cn("text-xs font-medium", pnl >= 0 ? "text-success" : "text-destructive")}>
@@ -168,7 +170,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
               <span className="text-xs font-bold text-success">{formatOdds(market.yesPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-success">
-              ${market.yesPrice.toFixed(2)}
+              ${(Number(market.yesPrice) || 0).toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               $10 → <span className="font-semibold text-success">${yesPayout}</span>
@@ -182,7 +184,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
               <span className="text-xs font-bold text-destructive">{formatOdds(market.noPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-destructive">
-              ${market.noPrice.toFixed(2)}
+              ${(Number(market.noPrice) || 0).toFixed(2)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               $10 → <span className="font-semibold text-destructive">${noPayout}</span>

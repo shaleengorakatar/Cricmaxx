@@ -101,7 +101,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return isPermissionError ? 'permission_denied' : 'error';
       }
       
-      setProfile(profileData);
+      // Normalize nullable numeric fields to prevent .toFixed/.toLocaleString crashes
+      setProfile({
+        ...profileData,
+        balance: Number(profileData.balance) || 0,
+        rating_score: Number(profileData.rating_score) || 0,
+        predictions_total: Number(profileData.predictions_total) || 0,
+        predictions_correct: Number(profileData.predictions_correct) || 0,
+      });
       setProfileError(false);
       setProfileLoading(false);
 
@@ -361,7 +368,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       setProfileLoading(false);
       if (!error && profileData) {
-        setProfile(profileData);
+        setProfile({
+          ...profileData,
+          balance: Number(profileData.balance) || 0,
+          rating_score: Number(profileData.rating_score) || 0,
+          predictions_total: Number(profileData.predictions_total) || 0,
+          predictions_correct: Number(profileData.predictions_correct) || 0,
+        });
       } else {
         setProfileError(true);
       }
