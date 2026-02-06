@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Coins, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { WALLET_TERMS } from "@/lib/walletTerminology";
-import StripeConnectCard from "./StripeConnectCard";
 
 interface WalletHomeProps {
   availableTokens: number;
@@ -27,9 +26,10 @@ const WalletHome = ({
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-foreground">CricMaxx Wallet</h1>
+        <p className="text-xs text-muted-foreground mt-1">Closed Beta • 1 token = $1 USD</p>
       </div>
 
-      {/* Available Tokens - Primary */}
+      {/* Available Tokens */}
       <Card className="p-6 bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 rounded-full bg-amber-500/20">
@@ -45,7 +45,7 @@ const WalletHome = ({
         </p>
       </Card>
 
-      {/* In Play - Secondary (muted/locked feel) */}
+      {/* In Play */}
       <Card className="p-4 bg-muted/50 border-border">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-full bg-muted">
@@ -63,25 +63,13 @@ const WalletHome = ({
         </div>
       </Card>
 
-      {/* Stripe Connect - Payout Settings */}
-      <StripeConnectCard />
-
       {/* Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button 
-          onClick={onBuyTokens}
-          className="h-12 bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          {WALLET_TERMS.BUY_TOKENS}
-        </Button>
-        <Button 
-          variant="outline"
-          onClick={() => navigate("/markets")}
-          className="h-12"
-        >
-          View Markets
-        </Button>
-      </div>
+      <Button 
+        onClick={onBuyTokens}
+        className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
+      >
+        Add Tokens
+      </Button>
 
       {/* Quick Stats */}
       <Card className="p-4">
