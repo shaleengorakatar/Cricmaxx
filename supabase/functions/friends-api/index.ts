@@ -70,8 +70,14 @@ serve(async (req) => {
     if (path === '/accept-invite' && method === 'POST') {
       const { token } = body;
 
+      // Use service role for cross-user operations
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
       // Get invite token details
-      const { data: inviteToken, error: tokenError } = await supabaseClient
+      const { data: inviteToken, error: tokenError } = await serviceClient
         .from('friend_invite_tokens')
         .select('*')
         .eq('token', token)
@@ -94,11 +100,11 @@ serve(async (req) => {
       }
 
       // Check if friendship already exists
-      const { data: existing } = await supabaseClient
+      const { data: existing } = await serviceClient
         .from('friendships')
         .select('*')
         .or(`and(user_id.eq.${user.id},friend_id.eq.${inviteToken.user_id}),and(user_id.eq.${inviteToken.user_id},friend_id.eq.${user.id})`)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         return new Response(JSON.stringify({ error: 'Friendship already exists' }), {
@@ -107,8 +113,8 @@ serve(async (req) => {
         });
       }
 
-      // Create mutual friendship (both directions as accepted)
-      const { error: friendship1Error } = await supabaseClient
+      // Create mutual friendships
+      const { error: friendship1Error } = await serviceClient
         .from('friendships')
         .insert({
           user_id: user.id,
@@ -116,7 +122,9 @@ serve(async (req) => {
           status: 'accepted'
         });
 
-      const { error: friendship2Error } = await supabaseClient
+      if (friendship1Error) throw friendship1Error;
+
+      const { error: friendship2Error } = await serviceClient
         .from('friendships')
         .insert({
           user_id: inviteToken.user_id,
@@ -124,12 +132,12 @@ serve(async (req) => {
           status: 'accepted'
         });
 
-      if (friendship1Error || friendship2Error) {
-        throw friendship1Error || friendship2Error;
+      if (friendship2Error) {
+        console.error('Error creating reverse invite friendship:', friendship2Error);
       }
 
       // Mark token as used
-      await supabaseClient
+      await serviceClient
         .from('friend_invite_tokens')
         .update({ used_by: user.id, used_at: new Date().toISOString() })
         .eq('token', token);
@@ -225,32 +233,67 @@ serve(async (req) => {
     if (path === '/accept' && method === 'POST') {
       const { friendship_id } = body;
 
-      // Update the pending request to accepted
-      const { error: updateError } = await supabaseClient
+      if (!friendship_id) {
+        return new Response(JSON.stringify({ error: 'Friendship ID is required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      // Use service role to avoid any RLS edge cases
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // Verify the friendship exists, is pending, and the current user is the friend_id (recipient)
+      const { data: pendingRequest, error: fetchError } = await serviceClient
         .from('friendships')
-        .update({ status: 'accepted' })
+        .select('id, user_id, friend_id, status')
         .eq('id', friendship_id)
         .eq('friend_id', user.id)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (!pendingRequest) {
+        return new Response(JSON.stringify({ error: 'Friend request not found or already processed' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        });
+      }
+
+      // Update the pending request to accepted
+      const { error: updateError } = await serviceClient
+        .from('friendships')
+        .update({ status: 'accepted', updated_at: new Date().toISOString() })
+        .eq('id', friendship_id);
 
       if (updateError) throw updateError;
 
-      // Get the friendship details to create reverse
-      const { data: friendship } = await supabaseClient
+      // Check if reverse friendship already exists
+      const { data: existingReverse } = await serviceClient
         .from('friendships')
-        .select('user_id, friend_id')
-        .eq('id', friendship_id)
-        .single();
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('friend_id', pendingRequest.user_id)
+        .maybeSingle();
 
-      if (friendship) {
+      if (!existingReverse) {
         // Create reverse friendship
-        await supabaseClient
+        const { error: insertError } = await serviceClient
           .from('friendships')
           .insert({
             user_id: user.id,
-            friend_id: friendship.user_id,
+            friend_id: pendingRequest.user_id,
             status: 'accepted'
           });
+
+        if (insertError) {
+          console.error('Error creating reverse friendship:', insertError);
+          // Don't fail the whole request - the accept still succeeded
+        }
       }
 
       return new Response(JSON.stringify({
@@ -265,12 +308,39 @@ serve(async (req) => {
     if (path === '/reject' && method === 'POST') {
       const { friendship_id } = body;
 
-      const { error: deleteError } = await supabaseClient
+      if (!friendship_id) {
+        return new Response(JSON.stringify({ error: 'Friendship ID is required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      // Use service role to ensure deletion works
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      // Verify the request belongs to this user and is pending
+      const { data: pendingRequest } = await serviceClient
         .from('friendships')
-        .delete()
+        .select('id')
         .eq('id', friendship_id)
         .eq('friend_id', user.id)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (!pendingRequest) {
+        return new Response(JSON.stringify({ error: 'Friend request not found' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        });
+      }
+
+      const { error: deleteError } = await serviceClient
+        .from('friendships')
+        .delete()
+        .eq('id', friendship_id);
 
       if (deleteError) throw deleteError;
 
