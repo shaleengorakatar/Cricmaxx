@@ -100,13 +100,13 @@ const TradingHistoryPanel = () => {
           throw posError;
         }
 
-        const positionTrades: Trade[] = (positions || []).map((p: any) => ({
+      const positionTrades: Trade[] = (positions || []).map((p: any) => ({
           id: p.id,
           market_id: p.market_id,
           side: p.side,
-          size: p.size,
-          entry_price: p.entry_price,
-          pnl: p.pnl,
+          size: Number(p.size) || 0,
+          entry_price: Number(p.entry_price) || 0,
+          pnl: p.pnl != null ? Number(p.pnl) : null,
           status: p.status,
           opened_at: p.opened_at,
           closed_at: p.closed_at,
@@ -141,8 +141,8 @@ const TradingHistoryPanel = () => {
           id: o.id,
           market_id: o.market_id,
           side: o.side,
-          size: Number(o.quantity) - Number(o.filled_quantity),
-          entry_price: o.price,
+          size: (Number(o.quantity) || 0) - (Number(o.filled_quantity) || 0),
+          entry_price: Number(o.price) || 0,
           pnl: null,
           status: o.status,
           opened_at: o.created_at,
@@ -318,7 +318,7 @@ const TradingHistoryPanel = () => {
                 </div>
                 <div>
                   <span className="text-muted-foreground">{trade.type === 'order' ? 'Limit: ' : 'Entry: '}</span>
-                  <span className="font-semibold">${trade.entry_price.toFixed(2)}</span>
+                  <span className="font-semibold">${(trade.entry_price ?? 0).toFixed(2)}</span>
                 </div>
                 <div className="col-span-2">
                   <span className="text-muted-foreground">{trade.type === 'order' ? 'Placed: ' : 'Opened: '}</span>
