@@ -8,6 +8,7 @@ import { TradingModeProvider } from "@/hooks/useTradingMode";
 import { TradingPreferencesProvider } from "@/hooks/useTradingPreferences";
 import { AuthProvider } from "@/contexts/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
+import InviteGate from "@/components/InviteGate";
 import Index from "./pages/Index";
 
 // Lazy load all non-critical pages for code splitting
@@ -73,46 +74,48 @@ const App = () => {
       <TradingModeProvider>
         <TradingPreferencesProvider>
           <TooltipProvider>
-            <SplashScreen isVisible={showSplash} onSkip={() => setShowSplash(false)} />
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <Suspense fallback={<PageLoader />}>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/password-reset" element={<PasswordReset />} />
-                    <Route path="/kyc-verification" element={<KYCVerification />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/markets" element={<Markets />} />
-                    <Route path="/rapidpred" element={<RapidPred />} />
-                    <Route path="/market/:id" element={<MarketDetail />} />
-                    <Route path="/friends" element={<Friends />} />
-                    <Route path="/invite/:token" element={<FriendInvite />} />
-                    <Route path="/creator" element={<CreatorDashboard />} />
-                    <Route path="/admin" element={<AdminDashboard />} />
-                    <Route path="/settings" element={<AccountSettings />} />
-                    <Route path="/account-settings" element={<AccountSettings />} />
-                    <Route path="/terms" element={<TermsOfUse />} />
-                    <Route path="/privacy" element={<PrivacyPolicy />} />
-                    <Route path="/faq" element={<FAQ />} />
-                    <Route path="/contact" element={<Contact />} />
-                    {/* Mobile Routes */}
-                    <Route path="/mobile" element={<MobileHome />} />
-                    <Route path="/mobile/auth" element={<MobileAuth />} />
-                    <Route path="/mobile/markets" element={<MobileMarkets />} />
-                    <Route path="/mobile/swipepreds" element={<MobileSwipePreds />} />
-                    <Route path="/mobile/predictions" element={<MobileMyPredictions />} />
-                    <Route path="/mobile/wallet" element={<MobileWallet />} />
-                    <Route path="/mobile/profile" element={<MobileProfile />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Suspense>
-              </AuthProvider>
-            </BrowserRouter>
+            <InviteGate>
+              <SplashScreen isVisible={showSplash} onSkip={() => setShowSplash(false)} />
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AuthProvider>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/password-reset" element={<PasswordReset />} />
+                      <Route path="/kyc-verification" element={<KYCVerification />} />
+                      <Route path="/dashboard" element={<Dashboard />} />
+                      <Route path="/markets" element={<Markets />} />
+                      <Route path="/rapidpred" element={<RapidPred />} />
+                      <Route path="/market/:id" element={<MarketDetail />} />
+                      <Route path="/friends" element={<Friends />} />
+                      <Route path="/invite/:token" element={<FriendInvite />} />
+                      <Route path="/creator" element={<CreatorDashboard />} />
+                      <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/settings" element={<AccountSettings />} />
+                      <Route path="/account-settings" element={<AccountSettings />} />
+                      <Route path="/terms" element={<TermsOfUse />} />
+                      <Route path="/privacy" element={<PrivacyPolicy />} />
+                      <Route path="/faq" element={<FAQ />} />
+                      <Route path="/contact" element={<Contact />} />
+                      {/* Mobile Routes */}
+                      <Route path="/mobile" element={<MobileHome />} />
+                      <Route path="/mobile/auth" element={<MobileAuth />} />
+                      <Route path="/mobile/markets" element={<MobileMarkets />} />
+                      <Route path="/mobile/swipepreds" element={<MobileSwipePreds />} />
+                      <Route path="/mobile/predictions" element={<MobileMyPredictions />} />
+                      <Route path="/mobile/wallet" element={<MobileWallet />} />
+                      <Route path="/mobile/profile" element={<MobileProfile />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </AuthProvider>
+              </BrowserRouter>
+            </InviteGate>
           </TooltipProvider>
         </TradingPreferencesProvider>
       </TradingModeProvider>
