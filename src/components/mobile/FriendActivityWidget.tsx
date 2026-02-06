@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Users, TrendingUp, TrendingDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isValid } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useNavigate } from 'react-router-dom';
 
@@ -173,7 +173,9 @@ export function FriendActivityWidget() {
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2">{trade.marketQuestion}</p>
               <p className="text-xs text-muted-foreground/70 mt-1">
-                {formatDistanceToNow(new Date(trade.timestamp), { addSuffix: true })}
+                {trade.timestamp && isValid(new Date(trade.timestamp))
+                  ? formatDistanceToNow(new Date(trade.timestamp), { addSuffix: true })
+                  : 'recently'}
               </p>
             </div>
           </div>

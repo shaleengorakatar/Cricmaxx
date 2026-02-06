@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { FriendTrade } from "@/types/friends";
 import { TrendingUp, TrendingDown, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 interface FriendsTradesProps {
@@ -26,14 +26,24 @@ const FriendsTrades = ({ trades }: FriendsTradesProps) => {
     );
   }
 
+  const safeFormatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'unknown';
+    const d = new Date(dateStr);
+    return isValid(d) ? formatDistanceToNow(d, { addSuffix: true }) : 'unknown';
+  };
+
   return (
     <div className="space-y-4">
       {trades.map((trade) => {
         const market = trade.markets;
         const friend = trade.profiles;
         const isYes = trade.side === 'yes';
-        const currentPrice = isYes ? market.yes_price : market.no_price;
-        const pnlPercent = ((currentPrice - trade.entry_price) / trade.entry_price) * 100;
+        const yesPrice = Number(market?.yes_price) || 0;
+        const noPrice = Number(market?.no_price) || 0;
+        const entryPrice = Number(trade.entry_price) || 0;
+        const tradeSize = Number(trade.size) || 0;
+        const currentPrice = isYes ? yesPrice : noPrice;
+        const pnlPercent = entryPrice > 0 ? ((currentPrice - entryPrice) / entryPrice) * 100 : 0;
         const isProfitable = pnlPercent > 0;
 
         return (
@@ -74,21 +84,21 @@ const FriendsTrades = ({ trades }: FriendsTradesProps) => {
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">YES</span>
                   <span className="font-medium text-green-600">
-                    ₹{market.yes_price.toFixed(2)}
+                    ₹{yesPrice.toFixed(2)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">NO</span>
                   <span className="font-medium text-red-600">
-                    ₹{market.no_price.toFixed(2)}
+                    ₹{noPrice.toFixed(2)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Clock className="w-3 h-3" />
                   <span className="text-xs">
-                    {formatDistanceToNow(new Date(market.expiry_time), { addSuffix: true })}
+                    {safeFormatDate(market?.expiry_time)}
                   </span>
                 </div>
               </div>
@@ -98,11 +108,11 @@ const FriendsTrades = ({ trades }: FriendsTradesProps) => {
                 <div className="flex items-center gap-4 text-xs">
                   <div>
                     <span className="text-muted-foreground">Entry: </span>
-                    <span className="font-medium">₹{trade.entry_price.toFixed(2)}</span>
+                    <span className="font-medium">₹{entryPrice.toFixed(2)}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Size: </span>
-                    <span className="font-medium">{trade.size}</span>
+                    <span className="font-medium">{tradeSize}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">Current: </span>
@@ -123,7 +133,7 @@ const FriendsTrades = ({ trades }: FriendsTradesProps) => {
               </div>
 
               <p className="text-xs text-muted-foreground mt-2">
-                Opened {formatDistanceToNow(new Date(trade.opened_at), { addSuffix: true })}
+                Opened {safeFormatDate(trade.opened_at)}
               </p>
             </CardContent>
           </Card>

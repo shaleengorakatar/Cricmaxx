@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Friend } from "@/types/friends";
 import { TrendingUp, BarChart3, EyeOff, Circle } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 
 interface FriendsListProps {
   friends: Friend[];
@@ -11,12 +11,18 @@ interface FriendsListProps {
 }
 
 const FriendsList = ({ friends }: FriendsListProps) => {
-  const getOnlineStatus = (lastActiveAt: string) => {
-    const lastActive = new Date(lastActiveAt);
+  const safeDate = (dateStr: string | null | undefined): Date | null => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return isValid(d) ? d : null;
+  };
+
+  const getOnlineStatus = (lastActiveAt: string | null | undefined) => {
+    const lastActive = safeDate(lastActiveAt);
+    if (!lastActive) return false;
     const now = new Date();
     const diffMinutes = (now.getTime() - lastActive.getTime()) / (1000 * 60);
-    
-    return diffMinutes < 15; // Online if active within last 15 minutes
+    return diffMinutes < 15;
   };
 
   if (friends.length === 0) {
@@ -84,9 +90,9 @@ const FriendsList = ({ friends }: FriendsListProps) => {
                     </div>
                   </div>
 
-                  {!isOnline && (
+                  {!isOnline && safeDate(friend.last_active_at) && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Last active {formatDistanceToNow(new Date(friend.last_active_at), { addSuffix: true })}
+                      Last active {formatDistanceToNow(safeDate(friend.last_active_at)!, { addSuffix: true })}
                     </p>
                   )}
                 </div>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FriendRequest } from "@/types/friends";
 import { Check, X, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 
 interface FriendRequestsListProps {
   inboundRequests: FriendRequest[];
@@ -19,6 +19,12 @@ const FriendRequestsList = ({
   onAccept,
   onReject
 }: FriendRequestsListProps) => {
+  const safeFormatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'recently';
+    const d = new Date(dateStr);
+    return isValid(d) ? formatDistanceToNow(d, { addSuffix: true }) : 'recently';
+  };
+
   if (inboundRequests.length === 0 && outboundRequests.length === 0) {
     return (
       <Card>
@@ -58,7 +64,7 @@ const FriendRequestsList = ({
                       @{request.profiles.username}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                      {safeFormatDate(request.created_at)}
                     </p>
                   </div>
 
@@ -110,7 +116,7 @@ const FriendRequestsList = ({
                       @{request.profiles.username}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                      {safeFormatDate(request.created_at)}
                     </p>
                   </div>
 

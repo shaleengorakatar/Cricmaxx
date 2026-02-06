@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import FriendSearch from "@/components/friends/FriendSearch";
@@ -6,12 +6,12 @@ import InviteLinkGenerator from "@/components/friends/InviteLinkGenerator";
 import FriendsList from "@/components/friends/FriendsList";
 import FriendRequestsList from "@/components/friends/FriendRequestsList";
 import FriendsTrades from "@/components/friends/FriendsTrades";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useFriends } from "@/hooks/useFriends";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, UserPlus, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const Friends = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -68,8 +68,12 @@ const Friends = () => {
 
           {/* Search & Invite Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <FriendSearch onFriendAdded={fetchRequests} />
-            <InviteLinkGenerator />
+            <ErrorBoundary fallbackTitle="Failed to load friend search">
+              <FriendSearch onFriendAdded={fetchRequests} />
+            </ErrorBoundary>
+            <ErrorBoundary fallbackTitle="Failed to load invite link">
+              <InviteLinkGenerator />
+            </ErrorBoundary>
           </div>
 
           {/* Main Content - Desktop: Two columns, Mobile: Stacked */}
@@ -99,16 +103,20 @@ const Friends = () => {
                 </TabsList>
 
                 <TabsContent value="friends" className="mt-4">
-                  <FriendsList friends={friends} onRefresh={fetchFriends} />
+                  <ErrorBoundary fallbackTitle="Failed to load friends list">
+                    <FriendsList friends={friends} onRefresh={fetchFriends} />
+                  </ErrorBoundary>
                 </TabsContent>
 
                 <TabsContent value="requests" className="mt-4">
-                  <FriendRequestsList
-                    inboundRequests={inboundRequests}
-                    outboundRequests={outboundRequests}
-                    onAccept={acceptFriend}
-                    onReject={rejectFriend}
-                  />
+                  <ErrorBoundary fallbackTitle="Failed to load friend requests">
+                    <FriendRequestsList
+                      inboundRequests={inboundRequests}
+                      outboundRequests={outboundRequests}
+                      onAccept={acceptFriend}
+                      onReject={rejectFriend}
+                    />
+                  </ErrorBoundary>
                 </TabsContent>
               </Tabs>
             </div>
@@ -121,7 +129,9 @@ const Friends = () => {
                   Friends' Ongoing Trades
                 </h2>
               </div>
-              <FriendsTrades trades={friendsTrades} onRefresh={fetchFriendsTrades} />
+              <ErrorBoundary fallbackTitle="Failed to load friends' trades">
+                <FriendsTrades trades={friendsTrades} onRefresh={fetchFriendsTrades} />
+              </ErrorBoundary>
             </div>
           </div>
         </div>
