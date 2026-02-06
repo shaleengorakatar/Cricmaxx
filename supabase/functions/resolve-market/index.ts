@@ -117,33 +117,76 @@ serve(async (req) => {
       throw positionsError;
     }
 
-    // Process payouts
+    // Process payouts and update ratings
     const notifications: any[] = [];
     
     for (const position of positions || []) {
       let payout = 0;
       let pnl = 0;
+      const cost = position.size * position.entry_price;
+      let isCorrect = false;
 
       if (outcome === 'void') {
         // Full refund
-        payout = position.size * position.entry_price;
+        payout = cost;
         pnl = 0;
       } else if (position.side === outcome) {
         // Winner gets $1 per share
         payout = position.size;
-        pnl = payout - (position.size * position.entry_price);
+        pnl = payout - cost;
+        isCorrect = true;
       } else {
         // Loser gets nothing
         payout = 0;
-        pnl = -(position.size * position.entry_price);
+        pnl = -cost;
+        isCorrect = false;
       }
 
-      // Update user balance
+      // Get user's current profile for balance and rating
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance, rating_score, predictions_total, predictions_correct")
+        .eq("id", position.user_id)
+        .single();
+
+      const currentBalance = profile?.balance || 0;
+      const newBalance = currentBalance + payout;
+
+      // Calculate rating change (skip for void outcomes)
+      let newRating = profile?.rating_score || 1000;
+      let newTotal = profile?.predictions_total || 0;
+      let newCorrect = profile?.predictions_correct || 0;
+
+      if (outcome !== 'void') {
+        newTotal += 1;
+        if (isCorrect) {
+          newRating += 100; // +100 for correct prediction
+          newCorrect += 1;
+        } else {
+          newRating -= 50; // -50 for incorrect prediction
+        }
+        newRating = Math.max(0, newRating);
+      }
+
+      // Update user balance AND rating in one call
+      const updateData: Record<string, unknown> = {
+        predictions_total: newTotal,
+        predictions_correct: newCorrect,
+        rating_score: newRating,
+      };
       if (payout > 0) {
-        await supabase.rpc("increment_balance", {
-          user_id: position.user_id,
-          amount: payout,
-        });
+        updateData.balance = newBalance;
+      }
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("id", position.user_id);
+
+      if (profileError) {
+        console.error(`Failed to update profile for user ${position.user_id}:`, profileError);
+      } else {
+        console.log(`Updated user ${position.user_id}: rating ${newRating}, predictions ${newTotal}, correct ${newCorrect}`);
       }
 
       // Close position
@@ -157,28 +200,29 @@ serve(async (req) => {
         .eq("id", position.id);
 
       // Create transaction record
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("balance")
-        .eq("id", position.user_id)
-        .single();
-
-      await supabase.from("transactions").insert({
-        user_id: position.user_id,
-        type: outcome === 'void' ? 'refund' : 'payout',
-        amount: payout,
-        balance_before: (profile?.balance || 0) - payout,
-        balance_after: profile?.balance || 0,
-        metadata: {
-          market_id: marketId,
-          position_id: position.id,
-          outcome,
-          side: position.side,
-          shares: position.size,
-        },
-      });
+      if (payout > 0) {
+        await supabase.from("transactions").insert({
+          user_id: position.user_id,
+          type: outcome === 'void' ? 'refund' : 'payout',
+          amount: payout,
+          balance_before: currentBalance,
+          balance_after: newBalance,
+          status: 'completed',
+          metadata: {
+            market_id: marketId,
+            position_id: position.id,
+            outcome,
+            side: position.side,
+            shares: position.size,
+            pnl,
+            rating_change: outcome === 'void' ? 0 : (isCorrect ? 100 : -50),
+            new_rating: newRating,
+          },
+        });
+      }
 
       // Create notification
+      const ratingChangeText = outcome === 'void' ? '' : isCorrect ? ' Rating +100 🔮' : ' Rating -50';
       notifications.push({
         user_id: position.user_id,
         market_id: marketId,
@@ -191,8 +235,8 @@ serve(async (req) => {
         message: outcome === 'void'
           ? `Your position has been refunded: $${payout.toFixed(2)}`
           : position.side === outcome
-            ? `You won $${payout.toFixed(2)} on your ${position.side.toUpperCase()} prediction!`
-            : `Market resolved ${outcome.toUpperCase()}. Your ${position.side.toUpperCase()} position expired.`,
+            ? `You won $${payout.toFixed(2)} on your ${position.side.toUpperCase()} prediction!${ratingChangeText}`
+            : `Market resolved ${outcome.toUpperCase()}. Your ${position.side.toUpperCase()} position expired.${ratingChangeText}`,
         outcome,
         payout_amount: payout,
       });
@@ -260,6 +304,15 @@ serve(async (req) => {
         resolution_notes: notes,
       })
       .eq("id", marketId);
+
+    // Refresh materialized views for leaderboard and market stats
+    try {
+      await supabase.rpc('refresh_leaderboard');
+      await supabase.rpc('refresh_market_stats');
+      console.log('Refreshed materialized views');
+    } catch (mvError) {
+      console.error('Failed to refresh materialized views:', mvError);
+    }
 
     // Log success
     await supabase.from("market_resolution_log").insert({
