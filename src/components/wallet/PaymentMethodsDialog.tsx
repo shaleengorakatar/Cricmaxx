@@ -2,11 +2,12 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, CreditCard, Wallet, Check, Shield, Smartphone } from "lucide-react";
+import { Loader2, Coins, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { WALLET_TERMS, TOKEN_PRESETS, MIN_TOKEN_PURCHASE } from "@/lib/walletTerminology";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentMethodsDialogProps {
   isOpen: boolean;
@@ -14,96 +15,17 @@ interface PaymentMethodsDialogProps {
   onSuccess: () => void;
 }
 
-type PaymentMethod = 'stripe' | 'paypal';
-
 const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDialogProps) => {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState<string>("");
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('stripe');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasAccepted, setHasAccepted] = useState(false);
   const { toast } = useToast();
 
   const finalAmount = selectedAmount || (customAmount ? parseInt(customAmount, 10) : 0);
   const isValidAmount = finalAmount >= MIN_TOKEN_PURCHASE && finalAmount <= 10000;
 
-  const handlePayment = async () => {
-    if (!isValidAmount) {
-      toast({
-        title: "Invalid amount",
-        description: `Please select or enter an amount between $${MIN_TOKEN_PURCHASE} and $10,000`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      if (selectedMethod === 'stripe') {
-        // Create Stripe checkout session
-        const { data, error } = await supabase.functions.invoke('create-payment-checkout', {
-          body: {
-            amount: finalAmount,
-            paymentMethod: 'stripe',
-          }
-        });
-
-        if (error) throw error;
-
-        if (data?.url) {
-          // Try to open in new tab - detect if blocked
-          const newWindow = window.open(data.url, '_blank');
-          
-          if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-            // Popup was blocked - show fallback with clickable link
-            toast({
-              title: "Popup blocked",
-              description: (
-                <div className="space-y-2">
-                  <p>Your browser blocked the checkout window.</p>
-                  <a 
-                    href={data.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="inline-block underline text-accent font-medium"
-                  >
-                    Click here to open checkout →
-                  </a>
-                </div>
-              ),
-              duration: 15000, // Keep visible longer
-            });
-          } else {
-            toast({
-              title: "Checkout opened",
-              description: "Complete your payment in the new tab",
-            });
-            onClose();
-          }
-        } else {
-          throw new Error('No checkout URL received');
-        }
-      } else if (selectedMethod === 'paypal') {
-        // PayPal integration placeholder
-        toast({
-          title: "PayPal coming soon",
-          description: "PayPal payments will be available shortly",
-        });
-      }
-    } catch (error) {
-      console.error('Payment error:', error);
-      toast({
-        title: "Payment failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleCustomAmountChange = (value: string) => {
-    // Only allow numbers
     const numericValue = value.replace(/[^0-9]/g, '');
     setCustomAmount(numericValue);
     setSelectedAmount(null);
@@ -114,34 +36,85 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
     setCustomAmount("");
   };
 
+  const handleAddTokens = async () => {
+    if (!isValidAmount || !hasAccepted) return;
+
+    setIsProcessing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('wallet-operations', {
+        body: {
+          operation: 'deposit',
+          amount: finalAmount,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast({
+          title: "Tokens added!",
+          description: `${finalAmount} tokens have been added to your wallet`,
+        });
+        setSelectedAmount(null);
+        setCustomAmount("");
+        setHasAccepted(false);
+        onSuccess();
+        onClose();
+      } else {
+        throw new Error(data?.error || 'Failed to add tokens');
+      }
+    } catch (error) {
+      console.error('Add tokens error:', error);
+      toast({
+        title: "Failed to add tokens",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-sm max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-4 pt-4 pb-2">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Wallet className="h-4 w-4 text-accent" />
-            {WALLET_TERMS.BUY_TOKENS}
+            <Coins className="h-4 w-4 text-accent" />
+            {WALLET_TERMS.ADD_TOKENS}
           </DialogTitle>
+          <DialogDescription className="text-xs">
+            1 Token = $1 USD equivalent
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 space-y-4">
-          {/* Amount Selection - Compact grid */}
+          {/* Gentleman's Agreement Notice */}
+          <Alert className="border-amber-500/30 bg-amber-500/10">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground block mb-1">Closed Beta — Gentleman's Agreement</span>
+              Each token represents a $1 USD equivalent. By adding tokens, you agree to settle your balance at the end of the tournament. This is a trust-based system among participants.
+            </AlertDescription>
+          </Alert>
+
+          {/* Amount Selection */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-muted-foreground">Select Amount</label>
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-3 gap-2">
               {TOKEN_PRESETS.map((preset) => (
                 <button
                   key={preset.amount}
                   onClick={() => handlePresetSelect(preset.amount)}
                   className={cn(
-                    "py-2 px-1 rounded-md border text-center transition-all text-xs font-medium",
+                    "py-3 px-2 rounded-md border text-center transition-all text-sm font-medium",
                     selectedAmount === preset.amount
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border hover:border-muted-foreground/50"
                   )}
                 >
-                  ${preset.amount}
+                  {preset.amount} tokens
                 </button>
               ))}
             </div>
@@ -152,7 +125,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
               <Input
                 type="text"
                 inputMode="numeric"
-                placeholder={`Custom (min $${MIN_TOKEN_PURCHASE})`}
+                placeholder={`Custom (min ${MIN_TOKEN_PURCHASE})`}
                 value={customAmount}
                 onChange={(e) => handleCustomAmountChange(e.target.value)}
                 className={cn(
@@ -163,88 +136,46 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
             </div>
           </div>
 
-          {/* Payment Method - Compact */}
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground">Payment Method</label>
-            
-            <button
-              onClick={() => setSelectedMethod('stripe')}
-              className={cn(
-                "w-full p-3 rounded-lg border text-left transition-all",
-                selectedMethod === 'stripe'
-                  ? "border-accent bg-accent/5"
-                  : "border-border"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-sm">Card, Apple Pay, Google Pay</span>
-                </div>
-                {selectedMethod === 'stripe' && <Check className="h-4 w-4 text-accent" />}
-              </div>
-              <div className="flex items-center gap-1 mt-2">
-                <div className="h-5 w-7 bg-[#1A1F71] rounded flex items-center justify-center">
-                  <span className="text-white text-[6px] font-bold">VISA</span>
-                </div>
-                <div className="h-5 w-7 bg-gradient-to-r from-[#EB001B] to-[#F79E1B] rounded" />
-                <div className="h-5 px-1.5 bg-black rounded">
-                  <span className="text-white text-[6px]"> Pay</span>
-                </div>
-                <div className="h-5 px-1.5 bg-white border rounded">
-                  <span className="text-[6px]">G Pay</span>
-                </div>
-              </div>
-            </button>
-
-            <button
-              onClick={() => setSelectedMethod('paypal')}
-              className={cn(
-                "w-full p-3 rounded-lg border text-left transition-all opacity-50",
-                selectedMethod === 'paypal' ? "border-accent" : "border-border"
-              )}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#003087] font-bold text-sm">P</span>
-                  <span className="text-sm">PayPal <span className="text-xs text-muted-foreground">(Coming soon)</span></span>
-                </div>
-              </div>
-            </button>
-          </div>
+          {/* Agreement Checkbox */}
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasAccepted}
+              onChange={(e) => setHasAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
+            />
+            <span className="text-xs text-muted-foreground">
+              I understand that 1 token = $1 USD and I agree to settle my balance at the end of the tournament.
+            </span>
+          </label>
         </div>
 
-        {/* Fixed footer with summary and button */}
+        {/* Footer */}
         <div className="border-t bg-background px-4 py-3 space-y-3">
           {isValidAmount && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-bold text-accent text-lg">${finalAmount}.00</span>
+              <span className="text-muted-foreground">Tokens to add</span>
+              <span className="font-bold text-accent text-lg">{finalAmount}</span>
             </div>
           )}
 
           <Button
-            onClick={handlePayment}
-            disabled={isProcessing || !isValidAmount || selectedMethod === 'paypal'}
+            onClick={handleAddTokens}
+            disabled={isProcessing || !isValidAmount || !hasAccepted}
             className="w-full h-11 bg-accent text-accent-foreground hover:bg-accent/90"
           >
             {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
+                Adding Tokens...
               </>
             ) : (
               <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pay ${finalAmount || 0}.00
+                <Coins className="mr-2 h-4 w-4" />
+                Add {finalAmount || 0} Tokens
               </>
             )}
           </Button>
-
-          <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-            <Shield className="h-3 w-3" />
-            <span>Secured with bank-level encryption</span>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

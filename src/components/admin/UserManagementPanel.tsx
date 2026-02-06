@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown } from "lucide-react";
+import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,24 +32,48 @@ interface AdminUser {
   totalVolume: number;
 }
 
+interface UserTradeStats {
+  pendingOrders: number;
+  completedTrades: number;
+  resolvedPositions: number;
+  tokensWon: number;
+  tokensLost: number;
+  totalDeposits: number;
+  positions: Array<{
+    market_question: string;
+    side: string;
+    size: number;
+    entry_price: number;
+    status: string;
+    pnl: number | null;
+  }>;
+  recentTransactions: Array<{
+    id: string;
+    type: string;
+    amount: number;
+    balance_after: number;
+    created_at: string;
+  }>;
+}
+
 const UserManagementPanel = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+  // Fetch all users
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      // Fetch profiles
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('id, email, name, username, created_at, kyc_verified, balance')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (error) throw error;
 
-      // Fetch user roles (all roles for each user)
       const { data: roles } = await supabase
         .from('user_roles')
         .select('user_id, role');
@@ -60,7 +84,6 @@ const UserManagementPanel = () => {
         roleMap.set(r.user_id, [...existing, r.role as 'trader' | 'creator' | 'admin']);
       });
 
-      // Fetch total volume per user from positions
       const { data: positions } = await supabase
         .from('positions')
         .select('user_id, size, entry_price');
@@ -86,7 +109,74 @@ const UserManagementPanel = () => {
     refetchInterval: 60000,
   });
 
-  // Filter users based on search query
+  // Fetch detailed stats for selected user
+  const { data: userStats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['admin-user-detail', selectedUserId],
+    queryFn: async (): Promise<UserTradeStats> => {
+      if (!selectedUserId) throw new Error("No user selected");
+
+      const [ordersRes, tradesRes, positionsRes, transactionsRes] = await Promise.all([
+        supabase
+          .from('orders')
+          .select('id, status')
+          .eq('user_id', selectedUserId),
+        supabase
+          .from('trades')
+          .select('id, buyer_id, seller_id')
+          .or(`buyer_id.eq.${selectedUserId},seller_id.eq.${selectedUserId}`),
+        supabase
+          .from('positions')
+          .select('market_id, side, size, entry_price, status, pnl')
+          .eq('user_id', selectedUserId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('transactions')
+          .select('id, type, amount, balance_after, created_at')
+          .eq('user_id', selectedUserId)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+
+      // Fetch market questions for positions
+      const marketIds = [...new Set(positionsRes.data?.map(p => p.market_id) || [])];
+      const { data: markets } = marketIds.length > 0
+        ? await supabase.from('markets').select('id, question').in('id', marketIds)
+        : { data: [] };
+
+      const marketMap = new Map<string, string>(markets?.map(m => [m.id, m.question] as [string, string]) || []);
+
+      const pendingOrders = ordersRes.data?.filter(o => o.status === 'pending' || o.status === 'partial').length || 0;
+      const completedTrades = tradesRes.data?.length || 0;
+      const resolvedPositions = positionsRes.data?.filter(p => p.status === 'closed').length || 0;
+
+      const closedPositions = positionsRes.data?.filter(p => p.status === 'closed' && p.pnl !== null) || [];
+      const tokensWon = closedPositions.filter(p => (p.pnl || 0) > 0).reduce((sum, p) => sum + (p.pnl || 0), 0);
+      const tokensLost = Math.abs(closedPositions.filter(p => (p.pnl || 0) < 0).reduce((sum, p) => sum + (p.pnl || 0), 0));
+
+      const totalDeposits = transactionsRes.data?.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0) || 0;
+
+      return {
+        pendingOrders,
+        completedTrades,
+        resolvedPositions,
+        tokensWon: Math.round(tokensWon * 100) / 100,
+        tokensLost: Math.round(tokensLost * 100) / 100,
+        totalDeposits: Math.round(totalDeposits * 100) / 100,
+        positions: positionsRes.data?.map(p => ({
+          market_question: marketMap.get(p.market_id) || 'Unknown Market' as string,
+          side: p.side,
+          size: p.size,
+          entry_price: p.entry_price,
+          status: p.status,
+          pnl: p.pnl ?? 0,
+        })) || [],
+        recentTransactions: transactionsRes.data || [],
+      };
+    },
+    enabled: !!selectedUserId,
+  });
+
   const filteredUsers = users?.filter(user => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase();
@@ -97,91 +187,39 @@ const UserManagementPanel = () => {
     );
   });
 
+  const selectedUser = users?.find(u => u.id === selectedUserId);
+
+  // Mutations
   const toggleKYCMutation = useMutation({
     mutationFn: async ({ userId, currentStatus }: { userId: string; currentStatus: boolean }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ kyc_verified: !currentStatus })
-        .eq('id', userId);
-
+      const { error } = await supabase.from('profiles').update({ kyc_verified: !currentStatus }).eq('id', userId);
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast({
-        title: variables.currentStatus ? "KYC verification removed" : "KYC verified",
-        description: `User is ${variables.currentStatus ? "no longer" : "now"} verified`,
-      });
+      toast({ title: variables.currentStatus ? "KYC removed" : "KYC verified" });
     },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to update KYC status",
-        variant: "destructive",
-      });
-    },
+    onError: () => { toast({ title: "Error", description: "Failed to update KYC", variant: "destructive" }); },
   });
 
   const assignRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: 'creator' | 'admin' }) => {
-      // Check if role already exists
-      const { data: existingRole } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('role', role)
-        .single();
-
-      if (existingRole) {
-        throw new Error(`User already has ${role} role`);
-      }
-
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role });
-
+      const { data: existing } = await supabase.from('user_roles').select('id').eq('user_id', userId).eq('role', role).single();
+      if (existing) throw new Error(`Already has ${role} role`);
+      const { error } = await supabase.from('user_roles').insert({ user_id: userId, role });
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast({
-        title: "Role assigned",
-        description: `User is now a ${variables.role}`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to assign role",
-        variant: "destructive",
-      });
-    },
+    onSuccess: (_, v) => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast({ title: `${v.role} role assigned` }); },
+    onError: (e: Error) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
   const removeRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: 'creator' | 'admin' }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
-
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role);
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      toast({
-        title: "Role removed",
-        description: `${variables.role} role has been removed`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to remove role",
-        variant: "destructive",
-      });
-    },
+    onSuccess: (_, v) => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast({ title: `${v.role} role removed` }); },
+    onError: () => { toast({ title: "Error", description: "Failed to remove role", variant: "destructive" }); },
   });
 
   const getHighestRole = (roles: string[]): string => {
@@ -191,16 +229,205 @@ const UserManagementPanel = () => {
   };
 
   if (isLoading) {
+    return <Card className="p-8 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></Card>;
+  }
+
+  // ─── User Detail View ───
+  if (selectedUserId && selectedUser) {
     return (
-      <Card className="p-8 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </Card>
+      <div className="space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedUserId(null)} className="gap-1">
+          <ChevronLeft className="h-4 w-4" /> Back to Users
+        </Button>
+
+        {/* User Header */}
+        <Card className="p-4 md:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{selectedUser.name}</h2>
+              {selectedUser.username && <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>}
+              <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}</p>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              <Badge variant={getHighestRole(selectedUser.roles) === 'admin' ? 'default' : 'secondary'}>
+                {getHighestRole(selectedUser.roles)}
+              </Badge>
+              {selectedUser.kyc_verified && <Badge className="bg-green-600"><ShieldCheck className="h-3 w-3 mr-1" />KYC</Badge>}
+            </div>
+          </div>
+        </Card>
+
+        {/* Stats Grid */}
+        {isLoadingStats ? (
+          <Card className="p-8 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></Card>
+        ) : userStats ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Balance</p>
+                <p className="text-xl font-bold text-foreground">{selectedUser.balance.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">tokens</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Total Deposited</p>
+                <p className="text-xl font-bold text-foreground">{userStats.totalDeposits.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">tokens added</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Tokens Won</p>
+                <p className="text-xl font-bold text-green-500">+{userStats.tokensWon.toLocaleString()}</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Tokens Lost</p>
+                <p className="text-xl font-bold text-red-500">-{userStats.tokensLost.toLocaleString()}</p>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Pending Orders</p>
+                <p className="text-lg font-bold text-amber-500">{userStats.pendingOrders}</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Completed Trades</p>
+                <p className="text-lg font-bold text-foreground">{userStats.completedTrades}</p>
+              </Card>
+              <Card className="p-4 text-center">
+                <p className="text-xs text-muted-foreground">Resolved Positions</p>
+                <p className="text-lg font-bold text-foreground">{userStats.resolvedPositions}</p>
+              </Card>
+            </div>
+
+            {/* Positions Table */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Positions ({userStats.positions.length})</h3>
+              {userStats.positions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No positions yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-2 px-1 text-xs text-muted-foreground">Market</th>
+                        <th className="text-center py-2 px-1 text-xs text-muted-foreground">Side</th>
+                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">Size</th>
+                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">Entry</th>
+                        <th className="text-center py-2 px-1 text-xs text-muted-foreground">Status</th>
+                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">P&L</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {userStats.positions.map((pos, i) => (
+                        <tr key={i} className="border-b border-border/50">
+                          <td className="py-2 px-1 text-xs max-w-[200px] truncate">{pos.market_question}</td>
+                          <td className="py-2 px-1 text-center">
+                            <Badge variant="outline" className={`text-[10px] ${pos.side === 'yes' ? 'text-green-500 border-green-500/30' : 'text-red-500 border-red-500/30'}`}>
+                              {pos.side.toUpperCase()}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-1 text-right text-xs">{pos.size}</td>
+                          <td className="py-2 px-1 text-right text-xs">{pos.entry_price}¢</td>
+                          <td className="py-2 px-1 text-center">
+                            <Badge variant={pos.status === 'open' ? 'default' : 'secondary'} className="text-[10px]">
+                              {pos.status}
+                            </Badge>
+                          </td>
+                          <td className={`py-2 px-1 text-right text-xs font-medium ${(pos.pnl || 0) > 0 ? 'text-green-500' : (pos.pnl || 0) < 0 ? 'text-red-500' : ''}`}>
+                            {pos.pnl !== null ? (pos.pnl > 0 ? '+' : '') + pos.pnl.toFixed(2) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            {/* Recent Transactions */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Recent Transactions</h3>
+              {userStats.recentTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+              ) : (
+                <div className="space-y-2">
+                  {userStats.recentTransactions.map(tx => (
+                    <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                      <div className="flex items-center gap-2">
+                        {tx.type === 'deposit' ? (
+                          <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                        )}
+                        <div>
+                          <p className="text-xs font-medium capitalize">{tx.type}</p>
+                          <p className="text-[10px] text-muted-foreground">{format(new Date(tx.created_at), "MMM d, h:mm a")}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-xs font-medium ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
+                          {tx.type === 'deposit' ? '+' : '-'}{tx.amount}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Bal: {tx.balance_after}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Admin Actions */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Admin Actions</h3>
+              <div className="flex gap-2 flex-wrap">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="outline"><Shield className="h-3 w-3 mr-1" />Toggle KYC</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Toggle KYC</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {selectedUser.kyc_verified ? `Remove KYC for ${selectedUser.name}?` : `Verify ${selectedUser.name}?`}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => toggleKYCMutation.mutate({ userId: selectedUser.id, currentStatus: selectedUser.kyc_verified })}>Confirm</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {!selectedUser.roles.includes('creator') ? (
+                  <Button size="sm" variant="outline" onClick={() => assignRoleMutation.mutate({ userId: selectedUser.id, role: 'creator' })}>
+                    <Sparkles className="h-3 w-3 mr-1" />Add Creator
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive" onClick={() => removeRoleMutation.mutate({ userId: selectedUser.id, role: 'creator' })}>
+                    <Sparkles className="h-3 w-3 mr-1" />Remove Creator
+                  </Button>
+                )}
+
+                {!selectedUser.roles.includes('admin') ? (
+                  <Button size="sm" variant="outline" className="border-primary text-primary" onClick={() => assignRoleMutation.mutate({ userId: selectedUser.id, role: 'admin' })}>
+                    <Crown className="h-3 w-3 mr-1" />Add Admin
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="text-destructive border-destructive" onClick={() => removeRoleMutation.mutate({ userId: selectedUser.id, role: 'admin' })}>
+                    <Crown className="h-3 w-3 mr-1" />Remove Admin
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </>
+        ) : null}
+      </div>
     );
   }
 
+  // ─── User List View ───
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
       <Card className="p-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -213,406 +440,47 @@ const UserManagementPanel = () => {
         </div>
       </Card>
 
+      <p className="text-xs text-muted-foreground px-1">{filteredUsers?.length || 0} users • Click to view details</p>
+
       {!filteredUsers || filteredUsers.length === 0 ? (
-        <Card className="p-8">
-          <div className="text-center">
-            <p className="text-muted-foreground">
-              {searchQuery ? "No users match your search" : "No users found"}
-            </p>
-          </div>
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">{searchQuery ? "No users match your search" : "No users found"}</p>
         </Card>
       ) : (
-        <>
-          {/* Mobile: Card layout */}
-          <div className="md:hidden space-y-3">
-            {filteredUsers.map(user => (
-              <Card key={user.id} className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground text-sm">{user.name}</p>
-                      {user.username && (
-                        <p className="text-xs text-muted-foreground">@{user.username}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Joined {format(new Date(user.created_at), "MMM yyyy")}
-                      </p>
-                    </div>
-                    <Badge variant={getHighestRole(user.roles) === "admin" ? "default" : "secondary"}>
+        <div className="space-y-2">
+          {filteredUsers.map(user => (
+            <Card
+              key={user.id}
+              className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => setSelectedUserId(user.id)}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground truncate">{user.name}</p>
+                    <Badge variant={getHighestRole(user.roles) === 'admin' ? 'default' : 'outline'} className="text-[10px] shrink-0">
                       {getHighestRole(user.roles)}
                     </Badge>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Balance</p>
-                      <p className="font-medium">${user.balance.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Volume</p>
-                      <p className="font-medium">${user.totalVolume.toLocaleString()}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {user.kyc_verified && (
-                      <Badge className="bg-green-600 text-xs">
-                        <ShieldCheck className="h-3 w-3 mr-1" />
-                        KYC
-                      </Badge>
-                    )}
-                    {user.roles.includes('creator') && (
-                      <Badge variant="outline" className="text-xs">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Creator
-                      </Badge>
-                    )}
-                    {user.roles.includes('admin') && (
-                      <Badge variant="outline" className="text-xs border-primary text-primary">
-                        <Crown className="h-3 w-3 mr-1" />
-                        Admin
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 pt-2 border-t border-border flex-wrap">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-9 flex-1">
-                          <Shield className="h-4 w-4 mr-1" />
-                          <span className="text-xs">KYC</span>
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Toggle KYC Verification</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            {user.kyc_verified 
-                              ? `Remove KYC verification for ${user.name}?`
-                              : `Mark ${user.name} as KYC verified?`
-                            }
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={() => toggleKYCMutation.mutate({ userId: user.id, currentStatus: user.kyc_verified })}
-                          >
-                            Confirm
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-
-                    {!user.roles.includes('creator') && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-9 flex-1">
-                            <Sparkles className="h-4 w-4 mr-1" />
-                            <span className="text-xs">+ Creator</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Assign Creator Role</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Grant creator permissions to {user.name}? They will be able to create markets.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => assignRoleMutation.mutate({ userId: user.id, role: 'creator' })}>
-                              Assign
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-
-                    {user.roles.includes('creator') && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-9 flex-1 text-destructive border-destructive">
-                            <Sparkles className="h-4 w-4 mr-1" />
-                            <span className="text-xs">- Creator</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Creator Role</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Remove creator permissions from {user.name}? They will no longer be able to create markets.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => removeRoleMutation.mutate({ userId: user.id, role: 'creator' })}
-                            >
-                              Remove
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-
-                    {!user.roles.includes('admin') && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-9 flex-1 border-primary text-primary">
-                            <Crown className="h-4 w-4 mr-1" />
-                            <span className="text-xs">+ Admin</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Assign Admin Role</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Grant admin permissions to {user.name}? They will have full platform access including user management and market resolution.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => assignRoleMutation.mutate({ userId: user.id, role: 'admin' })}>
-                              Assign Admin
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-
-                    {user.roles.includes('admin') && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-9 flex-1 text-destructive border-destructive">
-                            <Crown className="h-4 w-4 mr-1" />
-                            <span className="text-xs">- Admin</span>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove Admin Role</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Remove admin permissions from {user.name}? They will lose access to admin dashboard and management features.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction 
-                              className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => removeRoleMutation.mutate({ userId: user.id, role: 'admin' })}
-                            >
-                              Remove Admin
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {user.username ? `@${user.username} • ` : ''}{user.email}
+                  </p>
                 </div>
-              </Card>
-            ))}
-          </div>
 
-          {/* Desktop: Table layout */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">User</th>
-                  <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Roles</th>
-                  <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Balance</th>
-                  <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Volume</th>
-                  <th className="text-center py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
-                  <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map(user => (
-                  <tr key={user.id} className="border-b border-border hover:bg-muted/50">
-                    <td className="py-4 px-2">
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{user.name}</p>
-                        {user.username && (
-                          <p className="text-xs text-muted-foreground">@{user.username}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Joined {format(new Date(user.created_at), "MMM yyyy")}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-4 px-2">
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.includes('admin') && (
-                          <Badge variant="default" className="text-xs">
-                            <Crown className="h-3 w-3 mr-1" />
-                            Admin
-                          </Badge>
-                        )}
-                        {user.roles.includes('creator') && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            Creator
-                          </Badge>
-                        )}
-                        {!user.roles.includes('admin') && !user.roles.includes('creator') && (
-                          <Badge variant="outline" className="text-xs">Trader</Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-2 text-right text-sm">
-                      ${user.balance.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-2 text-right text-sm">
-                      ${user.totalVolume.toLocaleString()}
-                    </td>
-                    <td className="py-4 px-2">
-                      <div className="flex flex-col items-center gap-1">
-                        {user.kyc_verified && (
-                          <Badge className="bg-green-600 text-xs">
-                            <ShieldCheck className="h-3 w-3 mr-1" />
-                            KYC
-                          </Badge>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-2">
-                      <div className="flex justify-end gap-1 flex-wrap">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline" className="h-8" title="Toggle KYC">
-                              <Shield className="h-3 w-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Toggle KYC Verification</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {user.kyc_verified 
-                                  ? `Remove KYC verification for ${user.name}?`
-                                  : `Mark ${user.name} as KYC verified?`
-                                }
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => toggleKYCMutation.mutate({ userId: user.id, currentStatus: user.kyc_verified })}
-                              >
-                                Confirm
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-
-                        {!user.roles.includes('creator') ? (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-8" title="Add Creator Role">
-                                <Sparkles className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Assign Creator Role</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Grant creator permissions to {user.name}? They will be able to create markets.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => assignRoleMutation.mutate({ userId: user.id, role: 'creator' })}>
-                                  Assign
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        ) : (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-8 text-destructive border-destructive" title="Remove Creator Role">
-                                <Sparkles className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Creator Role</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Remove creator permissions from {user.name}?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  className="bg-destructive hover:bg-destructive/90"
-                                  onClick={() => removeRoleMutation.mutate({ userId: user.id, role: 'creator' })}
-                                >
-                                  Remove
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-
-                        {!user.roles.includes('admin') ? (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-8 border-primary text-primary" title="Add Admin Role">
-                                <Crown className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Assign Admin Role</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Grant admin permissions to {user.name}? They will have full platform access.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => assignRoleMutation.mutate({ userId: user.id, role: 'admin' })}>
-                                  Assign Admin
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        ) : (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="h-8 text-destructive border-destructive" title="Remove Admin Role">
-                                <Crown className="h-3 w-3" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Remove Admin Role</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Remove admin permissions from {user.name}? They will lose admin access.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction 
-                                  className="bg-destructive hover:bg-destructive/90"
-                                  onClick={() => removeRoleMutation.mutate({ userId: user.id, role: 'admin' })}
-                                >
-                                  Remove Admin
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-semibold text-foreground">{user.balance.toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">tokens</p>
+                  </div>
+                  <div className="text-right sm:hidden">
+                    <p className="text-xs font-medium">{user.balance.toLocaleString()} tkns</p>
+                  </div>
+                  <ChevronLeft className="h-4 w-4 text-muted-foreground rotate-180" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
