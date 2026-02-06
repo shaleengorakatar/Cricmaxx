@@ -240,7 +240,7 @@ const Navigation = () => {
                           <p className="text-sm font-medium">{profile.name}</p>
                           <p className="text-xs text-muted-foreground">{profile.email}</p>
                           <p className="text-sm font-semibold text-primary mt-1">
-                            Balance: ${profile.balance.toFixed(2)}
+                            Balance: ${(profile.balance ?? 0).toFixed(2)}
                           </p>
                           <Button 
                             size="sm"
@@ -337,7 +337,7 @@ const Navigation = () => {
                       <p className="text-sm font-medium">{profile.name}</p>
                       <p className="text-xs text-muted-foreground">{profile.email}</p>
                       <p className="text-xs font-semibold text-primary mt-1">
-                        Balance: ${profile.balance.toFixed(2)}
+                        Balance: ${(profile.balance ?? 0).toFixed(2)}
                       </p>
                       <Button 
                         size="sm"
