@@ -48,7 +48,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
 
   const pnl = calculatePnL();
 
-  // Calculate potential payout at $10 stake (guard against null/zero division)
+  // Calculate potential return at 10 token stake (guard against null/zero division)
   const yesPrice = Number(market.yesPrice) || 0.5;
   const noPrice = Number(market.noPrice) || 0.5;
   const yesPayout = (10 / yesPrice).toFixed(2);
@@ -95,14 +95,14 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
                     </TooltipTrigger>
                     <TooltipContent className="space-y-1">
                       <p className="font-medium">
-                        {position.size} shares on <span className={position.side === 'yes' ? 'text-success' : 'text-destructive'}>{position.side.toUpperCase()}</span>
+                        {position.size} contracts on <span className={position.side === 'yes' ? 'text-success' : 'text-destructive'}>{position.side.toUpperCase()}</span>
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Entry: ${(position.entryPrice ?? 0).toFixed(2)}
+                        Entry: {((position.entryPrice ?? 0) * 100).toFixed(0)}¢
                       </p>
                       {pnl !== null && (
                         <p className={cn("text-xs font-medium", pnl >= 0 ? "text-success" : "text-destructive")}>
-                          P&L: {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+                          P&L: {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} tokens
                         </p>
                       )}
                     </TooltipContent>
@@ -170,10 +170,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
               <span className="text-xs font-bold text-success">{formatOdds(market.yesPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-success">
-              ${(Number(market.yesPrice) || 0).toFixed(2)}
+              {((Number(market.yesPrice) || 0) * 100).toFixed(0)}¢
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              $10 → <span className="font-semibold text-success">${yesPayout}</span>
+              10 → <span className="font-semibold text-success">{yesPayout} tokens</span>
             </p>
           </div>
           
@@ -184,10 +184,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
               <span className="text-xs font-bold text-destructive">{formatOdds(market.noPrice)}</span>
             </div>
             <p className="text-2xl font-bold text-destructive">
-              ${(Number(market.noPrice) || 0).toFixed(2)}
+              {((Number(market.noPrice) || 0) * 100).toFixed(0)}¢
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              $10 → <span className="font-semibold text-destructive">${noPayout}</span>
+              10 → <span className="font-semibold text-destructive">{noPayout} tokens</span>
             </p>
           </div>
         </div>
