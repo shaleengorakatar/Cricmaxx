@@ -21,9 +21,9 @@ const ONBOARDING_SCREENS = [
   },
   {
     icon: Shield,
-    title: "CFTC-Compliant Markets",
-    description: "All markets follow strict regulatory guidelines. Resolution is automated through verified data sources for transparency.",
-    highlight: "Federally regulated event contracts",
+    title: "Gentleman's Agreement",
+    description: "CricMaxx runs on trust between mates. All token balances are settled directly between participants after the World Cup 2026 — no middlemen, just your word.",
+    highlight: "Fair play, mutual trust, settle after the tournament",
   },
 ];
 
