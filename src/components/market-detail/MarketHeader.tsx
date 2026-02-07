@@ -51,8 +51,8 @@ const MarketHeader = ({ market }: MarketHeaderProps) => {
           <div className="flex-1">
             <p className="text-xs sm:text-xs text-muted-foreground leading-relaxed">
               <span className="font-medium">Event Contract (CFTC Compliance In Progress):</span> This is a fixed-payout binary contract{" "}
-              <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount ($1.00) if you're correct and nothing ($0.00) if you're wrong. We are in the process of obtaining CFTC regulatory approval." />
-              {" "}Pays $1.00 if correct, $0.00 if incorrect. <span className="text-accent font-medium">Beta Release</span> - CFTC compliance in progress.
+              <InfoTooltip content="An event contract is a yes/no prediction that pays a fixed amount (1 token) if you're correct and nothing (0 tokens) if you're wrong. We are in the process of obtaining CFTC regulatory approval." />
+              {" "}Pays 1 token if correct, 0 tokens if incorrect. <span className="text-accent font-medium">Beta Release</span> - CFTC compliance in progress.
             </p>
           </div>
         </div>
