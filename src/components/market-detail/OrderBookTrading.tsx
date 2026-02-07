@@ -355,7 +355,7 @@ const OrderBookTrading = ({
         // Show success with detailed position info
         haptic('success');
         const winText = position?.netPayout 
-          ? ` — if correct, you win $${position.netPayout.toFixed(2)}`
+          ? ` — if correct, you win ${position.netPayout.toFixed(2)} tokens`
           : '';
         toast({
           title: "Prediction placed!",
@@ -456,8 +456,8 @@ const OrderBookTrading = ({
       
       // Better description for pending orders
       const description = isPending 
-        ? `Waiting for a match: ${qty} shares @ $${price.toFixed(2)}`
-        : `${filledQty}/${qty} shares @ $${price.toFixed(2)}`;
+        ? `Waiting for a match: ${qty} contracts @ ${(price * 100).toFixed(0)}¢`
+        : `${filledQty}/${qty} contracts @ ${(price * 100).toFixed(0)}¢`;
 
       haptic('success');
       toast({
@@ -649,14 +649,14 @@ const OrderBookTrading = ({
                 onClick={() => setInputMode(inputMode === "contracts" ? "dollars" : "contracts")}
                 className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
-                {inputMode === "contracts" ? "Contracts" : "Dollars"}
+                {inputMode === "contracts" ? "Contracts" : "Tokens"}
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
             </div>
             <p className="text-xs text-muted-foreground mb-2">
-              Each contract pays $1 if you're right
+              Each contract pays 1 token if you're right
             </p>
             
             {inputMode === "contracts" ? (
@@ -692,13 +692,12 @@ const OrderBookTrading = ({
             ) : (
               <>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg">$</span>
                   <Input
                     type="number"
-                    placeholder="10.00"
+                    placeholder="10"
                     value={dollarAmount}
                     onChange={(e) => setDollarAmount(e.target.value)}
-                    className="h-12 text-lg pl-8"
+                    className="h-12 text-lg"
                     min="0.01"
                     step="0.01"
                   />
@@ -712,7 +711,7 @@ const OrderBookTrading = ({
                       className="flex-1"
                       onClick={() => { setDollarAmount(amt.toString()); haptic('light'); }}
                     >
-                      ${amt}
+                      {amt}
                     </Button>
                   ))}
                 </div>
@@ -746,27 +745,27 @@ const OrderBookTrading = ({
               <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase">You Pay</div>
-                  <div className="text-xl font-bold">${totalCost.toFixed(2)}</div>
-                </div>
-                <div className="text-2xl text-muted-foreground">→</div>
-                <div className="text-center">
-                  <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
-                  <div className="text-xl font-bold text-primary">${totalPayout.toFixed(2)}</div>
+                   <div className="text-xl font-bold">{totalCost.toFixed(2)} tokens</div>
+                 </div>
+                 <div className="text-2xl text-muted-foreground">→</div>
+                 <div className="text-center">
+                   <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
+                   <div className="text-xl font-bold text-primary">{totalPayout.toFixed(2)} tokens</div>
                 </div>
               </div>
 
               <div className="border-t border-border/50 pt-3 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Contracts:</span>
-                  <span className="font-medium">{contracts} × ${currentPrice.toFixed(2)} each</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                  <span className="font-medium text-destructive">-${totalCost.toFixed(2)} (you lose your cost)</span>
+                   <span className="font-medium">{contracts} × {(currentPrice * 100).toFixed(0)}¢ each</span>
+                 </div>
+                 <div className="flex justify-between text-sm">
+                   <span className="text-muted-foreground">Profit if correct:</span>
+                   <span className="font-bold text-primary">+{potentialProfit.toFixed(2)} tokens</span>
+                 </div>
+                 <div className="flex justify-between text-sm">
+                   <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                   <span className="font-medium text-destructive">-{totalCost.toFixed(2)} tokens</span>
                 </div>
               </div>
             </div>
@@ -795,14 +794,14 @@ const OrderBookTrading = ({
                 onClick={() => setAdvancedInputMode(advancedInputMode === "contracts" ? "dollars" : "contracts")}
                 className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
-                {advancedInputMode === "contracts" ? "Contracts" : "Dollars"}
+                {advancedInputMode === "contracts" ? "Contracts" : "Tokens"}
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
             </div>
             <p className="text-xs text-muted-foreground mb-3">
-              Set your own price. Each contract pays $1 if correct.
+              Set your own price. Each contract pays 1 token if correct.
             </p>
 
             {advancedInputMode === "contracts" ? (
@@ -867,22 +866,21 @@ const OrderBookTrading = ({
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">Amount ($)</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                      <Input
-                        type="number"
-                        placeholder="10.00"
-                        value={advancedDollarAmount}
-                        onChange={(e) => {
-                          setAdvancedDollarAmount(e.target.value);
-                          // Auto-calculate contracts based on price
-                          if (limitPrice && parseFloat(limitPrice) > 0) {
-                            const contracts = Math.floor(parseFloat(e.target.value) / parseFloat(limitPrice));
-                            setQuantity(contracts > 0 ? contracts.toString() : '');
-                          }
-                        }}
-                        className="h-12 pl-8"
+                     <Label className="text-xs text-muted-foreground mb-1 block">Amount (tokens)</Label>
+                     <div className="relative">
+                       <Input
+                         type="number"
+                         placeholder="10"
+                         value={advancedDollarAmount}
+                         onChange={(e) => {
+                           setAdvancedDollarAmount(e.target.value);
+                           // Auto-calculate contracts based on price
+                           if (limitPrice && parseFloat(limitPrice) > 0) {
+                             const contracts = Math.floor(parseFloat(e.target.value) / parseFloat(limitPrice));
+                             setQuantity(contracts > 0 ? contracts.toString() : '');
+                           }
+                         }}
+                         className="h-12"
                         min="0.01"
                         step="0.01"
                       />
@@ -945,7 +943,7 @@ const OrderBookTrading = ({
                         }
                       }}
                     >
-                      ${amt}
+                      {amt}
                     </Button>
                   ))}
                 </div>
@@ -971,12 +969,12 @@ const OrderBookTrading = ({
                 <div className="flex items-center justify-between bg-background rounded-lg p-3 border">
                   <div className="text-center">
                     <div className="text-xs text-muted-foreground uppercase">You Pay</div>
-                    <div className="text-xl font-bold">${advancedCost.toFixed(2)}</div>
-                  </div>
-                  <div className="text-2xl text-muted-foreground">→</div>
-                  <div className="text-center">
-                    <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
-                    <div className="text-xl font-bold text-primary">${advancedNetPayout.toFixed(2)}</div>
+                     <div className="text-xl font-bold">{advancedCost.toFixed(2)} tokens</div>
+                   </div>
+                   <div className="text-2xl text-muted-foreground">→</div>
+                   <div className="text-center">
+                     <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
+                     <div className="text-xl font-bold text-primary">{advancedNetPayout.toFixed(2)} tokens</div>
                   </div>
                 </div>
 
@@ -984,12 +982,12 @@ const OrderBookTrading = ({
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Profit if correct:</span>
                     <span className="font-medium text-primary">
-                      +${advancedNetProfit.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
-                    <span className="font-medium text-destructive">-${advancedCost.toFixed(2)}</span>
+                       +{advancedNetProfit.toFixed(2)} tokens
+                     </span>
+                   </div>
+                   <div className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
+                     <span className="font-medium text-destructive">-{advancedCost.toFixed(2)} tokens</span>
                   </div>
                 </div>
               </div>
@@ -1077,15 +1075,15 @@ const OrderBookTrading = ({
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div>
                       <p className="text-muted-foreground">Cost</p>
-                      <p className="font-semibold">${totalCost.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Price per $1</p>
-                      <p className="font-semibold">{(price * 100).toFixed(0)}¢</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">If correct</p>
-                      <p className="font-semibold text-success">+${netProfit.toFixed(2)}</p>
+                       <p className="font-semibold">{totalCost.toFixed(2)} tokens</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground">Price</p>
+                       <p className="font-semibold">{(price * 100).toFixed(0)}¢</p>
+                     </div>
+                     <div>
+                       <p className="text-muted-foreground">If correct</p>
+                       <p className="font-semibold text-success">+{netProfit.toFixed(2)} tokens</p>
                     </div>
                   </div>
                 </div>
@@ -1097,7 +1095,7 @@ const OrderBookTrading = ({
 
       {/* Balance display */}
       <div className="border-t pt-3 mt-4 text-sm text-muted-foreground text-center">
-        Available balance: <span className="font-semibold text-foreground">${userBalance.toFixed(2)}</span>
+        Available balance: <span className="font-semibold text-foreground">{userBalance.toFixed(0)} tokens</span>
       </div>
 
       {/* No Liquidity Dialog */}
@@ -1250,7 +1248,7 @@ const OrderBookTrading = ({
               className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <PlusCircle className="h-5 w-5" />
-              Buy Tokens
+               Add Tokens
             </Button>
             <Button 
               variant="outline"
