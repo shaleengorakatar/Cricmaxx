@@ -354,7 +354,13 @@ serve(async (req) => {
 
     // Route: /list - List all accepted friends
     if (path === '/list') {
-      const { data: friendships, error: friendError } = await supabaseClient
+      // Use service role to read other users' profiles (RLS prevents cross-user profile reads)
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
+      const { data: friendships, error: friendError } = await serviceClient
         .from('friendships')
         .select(`
           id,
@@ -415,8 +421,14 @@ serve(async (req) => {
 
     // Route: /requests - Get pending friend requests
     if (path === '/requests') {
+      // Use service role to read other users' profiles (RLS prevents cross-user profile reads)
+      const serviceClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+
       // Inbound requests (people who want to be friends with me)
-      const { data: inbound, error: inboundError } = await supabaseClient
+      const { data: inbound, error: inboundError } = await serviceClient
         .from('friendships')
         .select(`
           id,
@@ -433,7 +445,7 @@ serve(async (req) => {
         .eq('status', 'pending');
 
       // Outbound requests (people I want to be friends with)
-      const { data: outbound, error: outboundError } = await supabaseClient
+      const { data: outbound, error: outboundError } = await serviceClient
         .from('friendships')
         .select(`
           id,
@@ -449,7 +461,10 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .eq('status', 'pending');
 
-      if (inboundError || outboundError) throw inboundError || outboundError;
+      if (inboundError || outboundError) {
+        console.error('Requests error:', inboundError || outboundError);
+        throw inboundError || outboundError;
+      }
 
       return new Response(JSON.stringify({
         success: true,
