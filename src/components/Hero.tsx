@@ -124,7 +124,7 @@ const Hero = () => {
               className="text-sm sm:text-base text-primary-foreground/70 text-center max-w-md"
               variants={itemVariants}
             >
-              Trade with CricMaxx Dollars — <span className="font-semibold text-accent">1 CricMaxx Dollar = $1 USD</span>
+              Trade with CricMaxx Tokens — <span className="font-semibold text-accent">1 Token = $1 USD</span>
             </motion.p>
           </motion.div>
         </motion.div>
