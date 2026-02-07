@@ -265,6 +265,7 @@ const OrderBookTrading = ({
 
     // Calculate contracts based on input mode
     const currentPrice = side === "yes" ? yesPrice : noPrice;
+    const dollarBudget = inputMode === "dollars" ? parseFloat(dollarAmount) : null;
     const contractsToTrade = inputMode === "contracts"
       ? parseInt(contractCount)
       : Math.floor(parseFloat(dollarAmount) / Math.max(currentPrice, 0.01));
@@ -274,7 +275,7 @@ const OrderBookTrading = ({
       return;
     }
 
-    const cost = contractsToTrade * currentPrice;
+    const cost = dollarBudget || (contractsToTrade * currentPrice);
     if (cost > userBalance) {
       setInsufficientBalanceAmount(cost);
       setShowInsufficientBalanceDialog(true);
@@ -314,7 +315,9 @@ const OrderBookTrading = ({
           marketId,
           side,
           orderType: 'market',
-          quantity: contractsToTrade
+          quantity: contractsToTrade,
+          // Use budget mode when input is in dollars to spend the full amount
+          ...(dollarBudget ? { maxBudget: dollarBudget } : {})
         }
       });
 
@@ -334,7 +337,8 @@ const OrderBookTrading = ({
 
       const filledQty = data.order?.filledQuantity || data.order?.filled_quantity || 0;
       const avgPrice = data.order?.avgFillPrice || data.order?.avg_fill_price || currentPrice;
-      const actualCost = filledQty * avgPrice;
+      const position = data.order?.position;
+      const actualCost = position?.totalCost || (filledQty * avgPrice);
       const unfilledAmount = cost - actualCost;
 
       // Check for partial fill
@@ -348,11 +352,14 @@ const OrderBookTrading = ({
         });
         setShowPartialFillDialog(true);
       } else if (filledQty > 0) {
-        // Only show success if actually filled
+        // Show success with detailed position info
         haptic('success');
+        const winText = position?.netPayout 
+          ? ` — if correct, you win $${position.netPayout.toFixed(2)}`
+          : '';
         toast({
           title: "Prediction placed!",
-          description: `You now own ${filledQty} ${side.toUpperCase()} contracts`,
+          description: `${filledQty} ${side.toUpperCase()} contracts @ ${(avgPrice * 100).toFixed(0)}¢${winText}`,
         });
       } else {
         // Order was cancelled or no fill happened - show dialog only (no toast)

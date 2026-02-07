@@ -18,6 +18,7 @@ interface PlaceOrderRequest {
   quantity: number;
   price?: number;
   maxSlippage?: number; // Optional slippage tolerance for market orders (0-1)
+  maxBudget?: number; // Dollar budget mode: fill as many contracts as this budget allows
 }
 
 serve(async (req) => {
@@ -111,7 +112,7 @@ serve(async (req) => {
 });
 
 async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequest & { isSellOrder?: boolean }) {
-  const { marketId, side, orderType, quantity, price, maxSlippage, isSellOrder } = request;
+  const { marketId, side, orderType, quantity, price, maxSlippage, maxBudget, isSellOrder } = request;
 
   if (!marketId || !side || !orderType || !quantity || quantity <= 0) {
     return new Response(JSON.stringify({ error: 'Invalid order parameters' }), {
@@ -204,7 +205,10 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 
   // Only check balance for buy orders, not sell orders
   if (!isSellOrder) {
-    const maxCost = orderType === 'limit' ? quantity * price! : quantity * MAX_YES_PRICE;
+    // For budget mode, maxCost is the budget itself
+    const maxCost = maxBudget 
+      ? maxBudget 
+      : (orderType === 'limit' ? quantity * price! : quantity * MAX_YES_PRICE);
     
     if (profile.balance < maxCost) {
       return new Response(JSON.stringify({ error: 'Insufficient balance' }), {
@@ -242,6 +246,11 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
     }
   }
 
+  // For budget mode market orders, use a high quantity ceiling (budget / min price)
+  const effectiveQuantity = (maxBudget && orderType === 'market') 
+    ? Math.ceil(maxBudget / 0.01) // theoretical max contracts at cheapest price
+    : quantity;
+
   // Create the order
   const { data: order, error: orderError } = await supabase
     .from('orders')
@@ -251,7 +260,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
       side,
       order_type: orderType,
       price: orderType === 'limit' ? price : null,
-      quantity,
+      quantity: effectiveQuantity,
       status: 'pending'
     })
     .select()
@@ -285,8 +294,15 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 
   // Calculate position details for response
   const fillPrice = matchResult.avgFillPrice || (side === 'yes' ? 0.5 : 0.5);
-  const maxWin = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * (1 - fillPrice) : 0;
-  const risk = matchResult.filledQuantity > 0 ? matchResult.filledQuantity * fillPrice : 0;
+  const effectivePrice = side === 'yes' ? fillPrice : (1 - fillPrice);
+  const totalCost = matchResult.totalCostPaid || (matchResult.filledQuantity * effectivePrice);
+  const grossPayout = matchResult.filledQuantity; // $1 per contract if correct
+  const grossProfit = grossPayout - totalCost;
+  const totalFeePercent = (market?.platform_fee_percent || 3) + (market?.creator_fee_percent || 0);
+  const feeOnProfit = grossProfit > 0 ? grossProfit * (totalFeePercent / 100) : 0;
+  const netPayout = grossPayout - feeOnProfit;
+  const netProfit = netPayout - totalCost;
+  const effectiveOdds = totalCost > 0 ? (effectivePrice * 100) : 50;
 
   // If no liquidity, return specific response to guide user to place limit order
   if (matchResult.noLiquidity) {
@@ -322,8 +338,11 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
         side,
         shares: matchResult.filledQuantity,
         entryPrice: matchResult.avgFillPrice,
-        maxWin: maxWin,
-        risk: risk,
+        totalCost: parseFloat(totalCost.toFixed(2)),
+        netPayout: parseFloat(netPayout.toFixed(2)),
+        netProfit: parseFloat(netProfit.toFixed(2)),
+        effectiveOdds: parseFloat(effectiveOdds.toFixed(1)),
+        feePercent: totalFeePercent,
         potentialPayout: matchResult.filledQuantity // $1 per share if correct
       }
     }
@@ -446,9 +465,15 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     console.log(`  - ${o.side} order @ ${o.price} (effective YES: ${o.effective_yes_price}) by user ${o.user_id.slice(0,8)}`);
   });
 
+  // === BUDGET MODE ===
+  // When maxBudget is provided, fill contracts up to the dollar budget rather than a fixed contract count
+  const maxBudget = request.maxBudget;
+  let remainingBudget = maxBudget || Infinity;
+  
   let remainingQuantity = quantity;
   let totalFillValue = 0;
   let filledQuantity = 0;
+  let totalCostPaid = 0; // Track actual dollar cost for budget mode
   const trades: any[] = [];
   let cancelledDueToSlippage = false;
 
@@ -488,7 +513,16 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     }
 
     const availableQuantity = matchOrder.quantity - matchOrder.filled_quantity;
-    const fillQuantity = Math.min(remainingQuantity, availableQuantity);
+    
+    // In budget mode, cap contracts by what remaining budget can afford
+    let maxFromBudget = Infinity;
+    if (maxBudget) {
+      const pricePerContract = side === 'yes' ? effectiveYesPrice : effectiveNoPrice;
+      maxFromBudget = Math.floor(remainingBudget / pricePerContract);
+      if (maxFromBudget <= 0) break; // Budget exhausted
+    }
+    
+    const fillQuantity = Math.min(remainingQuantity, availableQuantity, maxFromBudget);
     
     // Calculate trade price (always from YES perspective for consistency)
     let tradePrice: number;
@@ -652,7 +686,14 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     filledQuantity += fillQuantity;
     totalFillValue += fillQuantity * tradePrice;
     
-    console.log(`Matched with real order: ${fillQuantity} shares @ ${tradePrice.toFixed(4)}`);
+    // Track budget spending
+    const fillCostForBudget = fillQuantity * (side === 'yes' ? effectiveYesPrice : effectiveNoPrice);
+    totalCostPaid += fillCostForBudget;
+    if (maxBudget) {
+      remainingBudget -= fillCostForBudget;
+    }
+    
+    console.log(`Matched with real order: ${fillQuantity} shares @ ${tradePrice.toFixed(4)}${maxBudget ? ` (budget remaining: $${remainingBudget.toFixed(2)})` : ''}`);
   }
 
   // Pool is disabled - if no matches found, order cannot be filled
@@ -689,6 +730,7 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
   return {
     filledQuantity,
     avgFillPrice: filledQuantity > 0 ? totalFillValue / filledQuantity : null,
+    totalCostPaid,
     trades,
     finalStatus,
     cancelledDueToSlippage,
