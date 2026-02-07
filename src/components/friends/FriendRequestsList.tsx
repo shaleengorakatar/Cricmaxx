@@ -45,23 +45,30 @@ const FriendRequestsList = ({
           <h3 className="text-sm font-semibold text-muted-foreground">
             Received ({inboundRequests.length})
           </h3>
-          {inboundRequests.map((request) => (
+          {inboundRequests.map((request) => {
+            const profile = request.profiles || {} as any;
+            const displayName = profile.display_name || profile.username || 'Unknown User';
+            const username = profile.username || 'unknown';
+            const avatarUrl = profile.avatar_url || undefined;
+            const initial = displayName[0]?.toUpperCase() || '?';
+            
+            return (
             <Card key={request.id}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={request.profiles.avatar_url || undefined} />
+                    <AvatarImage src={avatarUrl} />
                     <AvatarFallback>
-                      {(request.profiles.display_name || request.profiles.username || '?')[0].toUpperCase()}
+                      {initial}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {request.profiles.display_name || request.profiles.username}
+                      {displayName}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      @{request.profiles.username}
+                      @{username}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {safeFormatDate(request.created_at)}
@@ -72,7 +79,7 @@ const FriendRequestsList = ({
                     <Button
                       size="sm"
                       onClick={() => onAccept(request.id)}
-                      className="bg-green-600 hover:bg-green-700"
+                      className="bg-accent hover:bg-accent/90"
                     >
                       <Check className="w-4 h-4" />
                     </Button>
@@ -87,7 +94,8 @@ const FriendRequestsList = ({
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -97,23 +105,30 @@ const FriendRequestsList = ({
           <h3 className="text-sm font-semibold text-muted-foreground">
             Sent ({outboundRequests.length})
           </h3>
-          {outboundRequests.map((request) => (
+          {outboundRequests.map((request) => {
+            const profile = request.profiles || {} as any;
+            const displayName = profile.display_name || profile.username || 'Unknown User';
+            const username = profile.username || 'unknown';
+            const avatarUrl = profile.avatar_url || undefined;
+            const initial = displayName[0]?.toUpperCase() || '?';
+
+            return (
             <Card key={request.id}>
               <CardContent className="pt-4 pb-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={request.profiles.avatar_url || undefined} />
+                    <AvatarImage src={avatarUrl} />
                     <AvatarFallback>
-                      {(request.profiles.display_name || request.profiles.username || '?')[0].toUpperCase()}
+                      {initial}
                     </AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
-                      {request.profiles.display_name || request.profiles.username}
+                      {displayName}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      @{request.profiles.username}
+                      @{username}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
                       {safeFormatDate(request.created_at)}
@@ -127,7 +142,8 @@ const FriendRequestsList = ({
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
