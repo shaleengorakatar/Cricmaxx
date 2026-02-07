@@ -10,24 +10,24 @@
 
 export const WALLET_TERMS = {
   // Core token language
-  TOKEN_NAME: "tokens",
-  TOKEN_DESCRIPTION: "CricMaxx Tokens are used as collateral to take positions in information markets and are returned when markets resolve.",
+  TOKEN_NAME: "dollars",
+  TOKEN_DESCRIPTION: "CricMaxx Dollars are used as collateral to take positions in prediction markets and are returned when markets resolve. 1 CricMaxx Dollar = $1 USD.",
   
   // Wallet sections
-  AVAILABLE: "Available Tokens",
+  AVAILABLE: "Available Balance",
   IN_PLAY: "In Play",
   
   // Actions
-  BUY_TOKENS: "Buy Tokens",
-  ADD_TOKENS: "Add Tokens",
+  BUY_TOKENS: "Add Dollars",
+  ADD_TOKENS: "Add Dollars",
   REQUEST_REDEMPTION: "Request Redemption",
   CONFIRM_POSITION: "Confirm Position",
   
   // Transaction types
-  TOKENS_ADDED: "Tokens added",
-  TOKENS_COMMITTED: "Tokens committed",
-  TOKENS_SETTLED: "Tokens settled",
-  TOKENS_RETURNED: "Tokens returned",
+  TOKENS_ADDED: "Dollars added",
+  TOKENS_COMMITTED: "Dollars committed",
+  TOKENS_SETTLED: "Dollars settled",
+  TOKENS_RETURNED: "Dollars returned",
   REDEMPTION_REQUESTED: "Redemption requested",
   
   // Status labels
@@ -35,10 +35,10 @@ export const WALLET_TERMS = {
   SETTLED_POSITIONS: "Settled",
   
   // Descriptions
-  COLLATERAL_DESC: "Tokens are used as collateral to take positions in CricMaxx prediction markets.",
-  LOCK_DESC: "Tokens will be locked until market resolves",
+  COLLATERAL_DESC: "CricMaxx Dollars are used as collateral to take positions in prediction markets. 1 CricMaxx Dollar = $1 USD.",
+  LOCK_DESC: "Dollars will be locked until market resolves",
   MAX_OUTCOME_DESC: "Max outcome defined by market rules",
-  REDEMPTION_DESC: "Tokens must not be committed to open markets.",
+  REDEMPTION_DESC: "Dollars must not be committed to open markets.",
   REDEMPTION_DELAY: "Processed in 2–5 business days",
   VERIFICATION_NOTE: "Subject to verification",
   MIN_REDEMPTION: 10,
@@ -62,25 +62,25 @@ export function getActivityLabel(type: WalletActivityType, amount: number, marke
   const formatted = formatAmount(amount);
   switch (type) {
     case "tokens_added":
-      return `+${formatted} Tokens added`;
+      return `+$${formatted} added`;
     case "tokens_committed":
-      return `–${formatted} Tokens committed${marketName ? ` (${marketName})` : ''}`;
+      return `–$${formatted} committed${marketName ? ` (${marketName})` : ''}`;
     case "tokens_settled":
-      return `+${formatted} Tokens settled${marketName ? ` (${marketName})` : ''}`;
+      return `+$${formatted} settled${marketName ? ` (${marketName})` : ''}`;
     case "redemption_requested":
-      return `–${formatted} Tokens redemption requested`;
+      return `–$${formatted} redemption requested`;
     case "redemption_completed":
-      return `–${formatted} Tokens redeemed`;
+      return `–$${formatted} redeemed`;
     default:
-      return `${formatted} Tokens`;
+      return `$${formatted}`;
   }
 }
 
 // Token amount presets for buy flow
 export const TOKEN_PRESETS = [
-  { amount: 50, display: "$50 → 50 tokens" },
-  { amount: 75, display: "$75 → 75 tokens" },
-  { amount: 100, display: "$100 → 100 tokens" },
+  { amount: 50, display: "$50" },
+  { amount: 75, display: "$75" },
+  { amount: 100, display: "$100" },
 ] as const;
 
 export const MIN_TOKEN_PURCHASE = 30;

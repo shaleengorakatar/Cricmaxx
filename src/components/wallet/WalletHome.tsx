@@ -26,7 +26,7 @@ const WalletHome = ({
       {/* Header */}
       <div className="text-center mb-6">
         <h1 className="text-2xl font-bold text-foreground">CricMaxx Wallet</h1>
-        <p className="text-xs text-muted-foreground mt-1">Closed Beta • 1 token = $1 USD</p>
+        <p className="text-xs text-muted-foreground mt-1">Closed Beta • 1 CricMaxx Dollar = $1 USD</p>
       </div>
 
       {/* Available Tokens */}
@@ -38,10 +38,10 @@ const WalletHome = ({
           <span className="text-sm text-muted-foreground">{WALLET_TERMS.AVAILABLE}</span>
         </div>
         <p className="text-4xl font-bold text-foreground mb-1">
-          {availableTokens.toLocaleString()} <span className="text-lg font-normal text-muted-foreground">{WALLET_TERMS.TOKEN_NAME}</span>
+          ${availableTokens.toLocaleString()}
         </p>
         <p className="text-sm text-muted-foreground">
-          ≈ ${availableTokens.toLocaleString()}.00
+          {availableTokens.toLocaleString()} CricMaxx {WALLET_TERMS.TOKEN_NAME}
         </p>
       </Card>
 
@@ -54,7 +54,7 @@ const WalletHome = ({
           <div className="flex-1">
             <span className="text-sm text-muted-foreground">{WALLET_TERMS.IN_PLAY}</span>
             <p className="text-lg font-semibold text-foreground">
-              {tokensInPlay.toLocaleString()} {WALLET_TERMS.TOKEN_NAME}
+              ${tokensInPlay.toLocaleString()}
             </p>
           </div>
           <span className="text-xs text-muted-foreground">
@@ -68,7 +68,7 @@ const WalletHome = ({
         onClick={onBuyTokens}
         className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
       >
-        Add Tokens
+        Add Dollars
       </Button>
 
       {/* Quick Stats */}

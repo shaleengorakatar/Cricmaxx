@@ -23,7 +23,7 @@ const WalletActions = ({ balance, onBalanceUpdate }: WalletActionsProps) => {
           className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90 active:scale-95 transition-transform"
         >
           <ArrowDownToLine className="h-4 w-4 mr-2" />
-          Add Tokens
+          Add Dollars
         </Button>
       </Card>
 
