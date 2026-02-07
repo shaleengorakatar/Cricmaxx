@@ -15,9 +15,9 @@ const Footer = () => {
           {/* Legal Disclaimer */}
           <div className="text-center">
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Contracts are worth $1.00 if correct, $0.00 if incorrect. Trading involves risk. 
+              Contracts are worth 1 token if correct, 0 tokens if incorrect. Trading involves risk. 
               Only trade with amounts you're comfortable settling. All balances are settled between participants 
-              after the World Cup 2026 under a gentleman's agreement.
+              after the World Cup 2026 under a gentleman's agreement. 1 CricMaxx Token = $1 USD.
             </p>
           </div>
           
