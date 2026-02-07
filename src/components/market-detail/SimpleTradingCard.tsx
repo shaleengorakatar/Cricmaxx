@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, DollarSign, BookOpen, TrendingUp, LogIn, UserPlus, Coins, PlusCircle } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, HelpCircle, Sparkles, Coins as CoinsIcon, BookOpen, TrendingUp, LogIn, UserPlus, Coins, PlusCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -344,7 +344,7 @@ const SimpleTradingCard = ({
         {/* Quick Predict Buttons - One-tap at preset amounts */}
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <DollarSign className="h-3.5 w-3.5" />
+            <CoinsIcon className="h-3.5 w-3.5" />
             <span className="font-medium">One-tap predict</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -355,14 +355,14 @@ const SimpleTradingCard = ({
                   disabled={isPlacingTrade || amount > userBalance}
                   className="px-2 py-2 rounded-lg text-xs font-bold bg-success/10 hover:bg-success/20 text-success border border-success/30 transition-all disabled:opacity-40"
                 >
-                  ${amount} Yes
+                  {amount} Yes
                 </button>
                 <button
                   onClick={() => handleQuickPredict("no", amount)}
                   disabled={isPlacingTrade || amount > userBalance}
                   className="px-2 py-2 rounded-lg text-xs font-bold bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/30 transition-all disabled:opacity-40"
                 >
-                  ${amount} No
+                  {amount} No
                 </button>
               </div>
             ))}
@@ -381,7 +381,7 @@ const SimpleTradingCard = ({
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">Stake amount</span>
             <div className="flex items-center gap-1">
-              <span className="text-3xl font-bold text-foreground">${stakeAmount}</span>
+              <span className="text-3xl font-bold text-foreground">{stakeAmount} tokens</span>
             </div>
           </div>
           
@@ -410,7 +410,7 @@ const SimpleTradingCard = ({
                   amount > userBalance && "opacity-40 cursor-not-allowed"
                 )}
               >
-                ${amount}
+                {amount}
               </button>
             ))}
           </div>
