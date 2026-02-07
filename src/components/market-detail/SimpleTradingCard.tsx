@@ -453,7 +453,7 @@ const SimpleTradingCard = ({
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If Yes, you get</p>
-                <p className="text-xl font-black">${yesPayout.toFixed(2)}</p>
+                <p className="text-xl font-black">{yesPayout.toFixed(2)} tokens</p>
               </div>
             </div>
             
@@ -499,7 +499,7 @@ const SimpleTradingCard = ({
               {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If No, you get</p>
-                <p className="text-xl font-black">${noPayout.toFixed(2)}</p>
+                <p className="text-xl font-black">{noPayout.toFixed(2)} tokens</p>
               </div>
             </div>
             
@@ -526,15 +526,15 @@ const SimpleTradingCard = ({
                 <ul className="text-sm space-y-1.5">
                    <li className="flex items-start gap-2">
                      <span className="text-success">✓</span>
-                     <span><strong>If outcome matches:</strong> Dollars returned at 1:1</span>
+                     <span><strong>If outcome matches:</strong> Tokens returned at 1:1</span>
                    </li>
                    <li className="flex items-start gap-2">
                      <span className="text-destructive">✗</span>
-                     <span><strong>If outcome differs:</strong> $0 returned</span>
+                     <span><strong>If outcome differs:</strong> 0 tokens returned</span>
                    </li>
                    <li className="flex items-start gap-2">
                      <span className="text-accent">💡</span>
-                     <span>Dollars are locked until market resolves</span>
+                     <span>Tokens are locked until market resolves</span>
                    </li>
                 </ul>
               </TooltipContent>
@@ -547,7 +547,7 @@ const SimpleTradingCard = ({
           <div className="text-center pt-4 border-t border-border/50">
             {userBalance > 0 ? (
               <p className="text-sm text-muted-foreground">
-                Available: <span className="font-bold text-foreground">${userBalance.toFixed(0)}</span>
+                Available: <span className="font-bold text-foreground">{userBalance.toFixed(0)} tokens</span>
               </p>
             ) : (
               <Button
@@ -555,7 +555,7 @@ const SimpleTradingCard = ({
                 className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 <PlusCircle className="h-4 w-4" />
-                Add Dollars to Start
+                Add Tokens to Start
               </Button>
             )}
           </div>
@@ -654,12 +654,12 @@ const SimpleTradingCard = ({
             </DialogTitle>
             <DialogDescription className="text-center space-y-3 pt-4">
               <p className="text-base">
-                 You need more dollars to place this prediction.
+                 You need more tokens to place this prediction.
                </p>
                <p className="text-sm text-muted-foreground">
-                 Your balance: <span className="font-bold">${userBalance.toFixed(0)}</span>
+                 Your balance: <span className="font-bold">{userBalance.toFixed(0)} tokens</span>
                  <br />
-                 Required: <span className="font-bold">${stakeAmount}</span>
+                 Required: <span className="font-bold">{stakeAmount} tokens</span>
                </p>
             </DialogDescription>
           </DialogHeader>
@@ -672,7 +672,7 @@ const SimpleTradingCard = ({
               className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <PlusCircle className="h-5 w-5" />
-               Add Dollars
+               Add Tokens
              </Button>
             <Button 
               variant="outline"

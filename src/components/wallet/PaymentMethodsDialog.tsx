@@ -53,8 +53,8 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
 
       if (data?.success) {
         toast({
-          title: "Dollars added!",
-          description: `$${finalAmount} has been added to your wallet`,
+          title: "Tokens added!",
+          description: `${finalAmount} tokens added to your wallet`,
         });
         setSelectedAmount(null);
         setCustomAmount("");
@@ -67,7 +67,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
     } catch (error) {
       console.error('Add tokens error:', error);
       toast({
-        title: "Failed to add dollars",
+        title: "Failed to add tokens",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });
@@ -85,7 +85,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
             {WALLET_TERMS.ADD_TOKENS}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            1 CricMaxx Dollar = $1 USD
+            1 Token = $1 USD
           </DialogDescription>
         </DialogHeader>
 
@@ -95,7 +95,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
             <AlertTriangle className="h-4 w-4 text-amber-500" />
             <AlertDescription className="text-xs text-muted-foreground">
               <span className="font-semibold text-foreground block mb-1">Closed Beta — Gentleman's Agreement</span>
-              Each CricMaxx Dollar = $1 USD. By adding dollars, you agree to settle your balance at the end of the tournament. This is a trust-based system among participants.
+              Each token = $1 USD. By adding tokens, you agree to settle your balance at the end of the tournament. This is a trust-based system among participants.
             </AlertDescription>
           </Alert>
 
@@ -114,7 +114,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
                       : "border-border hover:border-muted-foreground/50"
                   )}
                   >
-                    ${preset.amount}
+                    {preset.amount} tokens
                   </button>
               ))}
             </div>
@@ -145,7 +145,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
               className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
             />
             <span className="text-xs text-muted-foreground">
-              I understand that 1 CricMaxx Dollar = $1 USD and I agree to settle my balance at the end of the tournament.
+              I understand that 1 token = $1 USD and I agree to settle my balance at the end of the tournament.
             </span>
           </label>
         </div>
@@ -154,8 +154,8 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
         <div className="border-t bg-background px-4 py-3 space-y-3">
           {isValidAmount && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Amount to add</span>
-              <span className="font-bold text-accent text-lg">${finalAmount}</span>
+              <span className="text-muted-foreground">Tokens to add</span>
+              <span className="font-bold text-accent text-lg">{finalAmount}</span>
             </div>
           )}
 
@@ -172,7 +172,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
             ) : (
               <>
                 <Coins className="mr-2 h-4 w-4" />
-                Add ${finalAmount || 0}
+                Add {finalAmount || 0} Tokens
               </>
             )}
           </Button>
