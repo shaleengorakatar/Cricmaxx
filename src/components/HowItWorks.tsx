@@ -61,18 +61,70 @@ const detailedSections = [
   },
   {
     emoji: "⚡",
-    title: "Two Ways to Trade",
-    content: "",
-    bullets: [
-      {
-        label: "Quick Predict (Market Order)",
-        desc: "Buy instantly at the current best available price. Fast and simple — great for beginners.",
-      },
-      {
-        label: "Set Your Price (Limit Order)",
-        desc: "Name your own price and wait for someone to match it. You might get a better deal, but it's not guaranteed to fill.",
-      },
-    ],
+    title: "Quick Predict (Market Order)",
+    content:
+      "Quick Predict buys contracts instantly at the best available prices in the order book. You choose how many tokens to spend, and the system fills your order by eating through available liquidity from cheapest to most expensive.",
+    example: {
+      heading: "Example — Simple Fill",
+      lines: [
+        "Market: \"Will India beat Pakistan?\"",
+        "The order book has 20 YES contracts available at 60¢.",
+        "You spend 6 tokens → you get 10 YES contracts (6 ÷ 0.60 = 10).",
+        "✅ If India wins: 10 contracts × 1 token = 10 tokens back → 4 tokens profit!",
+        "❌ If India loses: your contracts are worth 0 → you lose 6 tokens.",
+      ],
+    },
+  },
+  {
+    emoji: "📉",
+    title: "What Happens When Liquidity is Thin?",
+    content:
+      "If there aren't enough contracts at one price, your order walks up the book — buying at increasingly expensive prices. This is called slippage. CricMaxx protects you with a 10% slippage cap.",
+    example: {
+      heading: "Example — Partial Fill with Slippage",
+      lines: [
+        "You want to spend 10 tokens on YES.",
+        "Order book: 5 contracts at 50¢, 5 contracts at 55¢, 10 contracts at 65¢.",
+        "First: 5 contracts at 50¢ = 2.50 tokens spent.",
+        "Next: 5 contracts at 55¢ = 2.75 tokens spent.",
+        "Next: the system tries 65¢, but that's more than 10% above the starting price (50¢).",
+        "⚠️ Slippage protection kicks in! Your order stops here.",
+        "Result: You get 10 contracts for 5.25 tokens. The remaining 4.75 tokens are returned to your balance.",
+        "Your effective price: 52.5¢ per contract (weighted average).",
+      ],
+    },
+  },
+  {
+    emoji: "🚫",
+    title: "What If There's No Liquidity?",
+    content:
+      "If nobody has placed orders on the other side, there's nothing to buy. CricMaxx won't let you trade into thin air — you'll see a \"No liquidity\" message. In that case, you can switch to Set Your Price (limit order) and place your own offer. Your order sits in the book until someone matches it.",
+    example: {
+      heading: "Example — No Liquidity",
+      lines: [
+        "Market: \"Will there be a Super Over?\"",
+        "You tap Quick Predict YES, but no one has placed any NO orders.",
+        "The button shows \"No liquidity\" — you can't buy.",
+        "Instead, you switch to Set Your Price and offer to buy YES at 30¢.",
+        "Your order waits in the book. When someone comes along and sells at 30¢, your order fills!",
+      ],
+    },
+  },
+  {
+    emoji: "🎯",
+    title: "Set Your Price (Limit Order)",
+    content:
+      "With a limit order, you name your own price. Your order only fills if someone is willing to trade at that price or better. It's like saying \"I'll buy, but only at my price.\" You might get a better deal than Quick Predict, but it's not guaranteed to fill.",
+    example: {
+      heading: "Example — Limit Order",
+      lines: [
+        "YES is currently at 70¢ but you think that's too expensive.",
+        "You place a limit order: Buy 10 YES at 55¢.",
+        "Your 5.50 tokens are held as collateral.",
+        "If the price drops and someone sells at 55¢ → your order fills. Great deal!",
+        "If the price never drops that low → your order stays open. You can cancel anytime to get your tokens back.",
+      ],
+    },
   },
   {
     emoji: "🔄",
@@ -161,15 +213,6 @@ export const HowItWorks = () => {
                     </p>
                   )}
 
-                  {section.bullets && (
-                    <ul className="space-y-2">
-                      {section.bullets.map((b, j) => (
-                        <li key={j} className="text-sm text-muted-foreground leading-relaxed">
-                          <span className="font-medium text-foreground">{b.label}:</span> {b.desc}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
 
                   {section.example && (
                     <div className="bg-muted/60 rounded-lg p-3 sm:p-4 space-y-1.5 mt-2">
