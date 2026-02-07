@@ -56,7 +56,7 @@ export function LivePrice({ price, previousPrice, className, showAnimation = tru
         className
       )}
     >
-      ${price.toFixed(2)}
+      {(price * 100).toFixed(0)}¢
     </span>
   );
 }
