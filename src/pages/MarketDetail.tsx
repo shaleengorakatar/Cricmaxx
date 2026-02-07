@@ -281,22 +281,32 @@ const MarketDetail = () => {
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground block text-xs">Yes Price</span>
-                    <LivePrice 
-                      price={market.yesPrice} 
-                      previousPrice={previousPricesRef.current?.yes}
-                      className="font-semibold text-lg text-primary"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-xs">No Price</span>
-                    <LivePrice 
-                      price={market.noPrice} 
-                      previousPrice={previousPricesRef.current?.no}
-                      className="font-semibold text-lg text-destructive"
-                    />
-                  </div>
+                  {(() => {
+                    const yesCents = Math.round(market.yesPrice * 100);
+                    const noCents = 100 - yesCents;
+                    return (
+                      <>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">Yes Price</span>
+                          <LivePrice 
+                            price={market.yesPrice} 
+                            previousPrice={previousPricesRef.current?.yes}
+                            displayCents={yesCents}
+                            className="font-semibold text-lg text-primary"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-xs">No Price</span>
+                          <LivePrice 
+                            price={market.noPrice} 
+                            previousPrice={previousPricesRef.current?.no}
+                            displayCents={noCents}
+                            className="font-semibold text-lg text-destructive"
+                          />
+                        </div>
+                      </>
+                    );
+                  })()}
                   <div>
                     <span className="text-muted-foreground block text-xs">Volume</span>
                     <span className="font-semibold">{market.volume.toLocaleString()}</span>
