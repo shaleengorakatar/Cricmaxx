@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { FriendRequest } from "@/types/friends";
-import { Check, X, Clock } from "lucide-react";
+import { Check, X, Clock, Loader2 } from "lucide-react";
 import { formatDistanceToNow, isValid } from "date-fns";
 
 interface FriendRequestsListProps {
@@ -19,6 +20,27 @@ const FriendRequestsList = ({
   onAccept,
   onReject
 }: FriendRequestsListProps) => {
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  const handleAccept = async (id: string) => {
+    if (processingIds.has(id)) return;
+    setProcessingIds(prev => new Set(prev).add(id));
+    try {
+      await onAccept(id);
+    } finally {
+      setProcessingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (processingIds.has(id)) return;
+    setProcessingIds(prev => new Set(prev).add(id));
+    try {
+      await onReject(id);
+    } finally {
+      setProcessingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  };
   const safeFormatDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return 'recently';
     const d = new Date(dateStr);
@@ -78,15 +100,17 @@ const FriendRequestsList = ({
                   <div className="flex gap-1">
                     <Button
                       size="sm"
-                      onClick={() => onAccept(request.id)}
+                      onClick={() => handleAccept(request.id)}
+                      disabled={processingIds.has(request.id)}
                       className="bg-accent hover:bg-accent/90"
                     >
-                      <Check className="w-4 h-4" />
+                      {processingIds.has(request.id) ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onReject(request.id)}
+                      onClick={() => handleReject(request.id)}
+                      disabled={processingIds.has(request.id)}
                     >
                       <X className="w-4 h-4" />
                     </Button>
