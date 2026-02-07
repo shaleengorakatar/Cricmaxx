@@ -1103,16 +1103,36 @@ const OrderBookTrading = ({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-accent" />
-              No Orders in the Book
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              No Liquidity Available
             </DialogTitle>
-            <DialogDescription className="space-y-3 pt-2">
-              <p>
-                There are currently no {noLiquiditySide === 'yes' ? 'sellers' : 'buyers'} in the order book to match your market order.
-              </p>
-              <p className="text-sm">
-                You can <strong>place a limit order</strong> using "Set Your Price" to create an order at your desired price.
-              </p>
+            <DialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                <p>
+                  There are currently no {noLiquiditySide === 'yes' ? 'sellers' : 'buyers'} in the order book to match your {noLiquiditySide.toUpperCase()} market order.
+                </p>
+                <p className="text-sm">
+                  Want to <strong>place a limit order</strong> instead? Your order will wait in the book until someone matches it.
+                </p>
+                {noLiquidityAmount > 0 && (
+                  <div className="bg-muted/60 rounded-lg p-3 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Amount:</span>
+                      <span className="font-semibold">{noLiquidityAmount.toFixed(2)} tokens</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Price:</span>
+                      <span className="font-semibold">{((noLiquiditySide === "yes" ? yesPrice : noPrice) * 100).toFixed(0)}¢ per contract</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Contracts:</span>
+                      <span className="font-semibold">
+                        {Math.floor(noLiquidityAmount / Math.max(noLiquiditySide === "yes" ? yesPrice : noPrice, 0.01))}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-2 mt-4">
@@ -1121,7 +1141,7 @@ const OrderBookTrading = ({
               className="w-full"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              Set Your Price (Limit Order)
+              Place Limit Order — Wait for a Match
             </Button>
             <Button
               variant="outline" 
