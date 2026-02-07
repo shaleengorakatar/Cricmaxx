@@ -32,7 +32,7 @@ const MarketCalculator = ({ yesPrice, noPrice }: MarketCalculatorProps) => {
       
       <div className="space-y-4">
         <div>
-          <Label htmlFor="calc-amount" className="text-sm">Investment Amount ($)</Label>
+          <Label htmlFor="calc-amount" className="text-sm">Investment Amount (tokens)</Label>
           <Input
             id="calc-amount"
             type="number"
@@ -64,35 +64,35 @@ const MarketCalculator = ({ yesPrice, noPrice }: MarketCalculatorProps) => {
             
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Current {outcome} odds:</span>
-                <span className="font-semibold text-foreground">{currentOdds}%</span>
+                <span className="text-muted-foreground">Current {outcome} price:</span>
+                <span className="font-semibold text-foreground">{currentOdds}¢</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Price per share:</span>
-                <span className="font-semibold text-foreground">${currentPrice.toFixed(2)}</span>
+                <span className="text-muted-foreground">Price per contract:</span>
+                <span className="font-semibold text-foreground">{(currentPrice * 100).toFixed(0)}¢</span>
               </div>
               
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Shares purchased:</span>
+                <span className="text-muted-foreground">Contracts purchased:</span>
                 <span className="font-semibold text-foreground">{shares}</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Actual cost:</span>
-                <span className="font-semibold text-foreground">${cost.toFixed(2)}</span>
+                <span className="font-semibold text-foreground">{cost.toFixed(2)} tokens</span>
               </div>
               
               <div className="h-px bg-border my-2"></div>
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Max payout if correct:</span>
-                <span className="font-bold text-green-600">${maxPayout.toFixed(2)}</span>
+                <span className="font-bold text-green-600">{maxPayout.toFixed(2)} tokens</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Potential profit:</span>
-                <span className="font-bold text-accent">${potentialProfit.toFixed(2)}</span>
+                <span className="font-bold text-accent">{potentialProfit.toFixed(2)} tokens</span>
               </div>
               
               <div className="flex justify-between">
@@ -102,7 +102,7 @@ const MarketCalculator = ({ yesPrice, noPrice }: MarketCalculatorProps) => {
               
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Loss if wrong:</span>
-                <span className="font-bold text-red-600">-${cost.toFixed(2)}</span>
+                <span className="font-bold text-red-600">-{cost.toFixed(2)} tokens</span>
               </div>
             </div>
           </div>

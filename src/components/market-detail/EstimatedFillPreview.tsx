@@ -50,7 +50,7 @@ export function EstimatedFillPreview({
   }
 
   const { avgPrice, totalCost, filledQuantity, isPartialFill, priceImpact } = estimate;
-  const expectedPayout = filledQuantity; // Each share pays $1
+  const expectedPayout = filledQuantity; // Each contract pays 1 token
   const expectedProfit = expectedPayout - totalCost;
   const unfilled = stakeAmount - totalCost;
 
@@ -100,16 +100,16 @@ export function EstimatedFillPreview({
           <div className="font-semibold">{(avgPrice * 100).toFixed(1)}¢</div>
         </div>
         <div>
-          <div className="text-muted-foreground">Shares</div>
+          <div className="text-muted-foreground">Contracts</div>
           <div className="font-semibold">{filledQuantity.toFixed(1)}</div>
         </div>
         <div>
           <div className="text-muted-foreground">You Pay</div>
-          <div className="font-semibold">${totalCost.toFixed(2)}</div>
+          <div className="font-semibold">{totalCost.toFixed(2)} tokens</div>
         </div>
         <div>
           <div className="text-muted-foreground">If Correct</div>
-          <div className="font-semibold text-green-600">${expectedPayout.toFixed(2)}</div>
+          <div className="font-semibold text-green-600">{expectedPayout.toFixed(2)} tokens</div>
         </div>
       </div>
 
@@ -117,8 +117,8 @@ export function EstimatedFillPreview({
         <div className="pt-2 border-t border-amber-500/30 flex items-start gap-1.5">
           <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
           <div className="text-amber-600 dark:text-amber-400">
-            <span className="font-medium">Partial fill:</span> Only ${totalCost.toFixed(2)} of ${stakeAmount.toFixed(2)} can be filled. 
-            ${unfilled.toFixed(2)} will remain in your wallet.
+            <span className="font-medium">Partial fill:</span> Only {totalCost.toFixed(2)} of {stakeAmount.toFixed(2)} tokens can be filled. 
+            {unfilled.toFixed(2)} tokens will remain in your wallet.
           </div>
         </div>
       )}

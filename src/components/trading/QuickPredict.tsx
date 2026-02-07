@@ -70,7 +70,7 @@ export function QuickPredict({
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 px-2 gap-1.5">
-              <span className="font-bold">${quickPredictAmount}</span>
+              <span className="font-bold">{quickPredictAmount} tokens</span>
               <Settings className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </PopoverTrigger>
@@ -86,7 +86,7 @@ export function QuickPredict({
                     className="h-8"
                     onClick={() => setQuickPredictAmount(amount)}
                   >
-                    ${amount}
+                    {amount}
                   </Button>
                 ))}
               </div>
@@ -112,7 +112,7 @@ export function QuickPredict({
                 <span className="font-bold">YES</span>
               </div>
               <span className="text-xs opacity-80">{formatOdds(yesPrice)}</span>
-              <span className="text-[10px] opacity-60">Win ${yesWin.toFixed(2)} <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
+              <span className="text-[10px] opacity-60">Win {yesWin.toFixed(2)} tokens <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
             </>
           )}
         </Button>
@@ -131,7 +131,7 @@ export function QuickPredict({
                 <span className="font-bold">NO</span>
               </div>
               <span className="text-xs opacity-80">{formatOdds(noPrice)}</span>
-              <span className="text-[10px] opacity-60">Win ${noWin.toFixed(2)} <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
+              <span className="text-[10px] opacity-60">Win {noWin.toFixed(2)} tokens <span className="opacity-70">(after {totalFeePercent}% fee)</span></span>
             </>
           )}
         </Button>
