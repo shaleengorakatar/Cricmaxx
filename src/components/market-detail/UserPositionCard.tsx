@@ -41,7 +41,7 @@ const UserPositionCard = ({
   marketId, 
   currentYesPrice, 
   currentNoPrice,
-  platformFeePercent = 3,
+  platformFeePercent = 0,
   creatorFeePercent = 0
 }: UserPositionCardProps) => {
   const { isAuthenticated, profile } = useAuth();
@@ -286,7 +286,6 @@ const UserPositionCard = ({
                   <span className="text-muted-foreground">If Correct:</span>
                   <span className="font-semibold text-primary">
                     +${yesPotentialProfit.toFixed(2)}
-                    <span className="text-[10px] text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
                   </span>
                 </div>
               </div>
@@ -342,7 +341,6 @@ const UserPositionCard = ({
                   <span className="text-muted-foreground">If Correct:</span>
                   <span className="font-semibold text-primary">
                     +${noPotentialProfit.toFixed(2)}
-                    <span className="text-[10px] text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
                   </span>
                 </div>
               </div>
@@ -436,7 +434,6 @@ const UserPositionCard = ({
                           <p className="font-semibold text-green-600 dark:text-green-400">
                             +${netProfit.toFixed(2)}
                           </p>
-                          <p className="text-[10px] text-muted-foreground">(after {totalFeePercent}% fee)</p>
                         </div>
                       </div>
                       

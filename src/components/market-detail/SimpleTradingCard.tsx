@@ -44,7 +44,7 @@ const SimpleTradingCard = ({
   noPrice, 
   userBalance, 
   onScrollToOrderBook,
-  platformFeePercent = 3,
+  platformFeePercent = 0,
   creatorFeePercent = 0
 }: SimpleTradingCardProps) => {
   const { isAuthenticated, refetchProfile } = useAuth();
@@ -450,11 +450,10 @@ const SimpleTradingCard = ({
                 <p className="text-2xl font-black">{formatOdds(yesPrice)}</p>
               )}
               
-              {/* Prominent payout display with fee info */}
+              {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If Yes, you get</p>
                 <p className="text-xl font-black">${yesPayout.toFixed(2)}</p>
-                <p className="text-[10px] opacity-60">After {totalFeePercent}% fee</p>
               </div>
             </div>
             
@@ -497,11 +496,10 @@ const SimpleTradingCard = ({
                 <p className="text-2xl font-black">{formatOdds(noPrice)}</p>
               )}
               
-              {/* Prominent payout display with fee info */}
+              {/* Prominent payout display */}
               <div className="bg-white/20 rounded-lg p-2 space-y-1">
                 <p className="text-xs font-medium opacity-80">If No, you get</p>
                 <p className="text-xl font-black">${noPayout.toFixed(2)}</p>
-                <p className="text-[10px] opacity-60">After {totalFeePercent}% fee</p>
               </div>
             </div>
             

@@ -298,9 +298,9 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
   const totalCost = matchResult.totalCostPaid || (matchResult.filledQuantity * effectivePrice);
   const grossPayout = matchResult.filledQuantity; // $1 per contract if correct
   const grossProfit = grossPayout - totalCost;
-  const totalFeePercent = (market?.platform_fee_percent || 3) + (market?.creator_fee_percent || 0);
-  const feeOnProfit = grossProfit > 0 ? grossProfit * (totalFeePercent / 100) : 0;
-  const netPayout = grossPayout - feeOnProfit;
+  const totalFeePercent = 0; // Fees disabled
+  const feeOnProfit = 0;
+  const netPayout = grossPayout;
   const netProfit = netPayout - totalCost;
   const effectiveOdds = totalCost > 0 ? (effectivePrice * 100) : 50;
 
@@ -366,21 +366,14 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
     return { filledQuantity: 0, avgFillPrice: null, trades: [], finalStatus: 'cancelled' };
   }
 
-  const platformFeePercent = market?.platform_fee_percent || 3;
-  const creatorFeePercent = market?.creator_fee_percent || 0;
+  const platformFeePercent = 0; // Fees disabled
+  const creatorFeePercent = 0; // Fees disabled
   const creatorId = market?.created_by;
 
-  let creatorIsAdmin = false;
-  if (creatorId) {
-    const { data: creatorRoles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', creatorId);
-    creatorIsAdmin = creatorRoles?.some((r: any) => r.role === 'admin') || false;
-  }
+  const creatorIsAdmin = false;
 
-  const effectivePlatformFee = creatorIsAdmin ? platformFeePercent : 1;
-  const effectiveCreatorFee = creatorIsAdmin ? 0 : Math.min(creatorFeePercent, 2);
+  const effectivePlatformFee = 0;
+  const effectiveCreatorFee = 0;
   
   const oppositeSide = side === 'yes' ? 'no' : 'yes';
   
@@ -779,10 +772,10 @@ async function fillFromPoolHybrid(
   
   console.log(`Hybrid pool fill: ${side} ${quantity} @ ${avgPrice.toFixed(4)}`);
   
-  // Calculate fees
-  const totalFeePercent = platformFeePercent + creatorFeePercent;
-  const feeAmount = (cost * totalFeePercent) / 100;
-  const totalCost = cost + feeAmount;
+   // Calculate fees (disabled)
+  const totalFeePercent = 0;
+  const feeAmount = 0;
+  const totalCost = cost;
   
   // Deduct from user
   const { error: walletError } = await supabase.rpc('process_wallet_operation', {

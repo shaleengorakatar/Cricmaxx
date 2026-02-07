@@ -209,13 +209,8 @@ const FAQ = () => {
     },
     {
       id: "fees-compliance",
-      title: "Fees & Compliance",
+      title: "Compliance",
       questions: [
-        {
-          id: "fees",
-          q: "What fees does CricMaxx charge?",
-          a: "CricMaxx charges a 3% platform fee on trades, deducted at the time of the trade. Market creators earn a 2% commission on volume in their markets. All fees are transparently displayed before you confirm any transaction."
-        },
         {
           id: "gambling",
           q: "Is this gambling?",

@@ -151,16 +151,14 @@ const TermsOfUse = ({ requireAcceptance = false }: TermsOfUseProps) => {
                   <li>Defined expiration dates and settlement procedures</li>
                   <li>Transparent order book pricing mechanisms</li>
                   <li>Verified resolution sources for determining outcomes</li>
-                  <li>Platform and creator fees as disclosed per market</li>
                 </ul>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-3">8. Fees and Costs</h2>
+                <h2 className="text-lg font-semibold mb-3">8. Platform Operations</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  CricMaxx charges a platform fee of up to 5% on winning positions. Creator markets may include additional 
-                  creator fees (typically 2%). All fees are disclosed prior to trading. Fees are deducted automatically 
-                  upon market settlement.
+                  CricMaxx currently does not charge any fees on trades. The platform reserves the right to introduce fees in the future, 
+                  with prior notice to all users.
                 </p>
               </section>
 

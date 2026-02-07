@@ -74,7 +74,7 @@ const OrderBookTrading = ({
   yesPrice: fallbackYesPrice, 
   noPrice: fallbackNoPrice, 
   userBalance,
-  platformFeePercent = 3,
+  platformFeePercent = 0,
   creatorFeePercent = 0
 }: OrderBookTradingProps) => {
   const { user, refetchProfile } = useAuth();
@@ -752,7 +752,6 @@ const OrderBookTrading = ({
                 <div className="text-center">
                   <div className="text-xs text-muted-foreground uppercase">If {side.toUpperCase()} wins</div>
                   <div className="text-xl font-bold text-primary">${totalPayout.toFixed(2)}</div>
-                  <div className="text-[10px] text-muted-foreground">after {totalFeePercent}% fee</div>
                 </div>
               </div>
 
@@ -763,7 +762,7 @@ const OrderBookTrading = ({
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Profit if correct:</span>
-                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">(after {totalFeePercent}% fee)</span></span>
+                  <span className="font-bold text-primary">+${potentialProfit.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">If {side === 'yes' ? 'NO' : 'YES'} wins:</span>
@@ -986,7 +985,6 @@ const OrderBookTrading = ({
                     <span className="text-muted-foreground">Profit if correct:</span>
                     <span className="font-medium text-primary">
                       +${advancedNetProfit.toFixed(2)}
-                      <span className="text-xs text-muted-foreground ml-1">(after {totalFeePercent}% fee)</span>
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

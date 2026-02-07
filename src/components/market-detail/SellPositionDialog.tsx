@@ -47,16 +47,16 @@ const SellPositionDialog = ({
   const marketProceeds = sellQuantity * currentPrice;
   const marketCost = sellQuantity * entryPrice;
   const marketPnL = marketProceeds - marketCost;
-  const marketFees = marketProceeds * 0.03;
-  const marketNetProceeds = marketProceeds - marketFees;
+  const marketFees = 0;
+  const marketNetProceeds = marketProceeds;
 
   // Limit sell calculations
   const limitPriceNum = (parseFloat(limitPrice) || 0) / 100;
   const limitProceeds = sellQuantity * limitPriceNum;
   const limitCost = sellQuantity * entryPrice;
   const limitPnL = limitProceeds - limitCost;
-  const limitFees = limitProceeds * 0.03;
-  const limitNetProceeds = limitProceeds - limitFees;
+  const limitFees = 0;
+  const limitNetProceeds = limitProceeds;
 
   const handleMarketSell = async () => {
     if (sellQuantity <= 0 || sellQuantity > positionSize) {
@@ -313,10 +313,6 @@ const SellPositionDialog = ({
                 <span className="text-muted-foreground">Est. gross proceeds:</span>
                 <span className="font-medium">${marketProceeds.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Est. fees (~3%):</span>
-                <span className="font-medium text-muted-foreground">-${marketFees.toFixed(2)}</span>
-              </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">Est. net proceeds:</span>
                 <span className="font-bold">${marketNetProceeds.toFixed(2)}</span>
@@ -324,7 +320,7 @@ const SellPositionDialog = ({
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Est. P&L:</span>
                 <span className={`font-bold flex items-center gap-1 ${marketPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                  {marketPnL >= 0 ? '+' : ''}{(marketPnL - marketFees).toFixed(2)}
+                  {marketPnL >= 0 ? '+' : ''}{marketPnL.toFixed(2)}
                   {marketPnL < 0 && <TrendingDown className="h-3 w-3" />}
                 </span>
               </div>
@@ -398,10 +394,6 @@ const SellPositionDialog = ({
                 <span className="text-muted-foreground">If filled, gross:</span>
                 <span className="font-medium">${limitProceeds.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Est. fees (~3%):</span>
-                <span className="font-medium text-muted-foreground">-${limitFees.toFixed(2)}</span>
-              </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">Est. net if filled:</span>
                 <span className="font-bold">${limitNetProceeds.toFixed(2)}</span>
@@ -409,7 +401,7 @@ const SellPositionDialog = ({
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Est. P&L if filled:</span>
                 <span className={`font-bold flex items-center gap-1 ${limitPnL >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                  {limitPnL >= 0 ? '+' : ''}{(limitPnL - limitFees).toFixed(2)}
+                  {limitPnL >= 0 ? '+' : ''}{limitPnL.toFixed(2)}
                 </span>
               </div>
             </div>
