@@ -246,23 +246,41 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      // Verify the friendship exists, is pending, and the current user is the friend_id (recipient)
-      const { data: pendingRequest, error: fetchError } = await serviceClient
+      // Verify the friendship exists and the current user is the friend_id (recipient)
+      const { data: friendshipRecord, error: fetchError } = await serviceClient
         .from('friendships')
         .select('id, user_id, friend_id, status')
         .eq('id', friendship_id)
         .eq('friend_id', user.id)
-        .eq('status', 'pending')
         .maybeSingle();
 
       if (fetchError) throw fetchError;
 
-      if (!pendingRequest) {
-        return new Response(JSON.stringify({ error: 'Friend request not found or already processed' }), {
+      if (!friendshipRecord) {
+        return new Response(JSON.stringify({ error: 'Friend request not found' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 404,
         });
       }
+
+      // If already accepted, return success (idempotent)
+      if (friendshipRecord.status === 'accepted') {
+        return new Response(JSON.stringify({
+          success: true,
+          message: 'Friend request already accepted'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (friendshipRecord.status !== 'pending') {
+        return new Response(JSON.stringify({ error: 'Friend request is no longer pending' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+
+      const pendingRequest = friendshipRecord;
 
       // Update the pending request to accepted
       const { error: updateError } = await serviceClient
