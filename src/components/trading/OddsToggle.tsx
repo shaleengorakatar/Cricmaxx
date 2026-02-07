@@ -1,6 +1,6 @@
 import { useTradingPreferences } from '@/hooks/useTradingPreferences';
 import { Button } from '@/components/ui/button';
-import { Percent, Hash } from 'lucide-react';
+import { DollarSign, Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Tooltip,
@@ -26,11 +26,11 @@ export function OddsToggle({ className }: OddsToggleProps) {
               size="sm"
               className={cn(
                 'h-7 px-2 rounded-md transition-all',
-                oddsFormat === 'percentage' && 'bg-background shadow-sm'
+                oddsFormat === 'cents' && 'bg-background shadow-sm'
               )}
-              onClick={() => setOddsFormat('percentage')}
+              onClick={() => setOddsFormat('cents')}
             >
-              <Percent className="h-3.5 w-3.5" />
+              <DollarSign className="h-3.5 w-3.5" />
             </Button>
             <Button
               variant="ghost"
@@ -47,7 +47,7 @@ export function OddsToggle({ className }: OddsToggleProps) {
         </TooltipTrigger>
         <TooltipContent>
           <p className="text-xs">
-            {oddsFormat === 'percentage' ? 'Percentage odds' : 'American odds'}
+            {oddsFormat === 'cents' ? 'Price in cents' : 'American odds'}
           </p>
         </TooltipContent>
       </Tooltip>

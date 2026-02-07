@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from "react";
 
-type OddsFormat = "percentage" | "american";
+type OddsFormat = "cents" | "american";
 
 interface TradingPreferencesContextType {
   oddsFormat: OddsFormat;
@@ -30,7 +30,7 @@ function probabilityToAmerican(probability: number): string {
 
 export const TradingPreferencesProvider = ({ children }: { children: ReactNode }) => {
   const [oddsFormat, setOddsFormatState] = useState<OddsFormat>(() => {
-    return (localStorage.getItem("odds_format") as OddsFormat) || "percentage";
+    return (localStorage.getItem("odds_format") as OddsFormat) || "cents";
   });
   
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(() => {
@@ -78,7 +78,7 @@ export const TradingPreferencesProvider = ({ children }: { children: ReactNode }
     if (oddsFormat === "american") {
       return probabilityToAmerican(probability);
     }
-    return `${Math.round(probability * 100)}%`;
+    return `${Math.round(probability * 100)}¢`;
   }, [oddsFormat]);
 
   return (
