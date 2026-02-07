@@ -116,7 +116,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
       if (isNaN(price) || price <= 0.01 || price >= 0.99) {
         toast({
           title: "Invalid price",
-          description: "Target price must be between $0.01 and $0.99",
+          description: "Target price must be between 1¢ and 99¢",
           variant: "destructive",
         });
         return;
@@ -136,7 +136,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
 
       toast({
         title: "Alert created",
-        description: `You'll be notified when ${side.toUpperCase()} price goes ${condition} $${price.toFixed(2)}`,
+        description: `You'll be notified when ${side.toUpperCase()} price goes ${condition} ${(price * 100).toFixed(0)}¢`,
       });
 
       setTargetPrice("");
@@ -232,7 +232,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
           </div>
           <div>
             <Label htmlFor="alert-price" className="text-xs">
-              Target Price (Current: ${currentPrice.toFixed(2)})
+              Target Price (Current: {(currentPrice * 100).toFixed(0)}¢)
             </Label>
             <Input
               id="alert-price"
@@ -279,7 +279,7 @@ const PriceAlerts = ({ marketId, currentYesPrice, currentNoPrice }: PriceAlertsP
                   )}
                 </div>
                 <p className="text-sm font-medium text-foreground">
-                  Alert when price goes {alert.condition} ${alert.target_price.toFixed(2)}
+                  Alert when price goes {alert.condition} {(alert.target_price * 100).toFixed(0)}¢
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Created {new Date(alert.created_at).toLocaleDateString()}

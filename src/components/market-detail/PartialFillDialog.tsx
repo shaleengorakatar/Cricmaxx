@@ -73,7 +73,7 @@ export function PartialFillDialog({
           <div className="bg-muted/50 rounded-lg p-3 space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Requested:</span>
-              <span className="font-medium">${requestedAmount.toFixed(2)}</span>
+              <span className="font-medium">{requestedAmount.toFixed(2)} tokens</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Filled:</span>
@@ -83,7 +83,7 @@ export function PartialFillDialog({
             </div>
             <div className="flex justify-between text-sm border-t pt-2">
               <span className="text-muted-foreground">Unfilled:</span>
-              <span className="font-medium text-amber-600">${unfilledAmount.toFixed(2)} (back in wallet)</span>
+              <span className="font-medium text-amber-600">{unfilledAmount.toFixed(2)} tokens (back in wallet)</span>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ export function PartialFillDialog({
               </span>
               <br />
               <span className="text-muted-foreground">
-                Payout if correct: ${filledQuantity.toFixed(2)}
+                Payout if correct: {filledQuantity.toFixed(2)} tokens
               </span>
             </div>
           </div>
@@ -134,7 +134,7 @@ export function PartialFillDialog({
               </div>
 
               <p className="text-xs text-muted-foreground">
-                This will reserve ${(additionalContracts * limitPriceNum).toFixed(2)} from your wallet until filled or cancelled.
+                This will reserve {(additionalContracts * limitPriceNum).toFixed(2)} tokens from your wallet until filled or cancelled.
               </p>
 
               <Button 

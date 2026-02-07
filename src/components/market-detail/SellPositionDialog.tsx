@@ -108,13 +108,13 @@ const SellPositionDialog = ({
           haptic('warning');
           toast({
             title: "⚠️ Partial sell",
-            description: `Sold ${sold}/${sellQuantity} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}. Remaining ${remaining} contracts.`,
+            description: `Sold ${sold}/${sellQuantity} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for ${totalProceeds.toFixed(2)} tokens. Remaining ${remaining} contracts.`,
           });
         } else {
           haptic('success');
           toast({
             title: "🎉 Position sold!",
-            description: `Sold ${sold} ${side.toUpperCase()} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for $${totalProceeds.toFixed(2)}`,
+            description: `Sold ${sold} ${side.toUpperCase()} contracts @ ${(avgPrice * 100).toFixed(0)}¢ for ${totalProceeds.toFixed(2)} tokens`,
           });
         }
         onSellComplete();
@@ -311,11 +311,11 @@ const SellPositionDialog = ({
               </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">Est. gross proceeds:</span>
-                <span className="font-medium">${marketProceeds.toFixed(2)}</span>
+                <span className="font-medium">{marketProceeds.toFixed(2)} tokens</span>
               </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">Est. net proceeds:</span>
-                <span className="font-bold">${marketNetProceeds.toFixed(2)}</span>
+                <span className="font-bold">{marketNetProceeds.toFixed(2)} tokens</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Est. P&L:</span>
@@ -345,7 +345,7 @@ const SellPositionDialog = ({
                   Selling...
                 </>
               ) : (
-                `Sell ${sellQuantity} for ~$${marketNetProceeds.toFixed(2)}`
+                `Sell ${sellQuantity} for ~${marketNetProceeds.toFixed(2)} tokens`
               )}
             </Button>
           </TabsContent>
@@ -392,11 +392,11 @@ const SellPositionDialog = ({
               </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">If filled, gross:</span>
-                <span className="font-medium">${limitProceeds.toFixed(2)}</span>
+                <span className="font-medium">{limitProceeds.toFixed(2)} tokens</span>
               </div>
               <div className="flex justify-between text-sm border-t pt-2">
                 <span className="text-muted-foreground">Est. net if filled:</span>
-                <span className="font-bold">${limitNetProceeds.toFixed(2)}</span>
+                <span className="font-bold">{limitNetProceeds.toFixed(2)} tokens</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Est. P&L if filled:</span>

@@ -25,15 +25,15 @@ const PayoutInfoTooltip = () => {
         <div className="space-y-4 text-sm text-foreground">
           <p>
             You buy a Yes/No contract at today's market price. If your prediction is right, 
-            each contract is worth <span className="font-semibold">$1</span>. If not, it's worth $0.
+            each contract is worth <span className="font-semibold">1 token</span>. If not, it's worth 0 tokens.
           </p>
           
           <div className="bg-muted rounded-lg p-4 space-y-2">
             <p className="font-semibold">Example:</p>
             <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-              <li>You pay $0.30 for a Yes contract</li>
-              <li>If event happens: contract worth $1 → net profit = $0.70</li>
-              <li>If not: contract is worth $0</li>
+              <li>You pay 30¢ for a Yes contract</li>
+              <li>If event happens: contract worth 1 token → net profit = 0.70 tokens</li>
+              <li>If not: contract is worth 0 tokens</li>
             </ul>
           </div>
 
