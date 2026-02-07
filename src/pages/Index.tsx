@@ -25,11 +25,7 @@ const Index = () => {
         </section>
         
         <LiveMarketsWidget />
-        <section className="py-12 bg-background">
-          <div className="container mx-auto px-4">
-            <SeriesSearchWidget />
-          </div>
-        </section>
+        {/* SeriesSearchWidget hidden for now */}
       </main>
       <Footer />
     </div>
