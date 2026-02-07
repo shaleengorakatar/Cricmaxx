@@ -649,7 +649,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
 
               {isAuthenticated && profile && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Your balance: ${profile.balance.toFixed(2)}
+                  Your balance: {profile.balance.toFixed(2)} tokens
                 </p>
               )}
             </div>
