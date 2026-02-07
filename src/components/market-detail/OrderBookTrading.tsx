@@ -736,6 +736,21 @@ const OrderBookTrading = ({
               side={side}
               stakeAmount={totalCost}
               indicativePrice={currentPrice}
+              onSwitchToLimitOrder={() => {
+                const priceToUse = side === "yes" ? yesPrice : noPrice;
+                setAdvancedInputMode("dollars");
+                setAdvancedDollarAmount(totalCost.toFixed(2));
+                setLimitPrice(priceToUse.toFixed(2));
+                if (priceToUse > 0) {
+                  const contracts = Math.floor(totalCost / priceToUse);
+                  setQuantity(contracts > 0 ? contracts.toString() : '');
+                }
+                setSide(side);
+                setTradingMode("advanced");
+                setTimeout(() => {
+                  cardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }}
             />
           )}
 

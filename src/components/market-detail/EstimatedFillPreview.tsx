@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, TrendingDown, TrendingUp, Info } from "lucide-react";
+import { AlertTriangle, TrendingDown, TrendingUp, Info, BookOpen } from "lucide-react";
 import { useEstimatedFillPrice } from "@/hooks/useEstimatedFillPrice";
 import {
   Tooltip,
@@ -7,6 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface EstimatedFillPreviewProps {
@@ -15,6 +16,7 @@ interface EstimatedFillPreviewProps {
   stakeAmount: number;
   indicativePrice: number;
   className?: string;
+  onSwitchToLimitOrder?: () => void;
 }
 
 export function EstimatedFillPreview({
@@ -23,6 +25,7 @@ export function EstimatedFillPreview({
   stakeAmount,
   indicativePrice,
   className,
+  onSwitchToLimitOrder,
 }: EstimatedFillPreviewProps) {
   const { calculateEstimatedFill, hasLiquidity, loading } = useEstimatedFillPrice(marketId);
 
@@ -34,11 +37,25 @@ export function EstimatedFillPreview({
   
   if (!liquidity) {
     return (
-      <div className={cn("text-xs p-2 rounded bg-red-500/10 border border-red-500/20", className)}>
-        <div className="flex items-center gap-1 text-red-500">
-          <AlertTriangle className="h-3 w-3" />
-          <span className="font-medium">No liquidity — will not fill</span>
+      <div className={cn("text-xs p-3 rounded-lg bg-destructive/10 border border-destructive/20 space-y-2", className)}>
+        <div className="flex items-center gap-1.5 text-destructive font-medium">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <span>No liquidity on {side.toUpperCase()} side</span>
         </div>
+        <p className="text-muted-foreground leading-relaxed">
+          No one has placed orders to match yours yet. You can <strong className="text-foreground">set your own price</strong> with a limit order and wait for someone to take it.
+        </p>
+        {onSwitchToLimitOrder && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mt-1 gap-1.5 border-destructive/30 hover:bg-destructive/10"
+            onClick={onSwitchToLimitOrder}
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Set Your Price &amp; Wait for a Match
+          </Button>
+        )}
       </div>
     );
   }
@@ -63,7 +80,7 @@ export function EstimatedFillPreview({
     <div className={cn(
       "text-xs p-3 rounded-lg border space-y-2",
       isPartialFill || impactSeverity === "high" 
-        ? "bg-amber-500/10 border-amber-500/30" 
+        ? "bg-warning/10 border-warning/30" 
         : "bg-muted/50 border-border/50",
       className
     )}>
@@ -86,7 +103,7 @@ export function EstimatedFillPreview({
         {priceImpact !== 0 && (
           <span className={cn(
             "font-medium flex items-center gap-0.5",
-            priceImpact > 0 ? "text-red-500" : "text-green-500"
+            priceImpact > 0 ? "text-destructive" : "text-success"
           )}>
             {priceImpact > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             {priceImpact > 0 ? "+" : ""}{priceImpact.toFixed(1)}% impact
@@ -109,14 +126,14 @@ export function EstimatedFillPreview({
         </div>
         <div>
           <div className="text-muted-foreground">If Correct</div>
-          <div className="font-semibold text-green-600">{expectedPayout.toFixed(2)} tokens</div>
+          <div className="font-semibold text-success">{expectedPayout.toFixed(2)} tokens</div>
         </div>
       </div>
 
       {isPartialFill && (
-        <div className="pt-2 border-t border-amber-500/30 flex items-start gap-1.5">
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-          <div className="text-amber-600 dark:text-amber-400">
+        <div className="pt-2 border-t border-warning/30 flex items-start gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+          <div className="text-warning">
             <span className="font-medium">Partial fill:</span> Only {totalCost.toFixed(2)} of {stakeAmount.toFixed(2)} tokens can be filled. 
             {unfilled.toFixed(2)} tokens will remain in your wallet.
           </div>
@@ -124,9 +141,9 @@ export function EstimatedFillPreview({
       )}
 
       {impactSeverity === "high" && !isPartialFill && (
-        <div className="pt-2 border-t border-amber-500/30 flex items-start gap-1.5">
-          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-          <div className="text-amber-600 dark:text-amber-400">
+        <div className="pt-2 border-t border-warning/30 flex items-start gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+          <div className="text-warning">
             <span className="font-medium">High price impact.</span> Consider placing a smaller order or using a limit order.
           </div>
         </div>
