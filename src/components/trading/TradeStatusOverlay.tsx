@@ -214,7 +214,7 @@ export function TradeStatusOverlay({
                   {totalCost !== undefined && (
                     <div className="flex justify-between text-sm">
                      <span className="text-muted-foreground">You put in</span>
-                     <span className="font-semibold">${totalCost.toFixed(2)}</span>
+                     <span className="font-semibold">{totalCost.toFixed(2)} tokens</span>
                     </div>
                   )}
                    <div className="flex justify-between text-sm">
@@ -225,8 +225,8 @@ export function TradeStatusOverlay({
                   </div>
                   {effectiveOdds !== undefined && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Effective odds</span>
-                      <span className="font-semibold">{effectiveOdds.toFixed(0)}%</span>
+                       <span className="text-muted-foreground">Effective price</span>
+                       <span className="font-semibold">{effectiveOdds.toFixed(0)}¢</span>
                     </div>
                   )}
                   {avgPrice !== undefined && (
@@ -237,14 +237,14 @@ export function TradeStatusOverlay({
                   )}
                    <div className="flex justify-between text-sm pt-2 border-t border-border/50">
                      <span className="text-muted-foreground font-medium">If correct, you get</span>
-                    <span className="font-bold text-success text-base">
-                      ${netPayout !== undefined ? netPayout.toFixed(2) : filledQuantity.toFixed(2)}
-                    </span>
+                     <span className="font-bold text-success text-base">
+                       {netPayout !== undefined ? netPayout.toFixed(2) : filledQuantity.toFixed(2)} tokens
+                     </span>
                   </div>
                   {netProfit !== undefined && netProfit > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Net profit</span>
-                      <span className="font-bold text-success">+${netProfit.toFixed(2)}</span>
+                      <span className="font-bold text-success">+{netProfit.toFixed(2)} tokens</span>
                     </div>
                   )}
                 </motion.div>

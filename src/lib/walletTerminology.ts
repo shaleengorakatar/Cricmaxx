@@ -10,24 +10,24 @@
 
 export const WALLET_TERMS = {
   // Core token language
-  TOKEN_NAME: "dollars",
-  TOKEN_DESCRIPTION: "CricMaxx Dollars are used as collateral to take positions in prediction markets and are returned when markets resolve. 1 CricMaxx Dollar = $1 USD.",
+  TOKEN_NAME: "tokens",
+  TOKEN_DESCRIPTION: "CricMaxx Tokens are used as collateral to take positions in prediction markets and are returned when markets resolve. 1 Token = $1 USD.",
   
   // Wallet sections
-  AVAILABLE: "Available Balance",
+  AVAILABLE: "Available Tokens",
   IN_PLAY: "In Play",
   
   // Actions
-  BUY_TOKENS: "Add Dollars",
-  ADD_TOKENS: "Add Dollars",
+  BUY_TOKENS: "Add Tokens",
+  ADD_TOKENS: "Add Tokens",
   REQUEST_REDEMPTION: "Request Redemption",
   CONFIRM_POSITION: "Confirm Position",
   
   // Transaction types
-  TOKENS_ADDED: "Dollars added",
-  TOKENS_COMMITTED: "Dollars committed",
-  TOKENS_SETTLED: "Dollars settled",
-  TOKENS_RETURNED: "Dollars returned",
+  TOKENS_ADDED: "Tokens added",
+  TOKENS_COMMITTED: "Tokens committed",
+  TOKENS_SETTLED: "Tokens settled",
+  TOKENS_RETURNED: "Tokens returned",
   REDEMPTION_REQUESTED: "Redemption requested",
   
   // Status labels
@@ -35,10 +35,10 @@ export const WALLET_TERMS = {
   SETTLED_POSITIONS: "Settled",
   
   // Descriptions
-  COLLATERAL_DESC: "CricMaxx Dollars are used as collateral to take positions in prediction markets. 1 CricMaxx Dollar = $1 USD.",
-  LOCK_DESC: "Dollars will be locked until market resolves",
+  COLLATERAL_DESC: "CricMaxx Tokens are used as collateral to take positions in prediction markets. 1 Token = $1 USD.",
+  LOCK_DESC: "Tokens will be locked until market resolves",
   MAX_OUTCOME_DESC: "Max outcome defined by market rules",
-  REDEMPTION_DESC: "Dollars must not be committed to open markets.",
+  REDEMPTION_DESC: "Tokens must not be committed to open markets.",
   REDEMPTION_DELAY: "Processed in 2–5 business days",
   VERIFICATION_NOTE: "Subject to verification",
   MIN_REDEMPTION: 10,
@@ -62,17 +62,17 @@ export function getActivityLabel(type: WalletActivityType, amount: number, marke
   const formatted = formatAmount(amount);
   switch (type) {
     case "tokens_added":
-      return `+$${formatted} added`;
+      return `+${formatted} tokens added`;
     case "tokens_committed":
-      return `–$${formatted} committed${marketName ? ` (${marketName})` : ''}`;
+      return `–${formatted} tokens committed${marketName ? ` (${marketName})` : ''}`;
     case "tokens_settled":
-      return `+$${formatted} settled${marketName ? ` (${marketName})` : ''}`;
+      return `+${formatted} tokens settled${marketName ? ` (${marketName})` : ''}`;
     case "redemption_requested":
-      return `–$${formatted} redemption requested`;
+      return `–${formatted} tokens redemption requested`;
     case "redemption_completed":
-      return `–$${formatted} redeemed`;
+      return `–${formatted} tokens redeemed`;
     default:
-      return `$${formatted}`;
+      return `${formatted} tokens`;
   }
 }
 
