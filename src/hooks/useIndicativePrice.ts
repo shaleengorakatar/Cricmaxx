@@ -42,11 +42,8 @@ export function useIndicativePrice(marketId: string): IndicativePriceResult {
         .eq("id", marketId)
         .single(),
       
-      // Get order book for midpoint calculation
-      supabase
-        .from("order_book_aggregated")
-        .select("side, price, total_quantity")
-        .eq("market_id", marketId),
+      // Get order book for midpoint calculation (use RPC to bypass RLS)
+      supabase.rpc("get_order_book_aggregated", { market_ids: [marketId] }),
     ]);
 
     const lastTrade = tradesResult.data?.[0];
