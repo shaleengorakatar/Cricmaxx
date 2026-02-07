@@ -118,8 +118,8 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
           status: 'pending', // Requires admin approval
           expiry_time: expiryTime.toISOString(),
           created_by: user.id,
-          platform_fee_percent: 1, // Platform gets 1%
-          creator_fee_percent: 2,  // Creator gets 2%
+          platform_fee_percent: 0, // Fees disabled
+          creator_fee_percent: 0,  // Fees disabled
         });
 
       if (marketError) {
@@ -328,8 +328,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
                 <div>
                   <p className="font-medium text-foreground mb-1">Creator Earnings</p>
                   <p className="text-muted-foreground text-xs">
-                    You'll earn <span className="text-green-500 font-semibold">2%</span> of the trading volume on this market. 
-                    Platform takes <span className="font-semibold">1%</span> fee. Total fee: 3%.
+                    No fees are charged on this market. 
                     Initial market price starts at 50/50 (Yes: $0.50, No: $0.50).
                   </p>
                 </div>

@@ -53,7 +53,7 @@ const MarketDetail = () => {
   const [market, setMarket] = useState<Market | null>(null);
   const [marketStatus, setMarketStatus] = useState<string>('open');
   const [marketOutcome, setMarketOutcome] = useState<string | null>(null);
-  const [marketFees, setMarketFees] = useState<{ platform: number; creator: number }>({ platform: 3, creator: 0 });
+  const [marketFees, setMarketFees] = useState<{ platform: number; creator: number }>({ platform: 0, creator: 0 });
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [isPlacingTrade, setIsPlacingTrade] = useState(false);
@@ -303,7 +303,7 @@ const MarketDetail = () => {
                   </div>
                   <div>
                     <span className="text-muted-foreground block text-xs">Fee</span>
-                    <span className="font-semibold">3%</span>
+                    <span className="font-semibold">0%</span>
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-border">
