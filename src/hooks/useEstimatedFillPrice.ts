@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface OrderLevel {
   price: number;
@@ -15,23 +16,54 @@ interface EstimatedFill {
 }
 
 export function useEstimatedFillPrice(marketId: string) {
+  const { user } = useAuth();
   const [yesOrders, setYesOrders] = useState<OrderLevel[]>([]);
   const [noOrders, setNoOrders] = useState<OrderLevel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
-    const { data: aggregatedData } = await supabase
-      .from('order_book_aggregated')
-      .select('side, price, total_quantity')
-      .eq('market_id', marketId);
+    // Fetch aggregated order book AND user's own pending orders in parallel
+    const [aggregatedResult, ownOrdersResult] = await Promise.all([
+      supabase
+        .from('order_book_aggregated')
+        .select('side, price, total_quantity')
+        .eq('market_id', marketId),
+      // Fetch user's own pending/partial orders to subtract from liquidity
+      user?.id
+        ? supabase
+            .from('orders')
+            .select('side, price, quantity, filled_quantity, status')
+            .eq('market_id', marketId)
+            .eq('user_id', user.id)
+            .in('status', ['pending', 'partial'])
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
-    // Convert to buy opportunities (same logic as OrderBook.tsx)
+    const aggregatedData = aggregatedResult.data || [];
+    const ownOrders = ownOrdersResult.data || [];
+
+    // Build a map of user's own unfilled quantities by side+price
+    const ownQuantityMap = new Map<string, number>();
+    for (const order of ownOrders) {
+      const key = `${order.side}:${Number(order.price).toFixed(2)}`;
+      const unfilled = Number(order.quantity) - Number(order.filled_quantity);
+      ownQuantityMap.set(key, (ownQuantityMap.get(key) || 0) + unfilled);
+    }
+
+    // Convert to buy opportunities, subtracting user's own orders
     const yesLevelsBuy: OrderLevel[] = [];
     const noLevelsBuy: OrderLevel[] = [];
 
-    for (const row of aggregatedData || []) {
+    for (const row of aggregatedData) {
       const price = Number(row.price);
-      const quantity = Number(row.total_quantity);
+      let quantity = Number(row.total_quantity);
+      
+      // Subtract user's own orders at this price level
+      const key = `${row.side}:${price.toFixed(2)}`;
+      const ownQty = ownQuantityMap.get(key) || 0;
+      quantity = Math.max(0, quantity - ownQty);
+      
+      if (quantity <= 0) continue; // No remaining liquidity from others
       
       if (row.side === 'yes') {
         // YES order at price X = you can BUY NO at (1-X)
@@ -59,7 +91,7 @@ export function useEstimatedFillPrice(marketId: string) {
     setYesOrders(sortedYes);
     setNoOrders(sortedNo);
     setLoading(false);
-  }, [marketId]);
+  }, [marketId, user?.id]);
 
   useEffect(() => {
     fetchOrders();
@@ -88,6 +120,7 @@ export function useEstimatedFillPrice(marketId: string) {
 
   /**
    * Calculate estimated fill price by walking through order book levels
+   * (excludes the current user's own orders)
    * @param side - "yes" or "no"
    * @param stakeAmount - dollar amount user wants to spend
    * @param indicativePrice - current displayed price
@@ -100,7 +133,7 @@ export function useEstimatedFillPrice(marketId: string) {
     const orders = side === "yes" ? yesOrders : noOrders;
     
     if (orders.length === 0) {
-      return null; // No liquidity
+      return null; // No liquidity from other users
     }
 
     let remainingBudget = stakeAmount;
