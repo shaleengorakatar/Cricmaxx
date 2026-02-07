@@ -102,12 +102,12 @@ const Hero = () => {
             Welcome to CricMaxx, the ultimate cricket prediction playground. 
             Make <span className="font-semibold">fast, live predictions</span> on your favorite matches 
             with real-time order book trading. Feel the stadium energy from anywhere.
-            <span className="block mt-2 text-accent font-medium">🚀 Beta Release — CFTC compliance in progress.</span>
+            <span className="block mt-2 text-accent font-medium">🚀 Closed Beta — World Cup 2026</span>
           </motion.p>
 
           {/* Mobile-optimized buttons - stack on mobile, side-by-side on larger screens */}
           <motion.div 
-            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-stretch sm:items-center max-w-md sm:max-w-none mx-auto px-4"
+            className="flex flex-col gap-3 sm:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto px-4"
             variants={itemVariants}
           >
             <motion.div variants={buttonVariants}>
@@ -120,6 +120,12 @@ const Hero = () => {
                 Start Predicting
               </Button>
             </motion.div>
+            <motion.p 
+              className="text-sm sm:text-base text-primary-foreground/70 text-center max-w-md"
+              variants={itemVariants}
+            >
+              Trade with CricMaxx Dollars — <span className="font-semibold text-accent">1 CricMaxx Dollar = $1 USD</span>
+            </motion.p>
           </motion.div>
         </motion.div>
       </div>

@@ -524,18 +524,18 @@ const SimpleTradingCard = ({
               <TooltipContent className="max-w-xs p-4 space-y-2">
                 <p className="font-semibold">How positions work:</p>
                 <ul className="text-sm space-y-1.5">
-                  <li className="flex items-start gap-2">
-                    <span className="text-success">✓</span>
-                    <span><strong>If outcome matches:</strong> Tokens returned at 1:1</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-destructive">✗</span>
-                    <span><strong>If outcome differs:</strong> 0 tokens returned</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-accent">💡</span>
-                    <span>Tokens are locked until market resolves</span>
-                  </li>
+                   <li className="flex items-start gap-2">
+                     <span className="text-success">✓</span>
+                     <span><strong>If outcome matches:</strong> Dollars returned at 1:1</span>
+                   </li>
+                   <li className="flex items-start gap-2">
+                     <span className="text-destructive">✗</span>
+                     <span><strong>If outcome differs:</strong> $0 returned</span>
+                   </li>
+                   <li className="flex items-start gap-2">
+                     <span className="text-accent">💡</span>
+                     <span>Dollars are locked until market resolves</span>
+                   </li>
                 </ul>
               </TooltipContent>
             </Tooltip>
@@ -547,7 +547,7 @@ const SimpleTradingCard = ({
           <div className="text-center pt-4 border-t border-border/50">
             {userBalance > 0 ? (
               <p className="text-sm text-muted-foreground">
-                Available tokens: <span className="font-bold text-foreground">{userBalance.toFixed(0)}</span>
+                Available: <span className="font-bold text-foreground">${userBalance.toFixed(0)}</span>
               </p>
             ) : (
               <Button
@@ -555,7 +555,7 @@ const SimpleTradingCard = ({
                 className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
               >
                 <PlusCircle className="h-4 w-4" />
-                Buy Tokens to Start
+                Add Dollars to Start
               </Button>
             )}
           </div>
@@ -654,13 +654,13 @@ const SimpleTradingCard = ({
             </DialogTitle>
             <DialogDescription className="text-center space-y-3 pt-4">
               <p className="text-base">
-                You need more tokens to place this prediction.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your balance: <span className="font-bold">{userBalance.toFixed(0)} tokens</span>
-                <br />
-                Required: <span className="font-bold">{stakeAmount} tokens</span>
-              </p>
+                 You need more dollars to place this prediction.
+               </p>
+               <p className="text-sm text-muted-foreground">
+                 Your balance: <span className="font-bold">${userBalance.toFixed(0)}</span>
+                 <br />
+                 Required: <span className="font-bold">${stakeAmount}</span>
+               </p>
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-4">
@@ -672,8 +672,8 @@ const SimpleTradingCard = ({
               className="w-full h-12 gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
             >
               <PlusCircle className="h-5 w-5" />
-              Buy Tokens
-            </Button>
+               Add Dollars
+             </Button>
             <Button 
               variant="outline"
               onClick={() => setShowInsufficientBalanceDialog(false)}

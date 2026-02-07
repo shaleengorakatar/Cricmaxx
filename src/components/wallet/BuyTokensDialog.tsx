@@ -61,8 +61,8 @@ const BuyTokensDialog = ({ isOpen, onClose, onSuccess }: BuyTokensDialogProps) =
 
       if (data?.success) {
         toast({
-          title: "Tokens added",
-          description: `${finalAmount} tokens added to your wallet`,
+          title: "Dollars added",
+          description: `$${finalAmount} added to your wallet`,
         });
         setSelectedAmount(null);
         setCustomAmount("");
@@ -75,7 +75,7 @@ const BuyTokensDialog = ({ isOpen, onClose, onSuccess }: BuyTokensDialogProps) =
     } catch (error) {
       console.error('Add tokens error:', error);
       toast({
-        title: "Failed to add tokens",
+        title: "Failed to add dollars",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive",
       });

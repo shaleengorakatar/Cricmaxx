@@ -213,12 +213,12 @@ export function TradeStatusOverlay({
                 >
                   {totalCost !== undefined && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">You invested</span>
-                      <span className="font-semibold">${totalCost.toFixed(2)}</span>
+                     <span className="text-muted-foreground">You put in</span>
+                     <span className="font-semibold">${totalCost.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Contracts bought</span>
+                   <div className="flex justify-between text-sm">
+                     <span className="text-muted-foreground">Contracts</span>
                     <span className="font-semibold">
                       {filledQuantity}{totalQuantity && totalQuantity !== filledQuantity && ` / ${totalQuantity}`}
                     </span>
@@ -235,8 +235,8 @@ export function TradeStatusOverlay({
                       <span className="font-semibold">{(avgPrice * 100).toFixed(0)}¢</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm pt-2 border-t border-border/50">
-                    <span className="text-muted-foreground font-medium">If correct, you win</span>
+                   <div className="flex justify-between text-sm pt-2 border-t border-border/50">
+                     <span className="text-muted-foreground font-medium">If correct, you get</span>
                     <span className="font-bold text-success text-base">
                       ${netPayout !== undefined ? netPayout.toFixed(2) : filledQuantity.toFixed(2)}
                     </span>
