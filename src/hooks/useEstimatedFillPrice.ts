@@ -22,12 +22,10 @@ export function useEstimatedFillPrice(marketId: string) {
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
-    // Fetch aggregated order book AND user's own pending orders in parallel
+    // Fetch aggregated order book (via RPC to bypass RLS) AND user's own pending orders in parallel
     const [aggregatedResult, ownOrdersResult] = await Promise.all([
       supabase
-        .from('order_book_aggregated')
-        .select('side, price, total_quantity')
-        .eq('market_id', marketId),
+        .rpc('get_order_book_aggregated', { market_ids: [marketId] }),
       // Fetch user's own pending/partial orders to subtract from liquidity
       user?.id
         ? supabase
