@@ -230,7 +230,7 @@ const RapidPred = () => {
         } else {
           toast({
             title: "🎉 Prediction placed!",
-            description: `${side.toUpperCase()} — Potential win: $${maxWin.toFixed(2)}`,
+            description: `${side.toUpperCase()} — Potential win: ${maxWin.toFixed(2)} tokens`,
           });
         }
       } else if (response.data?.noLiquidity) {
@@ -317,10 +317,10 @@ const RapidPred = () => {
     );
   }
 
-  // Correct payout calculation: shares = stake / price, payout = shares * $1
+  // Correct payout calculation: contracts = stake / price, payout = contracts * 1 token
   const yesShares = stakeAmount / currentMarket.yesPrice;
   const noShares = stakeAmount / currentMarket.noPrice;
-  const yesTotal = yesShares; // Each share pays $1 if correct
+  const yesTotal = yesShares; // Each contract pays 1 token if correct
   const noTotal = noShares;
   const yesProfit = yesTotal - stakeAmount;
   const noProfit = noTotal - stakeAmount;
@@ -341,7 +341,7 @@ const RapidPred = () => {
             <div className="flex items-center gap-2">
               {isAuthenticated && (
                 <Badge variant="secondary" className="text-sm py-1.5 px-3">
-                  ${profile?.balance.toFixed(2) || "0.00"}
+                  {profile?.balance.toFixed(2) || "0.00"} tokens
                 </Badge>
               )}
               <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -379,8 +379,8 @@ const RapidPred = () => {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium line-clamp-2">{trade.marketQuestion}</p>
                                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                                  <span>Risk: ${trade.risk?.toFixed(2)}</span>
-                                  <span className="text-green-500">Win: ${trade.maxWin?.toFixed(2)}</span>
+                                  <span>Risk: {trade.risk?.toFixed(2)} tokens</span>
+                                  <span className="text-green-500">Win: {trade.maxWin?.toFixed(2)} tokens</span>
                                 </div>
                               </div>
                             </div>
@@ -409,7 +409,7 @@ const RapidPred = () => {
                 )}
                 <div className="flex-1">
                   <p className="font-medium text-sm">Prediction placed!</p>
-                  <p className="text-xs text-muted-foreground">Potential win: ${lastTrade.maxWin.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">Potential win: {lastTrade.maxWin.toFixed(2)} tokens</p>
                 </div>
               </div>
             </div>
@@ -452,7 +452,7 @@ const RapidPred = () => {
                         : "bg-muted hover:bg-muted/80 text-foreground"
                     }`}
                   >
-                    ${amount}
+                    {amount}
                   </button>
                 ))}
               </div>
@@ -475,9 +475,9 @@ const RapidPred = () => {
                       <span className="text-lg font-bold">YES</span>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-black">Get ${yesTotal.toFixed(2)}</p>
+                      <p className="text-2xl font-black">Get {yesTotal.toFixed(2)} tokens</p>
                       <p className="text-xs opacity-80 mt-0.5">{formatOdds(currentMarket.yesPrice)} odds</p>
-                      <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
+                      <p className="text-sm opacity-90 mt-1">Risk {stakeAmount} tokens</p>
                     </div>
                   </>
                 )}
@@ -498,9 +498,9 @@ const RapidPred = () => {
                       <span className="text-lg font-bold">NO</span>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-black">Get ${noTotal.toFixed(2)}</p>
+                      <p className="text-2xl font-black">Get {noTotal.toFixed(2)} tokens</p>
                       <p className="text-xs opacity-80 mt-0.5">{formatOdds(currentMarket.noPrice)} odds</p>
-                      <p className="text-sm opacity-90 mt-1">Risk ${stakeAmount}</p>
+                      <p className="text-sm opacity-90 mt-1">Risk {stakeAmount} tokens</p>
                     </div>
                   </>
                 )}
@@ -518,7 +518,7 @@ const RapidPred = () => {
                 <CollapsibleContent className="pt-3 space-y-2 text-sm animate-in slide-in-from-top-2">
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">Volume</span>
-                    <span className="font-medium">${currentMarket.volume.toLocaleString()}</span>
+                    <span className="font-medium">{currentMarket.volume.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between p-3 rounded-xl bg-muted/50">
                     <span className="text-muted-foreground">Expires</span>
