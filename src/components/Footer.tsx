@@ -7,17 +7,17 @@ const Footer = () => {
           <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 text-center">
             <p className="text-sm text-accent font-medium mb-1">🚀 Beta Release</p>
             <p className="text-sm text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              CricMaxx is currently in beta. We are in the process of obtaining CFTC regulatory approval. 
-              These are fixed-payout event contracts, not gambling.
+              CricMaxx is currently in beta for the Cricket World Cup 2026. All participants operate under 
+              a gentleman's agreement to settle balances after the tournament concludes.
             </p>
           </div>
 
           {/* Legal Disclaimer */}
           <div className="text-center">
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              CricMaxx is working toward CFTC compliance for all event contracts. 
-              Event contracts pay $1.00 if correct, $0.00 if incorrect. Trading involves substantial risk. 
-              Only trade with funds you can afford to lose.
+              Contracts are worth $1.00 if correct, $0.00 if incorrect. Trading involves risk. 
+              Only trade with amounts you're comfortable settling. All balances are settled between participants 
+              after the World Cup 2026 under a gentleman's agreement.
             </p>
           </div>
           
@@ -52,7 +52,7 @@ const Footer = () => {
           {/* Copyright */}
           <div className="pt-4 border-t border-border text-center">
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} CricMaxx. All rights reserved. CFTC compliance in progress.
+              © {new Date().getFullYear()} CricMaxx. All rights reserved.
             </p>
           </div>
         </div>

@@ -24,17 +24,17 @@ const FAQ = () => {
         {
           id: "what-is-cricmaxx",
           q: "What is CricMaxx?",
-          a: "CricMaxx is a federally-regulated prediction market platform where you can trade on the outcomes of cricket events. You buy shares that pay $1.00 if your prediction is correct and $0.00 if incorrect. It's regulated by the U.S. Commodity Futures Trading Commission (CFTC) as event contracts, not gambling."
+          a: "CricMaxx is a prediction market platform for the Cricket World Cup 2026. You trade on the outcomes of cricket events by buying contracts. If your prediction is correct, each contract is worth $1.00; if incorrect, it's worth $0.00. All participants settle their balances under a gentleman's agreement after the tournament ends."
         },
         {
           id: "create-account",
           q: "How do I create an account?",
-          a: "Click 'Sign Up' in the top navigation, enter your email and create a password. You'll receive a verification email to confirm your account. Once verified, you can start exploring markets and add tokens to begin trading."
+          a: "Click 'Sign Up' in the top navigation, enter your email and create a password. You'll receive a verification email to confirm your account. Once verified, you can start exploring markets and deposit tokens to begin trading."
         },
         {
           id: "what-are-tokens",
           q: "What are CricMaxx Tokens?",
-          a: "CricMaxx Tokens are the currency used on our platform. Each token equals $1.00 USD. You use tokens as collateral to take positions in prediction markets. When markets resolve, your tokens are returned based on the outcome—either your original stake plus profit, or $0.00 if your prediction was incorrect."
+          a: "CricMaxx Tokens are the internal currency used on our platform. Each token represents $1.00 USD. You use tokens to take positions in prediction markets. All participants operate under a gentleman's agreement to settle their balances after the World Cup 2026 concludes."
         },
       ]
     },
@@ -45,22 +45,22 @@ const FAQ = () => {
         {
           id: "prediction-markets",
           q: "How do prediction markets work?",
-          a: "Prediction markets let you trade on the probability of future events. Each market asks a yes/no question (e.g., 'Will India score 300+ runs?'). You buy YES or NO shares at a price between $0.01 and $0.99. If you're right, each share pays $1.00. If wrong, it pays $0.00. The market price reflects the crowd's estimated probability of the event happening."
+          a: "Prediction markets let you trade on the probability of future events. Each market asks a yes/no question (e.g., 'Will India score 300+ runs?'). You buy YES or NO contracts at a price between $0.01 and $0.99. If you're right, each contract is worth $1.00. If wrong, it's worth $0.00. The market price reflects the crowd's estimated probability of the event happening."
         },
         {
           id: "price-meaning",
           q: "What does the price mean?",
-          a: "The price represents both the cost per share and the implied probability. A YES price of $0.65 means: (1) you pay $0.65 per share, (2) if correct, you receive $1.00 (profit of $0.35), (3) the market estimates a 65% chance the event happens. Lower prices mean higher potential returns but lower probability."
+          a: "The price represents both the cost per contract and the implied probability. A YES price of $0.65 means: (1) you pay $0.65 per contract, (2) if correct, the contract is worth $1.00 (profit of $0.35), (3) the market estimates a 65% chance the event happens. Lower prices mean higher potential returns but lower probability."
         },
         {
           id: "quick-predict",
           q: "What is Quick Predict?",
-          a: "Quick Predict is our fastest way to trade. Simply choose your stake amount ($5, $10, $25, or $50), tap YES or NO, and your order executes instantly at the current market price. It's designed for speed—perfect for live cricket markets where prices move quickly."
+          a: "Quick Predict is our fastest way to trade. Simply choose your stake amount, tap YES or NO, and your order executes instantly at the current market price. It's designed for speed—perfect for live cricket markets where prices move quickly."
         },
         {
           id: "quick-predict-how",
           q: "How does Quick Predict work?",
-          a: "When you use Quick Predict: (1) Select your investment amount, (2) The system shows you exactly how many shares you'll get and your potential payout, (3) Tap YES or NO to execute immediately, (4) Your order matches against existing orders in the order book at the best available prices. If there's enough liquidity, your order fills instantly."
+          a: "When you use Quick Predict: (1) Select your investment amount, (2) The system shows you how many contracts you'll get and your potential return, (3) Tap YES or NO to execute immediately, (4) Your order matches against existing orders in the order book at the best available prices. If there's enough liquidity, your order fills instantly."
         },
         {
           id: "set-your-price",
@@ -90,7 +90,7 @@ const FAQ = () => {
         {
           id: "cancel-prediction",
           q: "Can I cancel my prediction?",
-          a: "You can cancel unfilled limit orders anytime. Go to the market page, find your pending order in the 'Your Position' section, and tap 'Cancel Order'. Your tokens are immediately returned to your available balance. Note: You cannot cancel orders that have already been filled—those become open positions."
+          a: "You can cancel unfilled limit orders anytime. Go to the market page, find your pending order in the 'Your Position' section, and tap 'Cancel Order'. Your tokens are returned to your available balance. Note: You cannot cancel orders that have already been filled—those become open positions."
         },
         {
           id: "sell-position",
@@ -131,22 +131,22 @@ const FAQ = () => {
         {
           id: "market-resolves",
           q: "What happens when a market resolves?",
-          a: "When the event outcome is determined, we resolve the market using official data sources. If you held YES shares and the event happened, each share pays $1.00. If it didn't happen, YES shares pay $0.00 (and NO shares pay $1.00). Payouts are automatically credited to your token balance."
+          a: "When the event outcome is determined, the market is resolved using official data sources. If you held YES contracts and the event happened, each contract is worth $1.00. If it didn't happen, YES contracts are worth $0.00 (and NO contracts are worth $1.00). Your token balance is updated accordingly. Final settlement between participants happens after the World Cup 2026 under the gentleman's agreement."
         },
         {
           id: "payout-calculation",
-          q: "How is my payout calculated?",
-          a: "Payout = Number of Shares × $1.00 (if correct) or $0.00 (if incorrect). Your profit is the payout minus what you paid. Example: You buy 10 YES shares at $0.40 each (cost: $4.00). If YES wins, you receive $10.00 (profit: $6.00). If NO wins, you receive $0.00 (loss: $4.00)."
+          q: "How is my return calculated?",
+          a: "Return = Number of Contracts × $1.00 (if correct) or $0.00 (if incorrect). Your profit is the return minus what you paid. Example: You buy 10 YES contracts at $0.40 each (cost: $4.00). If YES wins, they're worth $10.00 (profit: $6.00). If NO wins, they're worth $0.00 (loss: $4.00). All balances are settled between participants after the tournament."
         },
         {
           id: "wrong-prediction",
           q: "What if I predicted wrong?",
-          a: "If your prediction is incorrect, your shares expire worthless ($0.00 payout). This is the risk of prediction markets—you can lose your entire stake on a position. We recommend only trading with amounts you can afford to lose and diversifying across multiple markets."
+          a: "If your prediction is incorrect, your contracts are worth $0.00. This is the risk of prediction markets—you can lose your entire stake on a position. We recommend only trading with amounts you're comfortable settling and diversifying across multiple markets."
         },
         {
           id: "exact-outcome",
           q: "What if the prediction doesn't happen exactly as stated?",
-          a: "Predictions must happen exactly as stated for YES to win. If the event doesn't occur precisely as described in the market question, the market resolves to NO. For example, if a market asks 'Will Player X score 50+ runs?' and they score 49, the outcome is NO. There's no partial credit—it's binary. Always read the full market question and resolution rules carefully before trading."
+          a: "Predictions must happen exactly as stated for YES to win. If the event doesn't occur precisely as described, the market resolves to NO. For example, if a market asks 'Will Player X score 50+ runs?' and they score 49, the outcome is NO. There's no partial credit—it's binary. Always read the full market question and resolution rules carefully before trading."
         },
       ]
     },
@@ -156,13 +156,13 @@ const FAQ = () => {
       questions: [
         {
           id: "buy-tokens",
-          q: "How do I buy tokens?",
-          a: "Go to your Wallet and tap 'Buy Tokens'. Select a preset amount ($10, $25, $50, $100) or enter a custom amount. Complete payment via credit card or linked bank account. Tokens are credited instantly after successful payment."
+          q: "How do I deposit tokens?",
+          a: "Go to your Wallet and tap 'Deposit Tokens'. Enter the amount you'd like to add to your balance. By depositing, you agree to the gentleman's agreement: 1 CricMaxx Token = $1 USD, and all participants settle their balances after the World Cup 2026 concludes."
         },
         {
-          id: "redeem-tokens",
-          q: "How do I redeem tokens?",
-          a: "Go to your Wallet and tap 'Request Redemption'. Enter the amount you wish to redeem (minimum $10). Tokens must be available (not committed to open positions). Redemptions are processed within 2-5 business days and transferred to your linked bank account, subject to verification."
+          id: "settlement",
+          q: "How does settlement work?",
+          a: "All participants operate under a gentleman's agreement. After the World Cup 2026 ends, final token balances are tallied. Participants who owe settle their debts with those who profited. There is no centralized payment processing—settlement is handled directly between participants based on trust and mutual agreement."
         },
         {
           id: "in-play",
@@ -172,7 +172,7 @@ const FAQ = () => {
         {
           id: "cant-use-tokens",
           q: "Why can't I use all my tokens?",
-          a: "Your tradeable balance is your Available tokens, not your total balance. Tokens 'In Play' are locked in active positions or pending orders. To free up tokens: sell existing positions, cancel pending limit orders, or wait for markets to resolve."
+          a: "Your tradeable balance is your Available tokens, not your total balance. Tokens 'In Play' are committed to active positions or pending orders. To free up tokens: sell existing positions, cancel pending limit orders, or wait for markets to resolve."
         },
       ]
     },
@@ -196,9 +196,9 @@ const FAQ = () => {
           a: "Tap the Settings (gear) icon in the top right corner. Use the slider or quick-select buttons ($5, $10, $25, $50, $100) to set your preferred stake. Tap 'Save Preference' to remember it for future sessions."
         },
         {
-          id: "rapidpred-payout",
-          q: "How are payouts calculated in RapidPred?",
-          a: "Same as regular trading! If your prediction is correct, each share pays $1.00. Your potential profit is shown on each card. Example: If YES is 40¢ and you stake $10, you'd get ~25 shares. If YES wins, you receive $25 (profit: $15). If NO wins, you lose your $10 stake."
+          id: "rapidpred-returns",
+          q: "How are returns calculated in RapidPred?",
+          a: "Same as regular trading! If your prediction is correct, each contract is worth $1.00. Your potential profit is shown on each card. Example: If YES is 40¢ and you stake $10, you'd get ~25 contracts. If YES wins, they're worth $25 (profit: $15). If NO wins, they're worth $0 (loss: $10). All balances settle after the World Cup."
         },
         {
           id: "rapidpred-exact",
@@ -214,12 +214,12 @@ const FAQ = () => {
         {
           id: "fees",
           q: "What fees does CricMaxx charge?",
-          a: "CricMaxx charges a 3% platform fee on trades, deducted at the time of the trade. Market creators earn a 2% commission on volume in their markets. There are no deposit fees. Redemption fees may apply for expedited processing. All fees are transparently displayed before you confirm any transaction."
+          a: "CricMaxx charges a 3% platform fee on trades, deducted at the time of the trade. Market creators earn a 2% commission on volume in their markets. All fees are transparently displayed before you confirm any transaction."
         },
         {
           id: "gambling",
           q: "Is this gambling?",
-          a: "No. CricMaxx operates as a CFTC-regulated prediction market offering event contracts. These are federally-approved financial instruments, not gambling. Event contracts are classified as commodity swaps and operate under strict regulatory oversight. The key difference: prediction markets aggregate information and reflect real probabilities, serving an economic purpose beyond entertainment."
+          a: "No. CricMaxx is a prediction market platform where participants trade on event outcomes using a gentleman's agreement. Contracts are worth $1.00 if correct and $0.00 if incorrect. All balances are settled between participants after the World Cup 2026 concludes. It's a skill-based forecasting activity, not gambling."
         },
       ]
     },
