@@ -388,16 +388,16 @@ export default function MobileSwipePreds() {
 
                 {/* Odds Display */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-center">
+                  <div className="bg-success/10 border border-success/30 rounded-xl p-3 text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Yes</p>
-                    <p className="text-2xl font-black text-green-500">
-                      {(currentMarket.yesPrice * 100).toFixed(0)}¢
+                    <p className="text-2xl font-black text-success">
+                      {Math.round(currentMarket.yesPrice * 100)}¢
                     </p>
                   </div>
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center">
+                  <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center">
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">No</p>
-                    <p className="text-2xl font-black text-red-500">
-                      {(currentMarket.noPrice * 100).toFixed(0)}¢
+                    <p className="text-2xl font-black text-destructive">
+                      {100 - Math.round(currentMarket.yesPrice * 100)}¢
                     </p>
                   </div>
                 </div>

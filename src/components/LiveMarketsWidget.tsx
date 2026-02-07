@@ -232,14 +232,14 @@ export default function LiveMarketsWidget() {
                   <div className="flex gap-2">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground">Yes</p>
-                      <p className="text-base font-bold text-green-500">
-                        {(market.yesPrice * 100).toFixed(0)}¢
+                      <p className="text-base font-bold text-success">
+                        {Math.round(market.yesPrice * 100)}¢
                       </p>
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground">No</p>
-                      <p className="text-base font-bold text-red-500">
-                        {(market.noPrice * 100).toFixed(0)}¢
+                      <p className="text-base font-bold text-destructive">
+                        {100 - Math.round(market.yesPrice * 100)}¢
                       </p>
                     </div>
                   </div>

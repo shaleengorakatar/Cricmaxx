@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
-import { useTradingPreferences } from "@/hooks/useTradingPreferences";
 import { Sparkline } from "@/components/ui/sparkline";
 
 export interface UserPosition {
@@ -27,7 +26,6 @@ interface MarketCardProps {
 
 const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
-  const { formatOdds } = useTradingPreferences();
   
   const expiryDate = new Date(market.expiryTime);
   const timeToExpiry = expiryDate.getTime() - Date.now();
@@ -53,6 +51,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
   const noPrice = Number(market.noPrice) || 0.5;
   const yesPayout = (10 / yesPrice).toFixed(2);
   const noPayout = (10 / noPrice).toFixed(2);
+
+  // Ensure displayed cents always sum to 100
+  const yesCents = Math.round(yesPrice * 100);
+  const noCents = 100 - yesCents;
 
   // Extract price history for sparkline
   const priceData = market.price_history?.map((p: any) => p.y) || [];
@@ -167,10 +169,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           <div className="price-yes group/price">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-muted-foreground">Yes</span>
-              <span className="text-xs font-bold text-success">{formatOdds(market.yesPrice)}</span>
+              <span className="text-xs font-bold text-success">{yesCents}¢</span>
             </div>
             <p className="text-2xl font-bold text-success">
-              {((Number(market.yesPrice) || 0) * 100).toFixed(0)}¢
+              {yesCents}¢
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               10 → <span className="font-semibold text-success">{yesPayout} tokens</span>
@@ -181,10 +183,10 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           <div className="price-no group/price">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium text-muted-foreground">No</span>
-              <span className="text-xs font-bold text-destructive">{formatOdds(market.noPrice)}</span>
+              <span className="text-xs font-bold text-destructive">{noCents}¢</span>
             </div>
             <p className="text-2xl font-bold text-destructive">
-              {((Number(market.noPrice) || 0) * 100).toFixed(0)}¢
+              {noCents}¢
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               10 → <span className="font-semibold text-destructive">{noPayout} tokens</span>

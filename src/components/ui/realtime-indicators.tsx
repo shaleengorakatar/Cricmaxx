@@ -40,23 +40,27 @@ interface LivePriceProps {
   previousPrice?: number;
   className?: string;
   showAnimation?: boolean;
+  /** Override displayed cents value (for paired rounding) */
+  displayCents?: number;
 }
 
-export function LivePrice({ price, previousPrice, className, showAnimation = true }: LivePriceProps) {
+export function LivePrice({ price, previousPrice, className, showAnimation = true, displayCents }: LivePriceProps) {
   const hasChanged = previousPrice !== undefined && previousPrice !== price;
   const isUp = previousPrice !== undefined && price > previousPrice;
   const isDown = previousPrice !== undefined && price < previousPrice;
+
+  const cents = displayCents !== undefined ? displayCents : Math.round(price * 100);
 
   return (
     <span 
       className={cn(
         "font-mono transition-colors duration-300",
-        showAnimation && hasChanged && isUp && "text-green-600 dark:text-green-400",
-        showAnimation && hasChanged && isDown && "text-red-600 dark:text-red-400",
+        showAnimation && hasChanged && isUp && "text-success",
+        showAnimation && hasChanged && isDown && "text-destructive",
         className
       )}
     >
-      {(price * 100).toFixed(0)}¢
+      {cents}¢
     </span>
   );
 }
