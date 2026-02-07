@@ -12,6 +12,10 @@ interface TradeStatusOverlayProps {
   totalQuantity?: number;
   avgPrice?: number;
   error?: string;
+  totalCost?: number;
+  netPayout?: number;
+  netProfit?: number;
+  effectiveOdds?: number;
   onComplete?: () => void;
 }
 
@@ -91,6 +95,10 @@ export function TradeStatusOverlay({
   totalQuantity,
   avgPrice,
   error,
+  totalCost,
+  netPayout,
+  netProfit,
+  effectiveOdds,
   onComplete
 }: TradeStatusOverlayProps) {
   const [progress, setProgress] = useState(0);
@@ -203,22 +211,40 @@ export function TradeStatusOverlay({
                   animate={{ opacity: 1, y: 0 }}
                   className="w-full p-4 rounded-xl bg-background/50 space-y-2"
                 >
+                  {totalCost !== undefined && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">You invested</span>
+                      <span className="font-semibold">${totalCost.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Shares filled</span>
+                    <span className="text-muted-foreground">Contracts bought</span>
                     <span className="font-semibold">
                       {filledQuantity}{totalQuantity && totalQuantity !== filledQuantity && ` / ${totalQuantity}`}
                     </span>
                   </div>
+                  {effectiveOdds !== undefined && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Effective odds</span>
+                      <span className="font-semibold">{effectiveOdds.toFixed(0)}%</span>
+                    </div>
+                  )}
                   {avgPrice !== undefined && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Avg. price</span>
                       <span className="font-semibold">{(avgPrice * 100).toFixed(0)}¢</span>
                     </div>
                   )}
-                  {filledQuantity > 0 && (
-                    <div className="flex justify-between text-sm pt-2 border-t border-border/50">
-                      <span className="text-muted-foreground">If correct, you get</span>
-                      <span className="font-bold text-success">${filledQuantity.toFixed(2)}</span>
+                  <div className="flex justify-between text-sm pt-2 border-t border-border/50">
+                    <span className="text-muted-foreground font-medium">If correct, you win</span>
+                    <span className="font-bold text-success text-base">
+                      ${netPayout !== undefined ? netPayout.toFixed(2) : filledQuantity.toFixed(2)}
+                    </span>
+                  </div>
+                  {netProfit !== undefined && netProfit > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Net profit</span>
+                      <span className="font-bold text-success">+${netProfit.toFixed(2)}</span>
                     </div>
                   )}
                 </motion.div>

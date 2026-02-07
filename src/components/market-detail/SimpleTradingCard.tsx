@@ -66,6 +66,10 @@ const SimpleTradingCard = ({
     totalQuantity?: number;
     avgPrice?: number;
     error?: string;
+    totalCost?: number;
+    netPayout?: number;
+    netProfit?: number;
+    effectiveOdds?: number;
   }>({});
   
   const { 
@@ -146,6 +150,7 @@ const SimpleTradingCard = ({
           orderType: "market",
           quantity: stakeAmount,
           price,
+          maxBudget: stakeAmount, // Budget mode: spend up to $stakeAmount
         },
       });
 
@@ -170,7 +175,7 @@ const SimpleTradingCard = ({
       const orderData = response.data?.order;
       const filledQty = orderData?.filledQuantity || orderData?.filled_quantity || 0;
       const fillPrice = orderData?.avgFillPrice || orderData?.avg_fill_price || price;
-      const shares = filledQty > 0 ? filledQty : stakeAmount / fillPrice;
+      const position = orderData?.position;
       
       // Show filling state briefly
       setTradeStatus('filling');
@@ -191,8 +196,12 @@ const SimpleTradingCard = ({
       setTradeResult({
         side,
         filledQuantity: filledQty,
-        totalQuantity: Math.round(stakeAmount / fillPrice),
+        totalQuantity: filledQty,
         avgPrice: fillPrice,
+        totalCost: position?.totalCost,
+        netPayout: position?.netPayout,
+        netProfit: position?.netProfit,
+        effectiveOdds: position?.effectiveOdds,
       });
       
       const isPartial = filledQty < Math.round(stakeAmount / fillPrice) * 0.9;
@@ -300,6 +309,10 @@ const SimpleTradingCard = ({
         totalQuantity={tradeResult.totalQuantity}
         avgPrice={tradeResult.avgPrice}
         error={tradeResult.error}
+        totalCost={tradeResult.totalCost}
+        netPayout={tradeResult.netPayout}
+        netProfit={tradeResult.netProfit}
+        effectiveOdds={tradeResult.effectiveOdds}
         onComplete={handleTradeStatusComplete}
       />
       
