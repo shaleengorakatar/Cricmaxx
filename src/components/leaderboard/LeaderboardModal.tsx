@@ -3,11 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, Users, TrendingUp, TrendingDown, Minus, Eye, EyeOff } from "lucide-react";
 import UserRatingModal from "@/components/leaderboard/UserRatingModal";
@@ -36,14 +35,12 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
   const [selectedUser, setSelectedUser] = useState<LeaderboardUser | null>(null);
   const [localShowOnLeaderboard, setLocalShowOnLeaderboard] = useState(profile?.show_on_leaderboard ?? true);
 
-  // Sync local state with profile when it changes
   useEffect(() => {
     if (profile) {
       setLocalShowOnLeaderboard(profile.show_on_leaderboard ?? true);
     }
   }, [profile?.show_on_leaderboard]);
 
-  // Privacy toggle mutation
   const privacyMutation = useMutation({
     mutationFn: async (showOnLeaderboard: boolean) => {
       if (!user) throw new Error('Not authenticated');
@@ -55,7 +52,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
       return showOnLeaderboard;
     },
     onMutate: async (showOnLeaderboard) => {
-      // Optimistically update local state
       setLocalShowOnLeaderboard(showOnLeaderboard);
     },
     onSuccess: (showOnLeaderboard) => {
@@ -68,7 +64,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
       });
     },
     onError: (_, showOnLeaderboard) => {
-      // Revert on error
       setLocalShowOnLeaderboard(!showOnLeaderboard);
       toast({
         title: "Update failed",
@@ -78,75 +73,62 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
     },
   });
 
-  // Fetch global leaderboard from secure view (no email exposure)
+  // Fetch global leaderboard using SECURITY DEFINER RPC function (bypasses RLS)
   const { data: globalLeaderboard, isLoading: globalLoading } = useQuery({
     queryKey: ['leaderboard', 'global'],
     queryFn: async () => {
-      // Use the secure leaderboard_profiles view that only exposes non-sensitive data
-      const { data, error } = await supabase
-        .from('leaderboard_profiles' as any)
-        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct')
-        .order('rating_score', { ascending: false })
-        .limit(20);
-
+      const { data, error } = await supabase.rpc('get_leaderboard_cached', { _limit: 50 });
       if (error) throw error;
-      return data as unknown as LeaderboardUser[];
+      // RPC returns jsonb array
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      return (parsed || []) as LeaderboardUser[];
     },
     enabled: isOpen,
   });
 
-  // Fetch user's rank if not in top 20
-  const { data: userRank } = useQuery({
-    queryKey: ['leaderboard', 'userRank', user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      
-      // Use the secure leaderboard_profiles view
-      const { data, error } = await supabase
-        .from('leaderboard_profiles' as any)
-        .select('id, rating_score')
-        .order('rating_score', { ascending: false });
+  // Fetch user's rank
+  const userRank = globalLeaderboard?.findIndex(u => u.id === user?.id);
+  const userRankDisplay = userRank !== undefined && userRank >= 0 ? userRank + 1 : null;
 
-      if (error) throw error;
-      
-      const profiles = data as unknown as { id: string; rating_score: number }[];
-      const rank = profiles.findIndex(p => p.id === user.id) + 1;
-      return rank > 0 ? rank : null;
-    },
-    enabled: !!user && isOpen,
-  });
-
-  // Fetch friends leaderboard using secure friend_profiles view
+  // Fetch friends leaderboard: get friend IDs then filter global data
   const { data: friendsLeaderboard, isLoading: friendsLoading } = useQuery({
     queryKey: ['leaderboard', 'friends', user?.id],
     queryFn: async () => {
       if (!user) return [];
 
-      // Use the secure friend_profiles view that only exposes non-sensitive data
-      const { data: friendProfiles, error: friendError } = await supabase
-        .from('friend_profiles' as any)
-        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct, share_trades_with_friends')
-        .order('rating_score', { ascending: false });
+      // Get friend IDs from friendships (user has RLS access to their own friendships)
+      const { data: friendships, error: friendError } = await supabase
+        .from('friendships')
+        .select('friend_id')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
 
       if (friendError) throw friendError;
+      const friendIds = new Set(friendships?.map(f => f.friend_id) || []);
+      friendIds.add(user.id); // Include self
 
-      // Also include current user's profile (they can see their own full data)
-      const { data: ownProfile } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url, rating_score, predictions_total, predictions_correct, show_on_leaderboard')
-        .eq('id', user.id)
-        .single();
-
-      // Combine and deduplicate - cast to any to avoid type issues with view
-      const allProfiles: any[] = [...((friendProfiles as any[]) || [])];
-      if (ownProfile && !allProfiles.find((p: any) => p.id === ownProfile.id)) {
-        allProfiles.push(ownProfile);
+      // Get all leaderboard data and filter to friends
+      const { data, error } = await supabase.rpc('get_leaderboard_cached', { _limit: 50 });
+      if (error) throw error;
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      
+      // Filter to only friends + self
+      const friendsOnly = (parsed || []).filter((u: LeaderboardUser) => friendIds.has(u.id));
+      
+      // If current user is not in the leaderboard (no predictions yet), add them
+      if (profile && !friendsOnly.find((u: LeaderboardUser) => u.id === user.id)) {
+        friendsOnly.push({
+          id: user.id,
+          username: profile.username,
+          display_name: profile.display_name || profile.name,
+          avatar_url: profile.avatar_url,
+          rating_score: profile.rating_score || 1000,
+          predictions_total: profile.predictions_total || 0,
+          predictions_correct: profile.predictions_correct || 0,
+        });
       }
 
-      // Sort by rating and limit
-      return allProfiles
-        .sort((a, b) => b.rating_score - a.rating_score)
-        .slice(0, 20) as LeaderboardUser[];
+      return friendsOnly.sort((a: LeaderboardUser, b: LeaderboardUser) => b.rating_score - a.rating_score) as LeaderboardUser[];
     },
     enabled: !!user && viewMode === 'friends' && isOpen,
   });
@@ -187,7 +169,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto space-y-4">
-            {/* View Mode Toggle */}
             {user && (
               <div className="flex gap-2">
                 <Button
@@ -210,7 +191,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
               </div>
             )}
 
-            {/* User's current rating with privacy toggle */}
             {profile && (
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="py-3">
@@ -222,8 +202,8 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
                       </Avatar>
                       <div className="min-w-0">
                         <p className="font-medium text-foreground text-sm truncate">{profile.display_name || profile.name}</p>
-                        {userRank && !isUserInTop20 && (
-                          <p className="text-xs text-muted-foreground">Rank #{userRank}</p>
+                        {userRankDisplay && !isUserInTop20 && (
+                          <p className="text-xs text-muted-foreground">Rank #{userRankDisplay}</p>
                         )}
                       </div>
                     </div>
@@ -248,7 +228,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
               </Card>
             )}
 
-            {/* Leaderboard */}
             <div className="space-y-1">
               {isLoading ? (
                 <div className="space-y-2">
@@ -319,7 +298,6 @@ const LeaderboardModal = ({ isOpen, onClose }: LeaderboardModalProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* User Rating Modal */}
       {selectedUser && (
         <UserRatingModal
           user={selectedUser}

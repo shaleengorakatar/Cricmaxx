@@ -152,19 +152,22 @@ serve(async (req) => {
       const currentBalance = profile?.balance || 0;
       const newBalance = currentBalance + payout;
 
-      // Calculate rating change (skip for void outcomes)
+      // Calculate rating change based on actual profit/loss
+      // Win: +10 × profit, Loss: -5 × |loss|
       let newRating = profile?.rating_score || 1000;
       let newTotal = profile?.predictions_total || 0;
       let newCorrect = profile?.predictions_correct || 0;
+      let ratingChange = 0;
 
       if (outcome !== 'void') {
         newTotal += 1;
         if (isCorrect) {
-          newRating += 100; // +100 for correct prediction
+          ratingChange = Math.round(10 * pnl); // +10 × profit
           newCorrect += 1;
         } else {
-          newRating -= 50; // -50 for incorrect prediction
+          ratingChange = -Math.round(5 * Math.abs(pnl)); // -5 × |loss|
         }
+        newRating += ratingChange;
         newRating = Math.max(0, newRating);
       }
 
@@ -186,7 +189,7 @@ serve(async (req) => {
       if (profileError) {
         console.error(`Failed to update profile for user ${position.user_id}:`, profileError);
       } else {
-        console.log(`Updated user ${position.user_id}: rating ${newRating}, predictions ${newTotal}, correct ${newCorrect}`);
+        console.log(`Updated user ${position.user_id}: rating ${newRating} (${ratingChange >= 0 ? '+' : ''}${ratingChange}), pnl: ${pnl}, predictions ${newTotal}, correct ${newCorrect}`);
       }
 
       // Close position
@@ -215,14 +218,14 @@ serve(async (req) => {
             side: position.side,
             shares: position.size,
             pnl,
-            rating_change: outcome === 'void' ? 0 : (isCorrect ? 100 : -50),
+            rating_change: ratingChange,
             new_rating: newRating,
           },
         });
       }
 
       // Create notification
-      const ratingChangeText = outcome === 'void' ? '' : isCorrect ? ' Rating +100 🔮' : ' Rating -50';
+      const ratingChangeText = outcome === 'void' ? '' : ` Rating ${ratingChange >= 0 ? '+' : ''}${ratingChange} 🔮`;
       notifications.push({
         user_id: position.user_id,
         market_id: marketId,
