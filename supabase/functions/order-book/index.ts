@@ -287,7 +287,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
 
   // Try to match the order with slippage protection for market orders
   const effectiveMaxSlippage = maxSlippage ?? DEFAULT_MAX_SLIPPAGE;
-  const matchResult = await matchOrder(supabase, order, effectiveMaxSlippage);
+  const matchResult = await matchOrder(supabase, order, effectiveMaxSlippage, maxBudget);
 
   // Update market best prices based on order book + pool
   await updateMarketPrices(supabase, marketId);
@@ -351,7 +351,7 @@ async function placeOrder(supabase: any, userId: string, request: PlaceOrderRequ
   });
 }
 
-async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAULT_MAX_SLIPPAGE) {
+async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAULT_MAX_SLIPPAGE, maxBudget?: number) {
   const { id, market_id, user_id, side, order_type, price, quantity } = order;
   
   // Get market info
@@ -460,7 +460,6 @@ async function matchOrder(supabase: any, order: any, maxSlippage: number = DEFAU
 
   // === BUDGET MODE ===
   // When maxBudget is provided, fill contracts up to the dollar budget rather than a fixed contract count
-  const maxBudget = request.maxBudget;
   let remainingBudget = maxBudget || Infinity;
   
   let remainingQuantity = quantity;
