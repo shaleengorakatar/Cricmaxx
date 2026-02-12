@@ -124,16 +124,29 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               className="h-7 w-7"
               onClick={async () => {
                 const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
-                if (navigator.share) {
+                const copyFallback = async () => {
                   try {
-                    await navigator.share({ title: poll.question, text: "Check out this poll on CricMaxx!", url });
-                  } catch (e) {
-                    // User cancelled share — ignore
+                    await navigator.clipboard.writeText(url);
+                  } catch {
+                    const input = document.createElement('input');
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(input);
                   }
-                } else {
-                  navigator.clipboard.writeText(url);
                   toast({ title: "Link copied!", description: "Share this poll with friends." });
+                };
+                try {
+                  const shareData = { title: poll.question, text: "Check out this poll on CricMaxx!", url };
+                  if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+                    await navigator.share(shareData);
+                    return;
+                  }
+                } catch (e: any) {
+                  if (e?.name === 'AbortError') return;
                 }
+                await copyFallback();
               }}
             >
               <Share2 className="h-3.5 w-3.5" />
