@@ -40,6 +40,7 @@ const signInSchema = z.object({
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect');
   const [activeTab, setActiveTab] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
   const [loading, setLoading] = useState(false);
   const [mfaStep, setMfaStep] = useState(false);
@@ -65,32 +66,24 @@ const Auth = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    // Wait for auth to settle before redirecting
     if (authLoading) return;
     
     if (isAuthenticated) {
-      setLoading(false); // Reset loading when redirect happens
-      const redirect = searchParams.get('redirect');
-      if (redirect) {
-        navigate(redirect);
-      } else {
-        navigate('/dashboard');
-      }
+      setLoading(false);
+      navigate(redirectPath || '/dashboard');
     }
-  }, [isAuthenticated, authLoading, navigate, searchParams]);
+  }, [isAuthenticated, authLoading, navigate, redirectPath]);
 
   // Safety timeout - if we're stuck in loading state for too long after sign-in succeeds
   useEffect(() => {
     if (loading && isAuthenticated && !authLoading) {
       const timeout = setTimeout(() => {
-        // Force redirect even if profile hasn't loaded - dashboard will handle it
         setLoading(false);
-        const redirect = searchParams.get('redirect');
-        navigate(redirect || '/dashboard');
-      }, 2000); // 2 second safety timeout
+        navigate(redirectPath || '/dashboard');
+      }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [loading, isAuthenticated, authLoading, navigate, searchParams]);
+  }, [loading, isAuthenticated, authLoading, navigate, redirectPath]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
