@@ -7,6 +7,8 @@ import LiveMarketsWidget from "@/components/LiveMarketsWidget";
 import { FeaturedMarket } from "@/components/markets/FeaturedMarket";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { HowItWorks } from "@/components/HowItWorks";
+import { RecentMarketsSection } from "@/components/RecentMarketsSection";
+import { RecentPollsSection } from "@/components/RecentPollsSection";
 
 const Index = () => {
   return (
@@ -24,6 +26,8 @@ const Index = () => {
           </div>
         </section>
         
+        <RecentMarketsSection />
+        <RecentPollsSection />
         <LiveMarketsWidget />
         {/* SeriesSearchWidget hidden for now */}
       </main>
