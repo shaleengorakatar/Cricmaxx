@@ -136,26 +136,26 @@ const PredictionPolls = () => {
           <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          <div className="flex items-center justify-between mb-6">
-            <div>
+          <div className="mb-6">
+            <div className="flex items-center justify-between gap-2">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
-                <BarChart3 className="h-6 w-6 text-accent" />
+                <BarChart3 className="h-6 w-6 text-accent shrink-0" />
                 Prediction Polls
               </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Vote on match outcomes with tokens – winners split the pool!
-              </p>
+              {user && (
+                <div className="flex gap-2 shrink-0">
+                  <Button variant="outline" size="sm" onClick={() => setShowLeaderboard(true)}>
+                    <Trophy className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Leaderboard</span><span className="sm:hidden">Board</span>
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
+                    <Plus className="h-4 w-4 mr-1" /> Create
+                  </Button>
+                </div>
+              )}
             </div>
-            {user && (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowLeaderboard(true)}>
-                  <Trophy className="h-4 w-4 mr-1" /> Leaderboard
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
-                  <Plus className="h-4 w-4 mr-1" /> Create
-                </Button>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground mt-1">
+              Vote on match outcomes with tokens – winners split the pool!
+            </p>
           </div>
 
           <div className="bg-muted/50 rounded-lg p-3 mb-6 text-xs text-muted-foreground space-y-1">
