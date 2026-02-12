@@ -895,6 +895,77 @@ export type Database = {
           },
         ]
       }
+      poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          option_text: string
+          poll_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_text: string
+          poll_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_text?: string
+          poll_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           closed_at: string | null
@@ -982,6 +1053,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      prediction_polls: {
+        Row: {
+          closes_at: string
+          created_at: string
+          created_by: string
+          id: string
+          question: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          total_pool: number
+          updated_at: string
+          winning_option_id: string | null
+        }
+        Insert: {
+          closes_at: string
+          created_at?: string
+          created_by: string
+          id?: string
+          question: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          total_pool?: number
+          updated_at?: string
+          winning_option_id?: string | null
+        }
+        Update: {
+          closes_at?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          question?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          total_pool?: number
+          updated_at?: string
+          winning_option_id?: string | null
+        }
+        Relationships: []
       }
       price_alerts: {
         Row: {
@@ -1684,6 +1797,14 @@ export type Database = {
       }
       refresh_leaderboard: { Args: never; Returns: undefined }
       refresh_market_stats: { Args: never; Returns: undefined }
+      resolve_poll: {
+        Args: {
+          _admin_id: string
+          _poll_id: string
+          _winning_option_id: string
+        }
+        Returns: Json
+      }
       update_creator_tier: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
