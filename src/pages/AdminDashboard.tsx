@@ -14,6 +14,7 @@ import LiquiditySeedingPanel from "@/components/admin/LiquiditySeedingPanel";
 import LoadTestPanel from "@/components/admin/LoadTestPanel";
 import PredictionsOverviewPanel from "@/components/admin/PredictionsOverviewPanel";
 import PollResolutionPanel from "@/components/admin/PollResolutionPanel";
+import ContestManagementPanel from "@/components/admin/ContestManagementPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,6 +85,9 @@ const AdminDashboard = () => {
                 <TabsTrigger value="polls" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Polls
                 </TabsTrigger>
+                <TabsTrigger value="contests" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Contests
+                </TabsTrigger>
                 <TabsTrigger value="approvals" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Approvals
                 </TabsTrigger>
@@ -120,6 +124,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="polls">
               <PollResolutionPanel />
+            </TabsContent>
+
+            <TabsContent value="contests">
+              <ContestManagementPanel />
             </TabsContent>
 
             <TabsContent value="approvals">
