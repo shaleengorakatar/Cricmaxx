@@ -12,9 +12,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle } from "lucide-react";
+import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
+import ContestFormDialog from "@/components/contests/ContestFormDialog";
 
 type Contest = {
   id: string;
@@ -54,10 +55,12 @@ type ContestEntry = {
 };
 
 const PredictionContests = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editContest, setEditContest] = useState<any>(null);
 
   // Fetch all visible contests
   const { data: contests, isLoading } = useQuery({
@@ -204,9 +207,16 @@ const PredictionContests = () => {
         <main className="flex-1 pt-20 pb-12">
           <div className="container mx-auto px-4 max-w-4xl">
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="h-7 w-7 text-accent" />
-                <h1 className="text-2xl md:text-3xl font-bold">Prediction Contests</h1>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-7 w-7 text-accent" />
+                  <h1 className="text-2xl md:text-3xl font-bold">Prediction Contests</h1>
+                </div>
+                {isAdmin && (
+                  <Button size="sm" className="gap-1" onClick={() => setCreateOpen(true)}>
+                    <Plus className="h-4 w-4" /> New Contest
+                  </Button>
+                )}
               </div>
               <p className="text-muted-foreground text-sm">
                 Compete against others! Answer prediction questions, climb the leaderboard, and win from the prize pot.
@@ -262,6 +272,10 @@ const PredictionContests = () => {
                 })}
               </div>
             )}
+
+            {/* Admin dialogs */}
+            <ContestFormDialog open={createOpen} onOpenChange={setCreateOpen} />
+            <ContestFormDialog open={!!editContest} onOpenChange={(o) => { if (!o) setEditContest(null); }} editContest={editContest} />
           </div>
         </main>
         <Footer />
@@ -286,9 +300,16 @@ const PredictionContests = () => {
               <div className="mb-6">
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <h1 className="text-xl md:text-2xl font-bold">{selectedContest.title}</h1>
-                  <Badge variant={isResolved ? "default" : isOpen ? "secondary" : "outline"}>
-                    {isResolved ? "Resolved" : isOpen ? "Open" : "Closed"}
-                  </Badge>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isAdmin && selectedContest.status !== "resolved" && (
+                      <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditContest(selectedContest)}>
+                        <Pencil className="h-3.5 w-3.5" /> Edit
+                      </Button>
+                    )}
+                    <Badge variant={isResolved ? "default" : isOpen ? "secondary" : "outline"}>
+                      {isResolved ? "Resolved" : isOpen ? "Open" : "Closed"}
+                    </Badge>
+                  </div>
                 </div>
                 {selectedContest.description && (
                   <p className="text-sm text-muted-foreground mb-3">{selectedContest.description}</p>
@@ -507,6 +528,9 @@ const PredictionContests = () => {
               )}
             </>
           )}
+
+          {/* Admin edit dialog in detail view */}
+          <ContestFormDialog open={!!editContest} onOpenChange={(o) => { if (!o) setEditContest(null); }} editContest={editContest} />
         </div>
       </main>
       <Footer />
