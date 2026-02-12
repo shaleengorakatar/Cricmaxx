@@ -1059,6 +1059,7 @@ export type Database = {
           closes_at: string
           created_at: string
           created_by: string
+          description: string | null
           id: string
           question: string
           resolved_at: string | null
@@ -1072,6 +1073,7 @@ export type Database = {
           closes_at: string
           created_at?: string
           created_by: string
+          description?: string | null
           id?: string
           question: string
           resolved_at?: string | null
@@ -1085,6 +1087,7 @@ export type Database = {
           closes_at?: string
           created_at?: string
           created_by?: string
+          description?: string | null
           id?: string
           question?: string
           resolved_at?: string | null

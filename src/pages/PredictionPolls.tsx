@@ -21,6 +21,7 @@ interface PollOption {
 interface Poll {
   id: string;
   question: string;
+  description?: string | null;
   closes_at: string;
   status: string;
   total_pool: number;
@@ -107,6 +108,7 @@ const PredictionPolls = () => {
         return {
           id: p.id,
           question: p.question,
+          description: p.description || null,
           closes_at: p.closes_at,
           status: p.status,
           total_pool: Number(p.total_pool),

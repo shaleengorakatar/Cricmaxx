@@ -16,6 +16,7 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [question, setQuestion] = useState("");
+  const [description, setDescription] = useState("");
   const [options, setOptions] = useState(["", "", ""]);
   const [closesAt, setClosesAt] = useState("");
   const [creating, setCreating] = useState(false);
@@ -51,6 +52,7 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
         .from("prediction_polls")
         .insert({
           question: question.trim(),
+          description: description.trim() || null,
           created_by: user.id,
           closes_at: new Date(closesAt).toISOString(),
         })
@@ -71,6 +73,7 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
 
       toast({ title: "Poll created!" });
       setQuestion("");
+      setDescription("");
       setOptions(["", "", ""]);
       setClosesAt("");
       onCreated();
@@ -95,6 +98,15 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Who will be the top scorer?"
               required
+           />
+          </div>
+
+          <div>
+            <Label>Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Additional context shown when expanded"
             />
           </div>
 

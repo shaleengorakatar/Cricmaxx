@@ -17,6 +17,7 @@ interface PollOption {
 interface Poll {
   id: string;
   question: string;
+  description?: string | null;
   closes_at: string;
   status: string;
   total_pool: number;
@@ -221,6 +222,9 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
           <span className="flex items-center gap-1"><Users className="h-3 w-3" />{totalVotes} votes</span>
           <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{poll.total_pool} tokens pool</span>
         </div>
+        {poll.description && (
+          <p className="text-xs text-muted-foreground mt-2">{poll.description}</p>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-4">
