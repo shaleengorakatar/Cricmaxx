@@ -56,7 +56,7 @@ type ContestEntry = {
 };
 
 const PredictionContests = () => {
-  const { isAuthenticated, user, isAdmin } = useAuth();
+  const { isAuthenticated, user, isAdmin, profile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -367,8 +367,24 @@ const PredictionContests = () => {
 
               {!isAuthenticated && isOpen && (
                 <Card className="mb-6 border-primary/30">
-                  <CardContent className="p-4 text-center">
+                  <CardContent className="p-4 text-center space-y-2">
                     <p className="text-muted-foreground">Sign in to join this contest</p>
+                    <Button variant="outline" onClick={() => window.location.href = `/auth?redirect=/contests`}>
+                      Sign In
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isAuthenticated && !hasJoined && isOpen && (profile?.balance ?? 0) < (selectedContest?.buy_in_amount ?? 0) && (
+                <Card className="mb-6 border-destructive/30 bg-destructive/5">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      You need at least {selectedContest.buy_in_amount} tokens to join. Your balance: {profile?.balance ?? 0} tokens.
+                    </p>
+                    <Button variant="outline" onClick={() => window.location.href = `/wallet`}>
+                      Add Balance
+                    </Button>
                   </CardContent>
                 </Card>
               )}
