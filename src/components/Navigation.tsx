@@ -52,6 +52,13 @@ const Navigation = () => {
               Home
             </NavLink>
             <NavLink 
+              to="/polls"
+              className="text-sm text-foreground hover:text-primary transition-colors"
+              activeClassName="text-primary font-semibold"
+            >
+              Polls
+            </NavLink>
+            <NavLink 
               to="/markets"
               className="text-sm text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
@@ -64,13 +71,6 @@ const Navigation = () => {
               activeClassName="text-primary font-semibold"
             >
               RapidPred
-            </NavLink>
-            <NavLink 
-              to="/polls"
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              Polls
             </NavLink>
             {showAuthenticatedLinks && (
               <>
@@ -182,6 +182,14 @@ const Navigation = () => {
                     activeClassName="text-primary font-semibold"
                   >
                     Home
+                  </NavLink>
+                  <NavLink 
+                    to="/polls"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
+                    activeClassName="text-primary font-semibold"
+                  >
+                    Polls
                   </NavLink>
                   <NavLink 
                     to="/markets"
