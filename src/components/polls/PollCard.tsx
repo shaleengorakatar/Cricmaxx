@@ -123,7 +123,7 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               size="icon"
               className="h-7 w-7"
               onClick={() => {
-                const url = `${window.location.origin}/polls?highlight=${poll.id}`;
+                const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
                 navigator.clipboard.writeText(url);
                 toast({ title: "Link copied!", description: "Share this poll with friends." });
               }}
