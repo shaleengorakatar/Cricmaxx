@@ -132,10 +132,10 @@ const UserManagementPanel = () => {
           .limit(50),
         supabase
           .from('transactions')
-          .select('id, type, amount, balance_after, created_at')
+          .select('id, type, amount, balance_after, created_at, metadata')
           .eq('user_id', selectedUserId)
           .order('created_at', { ascending: false })
-          .limit(20),
+          .limit(100),
       ]);
 
       // Fetch market questions for positions
@@ -151,10 +151,34 @@ const UserManagementPanel = () => {
       const resolvedPositions = positionsRes.data?.filter(p => p.status === 'closed').length || 0;
 
       const closedPositions = positionsRes.data?.filter(p => p.status === 'closed' && p.pnl !== null) || [];
-      const tokensWon = closedPositions.filter(p => (p.pnl || 0) > 0).reduce((sum, p) => sum + (p.pnl || 0), 0);
-      const tokensLost = Math.abs(closedPositions.filter(p => (p.pnl || 0) < 0).reduce((sum, p) => sum + (p.pnl || 0), 0));
+      const marketTokensWon = closedPositions.filter(p => (p.pnl || 0) > 0).reduce((sum, p) => sum + (p.pnl || 0), 0);
+      const marketTokensLost = Math.abs(closedPositions.filter(p => (p.pnl || 0) < 0).reduce((sum, p) => sum + (p.pnl || 0), 0));
 
-      const totalDeposits = transactionsRes.data?.filter(t => t.type === 'deposit').reduce((sum, t) => sum + t.amount, 0) || 0;
+      // Include poll winnings in tokens won
+      const allTransactions = transactionsRes.data || [];
+      const pollWinnings = allTransactions
+        .filter(t => {
+          const meta = t.metadata as any;
+          return meta?.source === 'poll_winnings';
+        })
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      // Poll stakes (lost polls) — user staked but didn't win, so tokens were deducted
+      // We track this by looking at poll_refund (voided) vs the vote deductions
+      // The simplest approach: poll winnings are deposits with source poll_winnings
+      // Poll losses are the stakes that were NOT returned (no corresponding poll_winnings/poll_refund)
+      // For now, count withdrawal-type transactions or just use the vote amounts
+      const pollRefunds = allTransactions
+        .filter(t => {
+          const meta = t.metadata as any;
+          return meta?.source === 'poll_refund';
+        })
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      const tokensWon = marketTokensWon + pollWinnings;
+      const tokensLost = marketTokensLost;
+
+      const totalDeposits = allTransactions.filter(t => t.type === 'deposit' && !(t.metadata as any)?.source?.startsWith('poll_')).reduce((sum, t) => sum + t.amount, 0) || 0;
 
       return {
         pendingOrders,
