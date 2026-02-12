@@ -38,6 +38,139 @@ export type Database = {
         }
         Relationships: []
       }
+      contest_answers: {
+        Row: {
+          answer: string
+          contest_id: string
+          created_at: string
+          id: string
+          is_correct: boolean | null
+          points_earned: number
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          contest_id: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          contest_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_answers_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_contests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contest_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "contest_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contest_entries: {
+        Row: {
+          contest_id: string
+          created_at: string
+          id: string
+          payout: number | null
+          rank: number | null
+          score: number
+          total_points: number
+          user_id: string
+        }
+        Insert: {
+          contest_id: string
+          created_at?: string
+          id?: string
+          payout?: number | null
+          rank?: number | null
+          score?: number
+          total_points?: number
+          user_id: string
+        }
+        Update: {
+          contest_id?: string
+          created_at?: string
+          id?: string
+          payout?: number | null
+          rank?: number | null
+          score?: number
+          total_points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_entries_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contest_questions: {
+        Row: {
+          contest_id: string
+          correct_answer: string | null
+          created_at: string
+          id: string
+          options: Json | null
+          points: number
+          question_text: string
+          question_type: string
+          sort_order: number
+        }
+        Insert: {
+          contest_id: string
+          correct_answer?: string | null
+          created_at?: string
+          id?: string
+          options?: Json | null
+          points?: number
+          question_text: string
+          question_type?: string
+          sort_order?: number
+        }
+        Update: {
+          contest_id?: string
+          correct_answer?: string | null
+          created_at?: string
+          id?: string
+          options?: Json | null
+          points?: number
+          question_text?: string
+          question_type?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contest_questions_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_contests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creator_applications: {
         Row: {
           admin_notes: string | null
@@ -1054,6 +1187,63 @@ export type Database = {
           },
         ]
       }
+      prediction_contests: {
+        Row: {
+          buy_in_amount: number
+          closes_at: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          match_id: string | null
+          match_name: string | null
+          min_participants: number
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          tiebreaker_question_id: string | null
+          title: string
+          total_points: number
+          updated_at: string
+        }
+        Insert: {
+          buy_in_amount?: number
+          closes_at: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          match_id?: string | null
+          match_name?: string | null
+          min_participants?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tiebreaker_question_id?: string | null
+          title: string
+          total_points?: number
+          updated_at?: string
+        }
+        Update: {
+          buy_in_amount?: number
+          closes_at?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          match_id?: string | null
+          match_name?: string | null
+          min_participants?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          tiebreaker_question_id?: string | null
+          title?: string
+          total_points?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prediction_polls: {
         Row: {
           closes_at: string
@@ -1775,6 +1965,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      join_contest: {
+        Args: { _contest_id: string; _user_id: string }
+        Returns: Json
+      }
       process_order_queue: { Args: { batch_size?: number }; Returns: Json }
       process_wallet_operation: {
         Args: {
@@ -1807,6 +2001,10 @@ export type Database = {
       }
       refresh_leaderboard: { Args: never; Returns: undefined }
       refresh_market_stats: { Args: never; Returns: undefined }
+      resolve_contest: {
+        Args: { _admin_id: string; _contest_id: string }
+        Returns: Json
+      }
       resolve_poll:
         | {
             Args: {

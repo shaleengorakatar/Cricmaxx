@@ -59,6 +59,13 @@ const Navigation = () => {
               Polls
             </NavLink>
             <NavLink 
+              to="/contests"
+              className="text-sm text-foreground hover:text-primary transition-colors"
+              activeClassName="text-primary font-semibold"
+            >
+              Contests
+            </NavLink>
+            <NavLink 
               to="/markets"
               className="text-sm text-foreground hover:text-primary transition-colors"
               activeClassName="text-primary font-semibold"
@@ -190,6 +197,14 @@ const Navigation = () => {
                     activeClassName="text-primary font-semibold"
                   >
                     Polls
+                  </NavLink>
+                  <NavLink 
+                    to="/contests"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
+                    activeClassName="text-primary font-semibold"
+                  >
+                    Contests
                   </NavLink>
                   <NavLink 
                     to="/markets"
