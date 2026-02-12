@@ -60,8 +60,28 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
 
   const handleVote = async () => {
     if (!user || !selectedOption) return;
+    if (hasVoted) {
+      toast({ title: "Already voted", description: "You can only vote once per poll.", variant: "destructive" });
+      return;
+    }
+    if (isClosed) {
+      toast({ title: "Poll closed", description: "This poll is no longer accepting votes.", variant: "destructive" });
+      return;
+    }
     setVoting(true);
     try {
+      // Re-check poll status server-side
+      const { data: pollCheck } = await supabase
+        .from("prediction_polls")
+        .select("status, closes_at")
+        .eq("id", poll.id)
+        .single();
+      
+      if (!pollCheck || pollCheck.status !== "open" || new Date(pollCheck.closes_at) < new Date()) {
+        toast({ title: "Poll closed", description: "This poll closed before your vote could be placed.", variant: "destructive" });
+        return;
+      }
+
       const { error: balanceError } = await supabase.rpc("process_wallet_operation_pooled", {
         _user_id: user.id,
         _operation: "withdrawal",
@@ -84,7 +104,12 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
           _amount: selectedStake,
           _metadata: { source: "poll_vote_refund", poll_id: poll.id },
         });
-        throw error;
+        if (error.code === "23505") {
+          toast({ title: "Already voted", description: "You've already voted on this poll.", variant: "destructive" });
+        } else {
+          throw error;
+        }
+        return;
       }
 
       toast({ title: "Vote placed!", description: `You staked ${selectedStake} tokens.` });
@@ -305,19 +330,27 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
               const userStake = poll.user_vote!.amount;
               const userOptAmount = poll.options.find(o => o.id === poll.user_vote!.option_id)?.total_amount || 0;
               const losingPool = poll.total_pool - userOptAmount;
+              const allOnOneOption = poll.options.filter(o => (o.total_amount || 0) > 0).length <= 1;
               const estimatedPayout = userOptAmount > 0
                 ? userStake + (userStake / userOptAmount) * losingPool
                 : userStake;
               const winnings = Math.round((estimatedPayout - userStake) * 100) / 100;
               return (
-                <div className="flex items-center justify-between p-2.5 rounded-lg bg-accent/10 border border-accent/20 mt-2">
-                  <span className="text-xs text-muted-foreground">
-                    If correct: <span className="font-semibold text-foreground">{userStake}</span> back + <span className="font-semibold text-accent">{winnings}</span> winnings
-                  </span>
-                  <span className="text-sm font-bold text-accent">
-                    = {Math.round(estimatedPayout * 100) / 100} tokens
-                  </span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-accent/10 border border-accent/20 mt-2">
+                    <span className="text-xs text-muted-foreground">
+                      If correct: <span className="font-semibold text-foreground">{userStake}</span> back + <span className="font-semibold text-accent">{winnings}</span> winnings
+                    </span>
+                    <span className="text-sm font-bold text-accent">
+                      = {Math.round(estimatedPayout * 100) / 100} tokens
+                    </span>
+                  </div>
+                  {allOnOneOption && (
+                    <p className="text-[11px] text-muted-foreground text-center mt-1">
+                      ⚠️ All votes are on one option — if it wins, everyone gets their stake back with no bonus.
+                    </p>
+                  )}
+                </>
               );
             })()}
             {hasVoted && isResolved && (
