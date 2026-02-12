@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trophy, Pencil, X, Check, Plus, Trash2, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,7 +30,7 @@ const PollResolutionPanel = () => {
   const { toast } = useToast();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedWinners, setSelectedWinners] = useState<Record<string, string>>({});
+  const [selectedWinners, setSelectedWinners] = useState<Record<string, string[]>>({});
   const [resolving, setResolving] = useState<string | null>(null);
   const [editingPoll, setEditingPoll] = useState<string | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
@@ -191,17 +191,27 @@ const PollResolutionPanel = () => {
     }
   };
 
+  const toggleWinner = (pollId: string, optionId: string) => {
+    setSelectedWinners(prev => {
+      const current = prev[pollId] || [];
+      const updated = current.includes(optionId) 
+        ? current.filter(id => id !== optionId) 
+        : [...current, optionId];
+      return { ...prev, [pollId]: updated };
+    });
+  };
+
   const handleResolve = async (pollId: string) => {
-    const winningId = selectedWinners[pollId];
-    if (!winningId || !user) return;
+    const winningIds = selectedWinners[pollId];
+    if (!winningIds?.length || !user) return;
 
     setResolving(pollId);
     try {
       const { data, error } = await supabase.rpc("resolve_poll", {
         _poll_id: pollId,
-        _winning_option_id: winningId,
+        _winning_option_ids: winningIds,
         _admin_id: user.id,
-      });
+      } as any);
 
       if (error) throw error;
 
@@ -346,28 +356,26 @@ const PollResolutionPanel = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Select
-                        value={selectedWinners[poll.id] || ""}
-                        onValueChange={(val) => setSelectedWinners({ ...selectedWinners, [poll.id]: val })}
-                      >
-                        <SelectTrigger className="text-sm">
-                          <SelectValue placeholder="Select winning option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {poll.options.map((opt) => (
-                            <SelectItem key={opt.id} value={opt.id}>{opt.option_text}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Select winning option(s)</Label>
+                    <div className="space-y-1.5">
+                      {poll.options.map((opt) => (
+                        <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                          <Checkbox
+                            checked={(selectedWinners[poll.id] || []).includes(opt.id)}
+                            onCheckedChange={() => toggleWinner(poll.id, opt.id)}
+                          />
+                          {opt.option_text}
+                        </label>
+                      ))}
                     </div>
                     <Button
                       size="sm"
                       onClick={() => handleResolve(poll.id)}
-                      disabled={!selectedWinners[poll.id] || resolving === poll.id}
+                      disabled={!(selectedWinners[poll.id]?.length) || resolving === poll.id}
+                      className="w-full"
                     >
-                      {resolving === poll.id ? "Resolving..." : "Resolve"}
+                      {resolving === poll.id ? "Resolving..." : `Resolve (${selectedWinners[poll.id]?.length || 0} winner${(selectedWinners[poll.id]?.length || 0) !== 1 ? 's' : ''})`}
                     </Button>
                   </div>
 
