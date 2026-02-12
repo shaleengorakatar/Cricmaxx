@@ -172,27 +172,31 @@ const PredictionPolls = () => {
 
           {/* Auth / balance prompts */}
           {!user ? (
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mb-6 flex items-center gap-3">
-              <LogIn className="h-5 w-5 text-primary shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">You're not signed in</p>
-                <p className="text-xs text-muted-foreground">Sign in or create an account to participate in polls and win tokens!</p>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 sm:p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <LogIn className="h-5 w-5 text-primary shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">You're not signed in</p>
+                  <p className="text-xs text-muted-foreground">Sign in or create an account to participate in polls and win tokens!</p>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 ml-8 sm:ml-0">
                 <Button size="sm" variant="outline" onClick={() => navigate("/auth?redirect=/polls")}>Sign In</Button>
                 <Button size="sm" onClick={() => navigate("/auth?redirect=/polls")}>Sign Up</Button>
               </div>
             </div>
           ) : profile && (profile.balance ?? 0) < 10 ? (
-            <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 mb-6 flex items-center gap-3">
-              <Coins className="h-5 w-5 text-accent shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  You have {profile.balance ?? 0} token{(profile.balance ?? 0) !== 1 ? "s" : ""}
-                </p>
-                <p className="text-xs text-muted-foreground">Load up tokens to participate in polls and win big!</p>
+            <div className="rounded-lg border border-accent/20 bg-accent/5 p-3 sm:p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-3 flex-1">
+                <Coins className="h-5 w-5 text-accent shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    You have {profile.balance ?? 0} token{(profile.balance ?? 0) !== 1 ? "s" : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Load up tokens to participate in polls and win big!</p>
+                </div>
               </div>
-              <Button size="sm" onClick={() => navigate("/dashboard#wallet")}>Load Tokens</Button>
+              <Button size="sm" className="ml-8 sm:ml-0 self-start sm:self-auto" onClick={() => navigate("/dashboard#wallet")}>Load Tokens</Button>
             </div>
           ) : null}
 
