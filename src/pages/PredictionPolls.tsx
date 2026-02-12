@@ -180,10 +180,9 @@ const PredictionPolls = () => {
             <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
               <p className="font-medium text-foreground text-xs">Example</p>
               <p>Poll: "Who will be Player of the Match?" — Options: Kohli, Smith, Williamson</p>
-              <p>You stake 20 tokens on Kohli. Total pool: 100 tokens (Kohli: 40, Smith: 35, Williamson: 25)</p>
-              <p>Kohli wins! Losing pool = 60 tokens. Your share: 20 out of 40 staked on Kohli = 50%</p>
-              <p className="text-green-600 dark:text-green-400">✅ You get: 20 (stake) + 50% of 60 (losing pool) = 50 tokens! That's a 30 token profit.</p>
-              <p className="text-red-500">❌ If Kohli doesn't win: you lose your 20 token stake.</p>
+              <p>Total pool: 100 tokens. You stake 20 on Kohli (total on Kohli: 40).</p>
+              <p>Kohli wins! Your share: 20 / 40 = 50% of the pool.</p>
+              <p className="text-green-600 dark:text-green-400">✅ You get: 50% × 100 = 50 tokens. That's a 30 token profit!</p>
             </div>
           </div>
 
