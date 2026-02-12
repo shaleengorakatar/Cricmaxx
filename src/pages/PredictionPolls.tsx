@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { PollCard } from "@/components/polls/PollCard";
 import { CreatePollForm } from "@/components/polls/CreatePollForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BarChart3, Plus } from "lucide-react";
+import { ArrowLeft, BarChart3, Plus } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,6 +30,7 @@ interface Poll {
 
 const PredictionPolls = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -119,6 +121,9 @@ const PredictionPolls = () => {
       <Navigation />
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4 max-w-2xl">
+          <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-1" /> Back
+          </Button>
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-foreground flex items-center gap-2">
