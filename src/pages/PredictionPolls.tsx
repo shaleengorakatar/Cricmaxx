@@ -4,9 +4,10 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { PollCard } from "@/components/polls/PollCard";
 import { CreatePollForm } from "@/components/polls/CreatePollForm";
+import PollLeaderboardModal from "@/components/leaderboard/PollLeaderboardModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Plus, LogIn, Coins } from "lucide-react";
+import { ArrowLeft, BarChart3, Plus, LogIn, Coins, Trophy } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -36,6 +37,7 @@ const PredictionPolls = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Scroll to highlighted poll after loading
   useEffect(() => {
@@ -145,9 +147,14 @@ const PredictionPolls = () => {
               </p>
             </div>
             {user && (
-              <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
-                <Plus className="h-4 w-4 mr-1" /> Create
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowLeaderboard(true)}>
+                  <Trophy className="h-4 w-4 mr-1" /> Leaderboard
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
+                  <Plus className="h-4 w-4 mr-1" /> Create
+                </Button>
+              </div>
             )}
           </div>
 
@@ -213,6 +220,7 @@ const PredictionPolls = () => {
         </div>
       </main>
       <Footer />
+      <PollLeaderboardModal isOpen={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
     </div>
   );
 };
