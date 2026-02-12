@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Clock, Users, Trophy, Check, Coins, TrendingUp } from "lucide-react";
+import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -117,9 +117,23 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">{poll.question}</CardTitle>
-          <Badge variant={isResolved ? "default" : isClosed ? "secondary" : "outline"} className="shrink-0">
-            {isResolved ? "Resolved" : isClosed ? "Closed" : "Open"}
-          </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => {
+                const url = `${window.location.origin}/polls?highlight=${poll.id}`;
+                navigator.clipboard.writeText(url);
+                toast({ title: "Link copied!", description: "Share this poll with friends." });
+              }}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+            </Button>
+            <Badge variant={isResolved ? "default" : isClosed ? "secondary" : "outline"} className="shrink-0">
+              {isResolved ? "Resolved" : isClosed ? "Closed" : "Open"}
+            </Badge>
+          </div>
         </div>
         <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeLeft()}</span>
