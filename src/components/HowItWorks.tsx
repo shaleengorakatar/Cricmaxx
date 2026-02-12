@@ -41,17 +41,14 @@ const detailedSections = [
     emoji: "🗳️",
     title: "Token Based Polls",
     content:
-      "Polls are the simplest way to predict on CricMaxx. Pick an option and stake tokens (5, 10, 15, or 20). If your option wins, you get your stake back + a proportional share of the losing pool. No complex trading, just pick and stake!",
+      "Polls are the simplest way to predict on CricMaxx. Pick an option and stake tokens (5, 10, 15, or 20). If your option wins, you get your proportional share of the pool. No complex trading, just pick and stake!",
     example: {
       heading: "Example",
       lines: [
-        "Poll: \"Who will be Player of the Match?\"",
-        "Options: Kohli, Smith, Williamson.",
-        "You stake 20 tokens on Kohli.",
-        "Total pool: 100 tokens (Kohli: 40, Smith: 35, Williamson: 25).",
-        "Kohli wins! The losing pool is 60 tokens (35 + 25).",
-        "Your share: you staked 20 out of 40 total on Kohli = 50%.",
-        "✅ You get: 20 (your stake) + 50% of 60 (losing pool) = 50 tokens! That's a 30 token profit.",
+        "Poll: \"Who will be Player of the Match?\" — Options: Kohli, Smith, Williamson.",
+        "Total pool: 100 tokens. You stake 20 on Kohli (total on Kohli: 40).",
+        "Kohli wins! Your share: 20 / 40 = 50% of the pool.",
+        "✅ You get: 50% × 100 = 50 tokens. That's a 30 token profit!",
         "❌ If Kohli doesn't win: you lose your 20 token stake.",
       ],
     },
