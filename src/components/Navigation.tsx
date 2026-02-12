@@ -65,6 +65,13 @@ const Navigation = () => {
             >
               RapidPred
             </NavLink>
+            <NavLink 
+              to="/polls"
+              className="text-sm text-foreground hover:text-primary transition-colors"
+              activeClassName="text-primary font-semibold"
+            >
+              Polls
+            </NavLink>
             {showAuthenticatedLinks && (
               <>
                 <NavLink 
