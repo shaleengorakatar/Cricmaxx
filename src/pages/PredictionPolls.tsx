@@ -7,7 +7,8 @@ import { CreatePollForm } from "@/components/polls/CreatePollForm";
 import PollLeaderboardModal from "@/components/leaderboard/PollLeaderboardModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Plus, LogIn, Coins, Trophy } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, BarChart3, Plus, LogIn, Coins, Trophy, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -161,6 +162,14 @@ const PredictionPolls = () => {
               Vote on match outcomes with tokens – winners split the pool!
             </p>
           </div>
+
+          <Alert className="border-amber-500/30 bg-amber-500/10 mb-6">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <AlertDescription className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground block mb-0.5">Closed Beta — Gentleman's Agreement</span>
+              1 CricMaxx Token = $1 USD. All balances are settled directly between participants after the tournament. This is a trust-based system.
+            </AlertDescription>
+          </Alert>
 
           <div className="bg-muted/50 rounded-lg p-3 mb-6 text-xs text-muted-foreground space-y-1">
             <p className="font-medium text-foreground text-sm">How it works</p>
