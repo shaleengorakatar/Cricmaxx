@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { PollCard } from "@/components/polls/PollCard";
@@ -31,9 +31,19 @@ interface Poll {
 const PredictionPolls = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+
+  // Scroll to highlighted poll after loading
+  useEffect(() => {
+    if (!loading && highlightId) {
+      const el = document.getElementById(`poll-${highlightId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [loading, highlightId]);
 
   const fetchPolls = useCallback(async () => {
     setLoading(true);
@@ -168,7 +178,9 @@ const PredictionPolls = () => {
           ) : (
             <div className="space-y-4">
               {polls.map((poll) => (
-                <PollCard key={poll.id} poll={poll} onVoted={fetchPolls} />
+                <div key={poll.id} id={`poll-${poll.id}`} className={highlightId === poll.id ? "ring-2 ring-primary rounded-lg" : ""}>
+                  <PollCard poll={poll} onVoted={fetchPolls} />
+                </div>
               ))}
             </div>
           )}
