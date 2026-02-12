@@ -380,6 +380,51 @@ const PredictionContests = () => {
                 />
               )}
 
+              {/* Leaderboard - at top */}
+              {entries && entries.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Trophy className="h-5 w-5 text-yellow-500" /> Leaderboard
+                  </h2>
+                  <Card>
+                    <CardContent className="p-0">
+                      <div className="divide-y divide-border">
+                        {entries
+                          .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
+                          .map((entry, idx) => {
+                            const profile = entryProfiles?.[entry.user_id];
+                            const isMe = entry.user_id === user?.id;
+                            const rankIcon = entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : null;
+                            return (
+                              <div key={entry.id} className={cn(
+                                "flex items-center gap-3 px-4 py-3",
+                                isMe && "bg-primary/5"
+                              )}>
+                                <span className="w-8 text-center font-mono text-sm">
+                                  {rankIcon || (entry.rank ?? idx + 1)}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className={cn("text-sm truncate", isMe && "font-semibold")}>
+                                    {profile?.name || (isMe ? "You" : "Loading...")} {isMe && profile?.name && "(You)"}
+                                  </p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-sm font-semibold">
+                                    {isResolved ? `${entry.score}/${entry.total_points} pts` : "—"}
+                                  </p>
+                                  {entry.payout != null && entry.payout > 0 && (
+                                    <p className="text-xs text-green-600 font-medium">+{entry.payout} tokens</p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* Questions */}
               {hasJoined && questions && questions.length > 0 && (
                 <div className="mb-6">
@@ -405,67 +450,62 @@ const PredictionContests = () => {
                             {/* Show result if resolved */}
                             {isResolved && existingAnswer && (
                               <div className={cn(
-                                "flex items-center gap-2 text-sm mb-2 p-2 rounded",
-                                existingAnswer.is_correct ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-500"
+                                "flex items-center gap-2 mb-2 px-2 py-1.5 rounded-md text-xs",
+                                existingAnswer.is_correct ? "bg-green-500/10 text-green-700" : "bg-destructive/10 text-destructive"
                               )}>
-                                {existingAnswer.is_correct ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                                <span>Your answer: {existingAnswer.answer}</span>
-                                {!existingAnswer.is_correct && q.correct_answer && (
-                                  <span className="ml-auto text-xs text-muted-foreground">Correct: {q.correct_answer}</span>
-                                )}
+                                {existingAnswer.is_correct ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                                <span>Your answer: <strong>{existingAnswer.answer}</strong></span>
+                                {q.correct_answer && <span className="ml-auto">Correct: <strong>{q.correct_answer}</strong></span>}
+                                <span className="ml-2 font-semibold">{existingAnswer.points_earned}/{q.points} pts</span>
                               </div>
                             )}
 
-                            {/* Input area for open contests */}
-                            {isOpen && (
+                            {/* Answer input */}
+                            {isOpen && hasJoined && !isResolved && (
                               <>
-                                {q.question_type === "yes_no" && (
+                                {q.question_type === "yes_no" ? (
                                   <RadioGroup
                                     value={answers[q.id] || existingAnswer?.answer || ""}
-                                    onValueChange={(v) => setAnswers(prev => ({ ...prev, [q.id]: v }))}
+                                    onValueChange={v => setAnswers(p => ({ ...p, [q.id]: v }))}
                                     className="flex gap-4"
                                   >
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-2">
                                       <RadioGroupItem value="Yes" id={`${q.id}-yes`} />
-                                      <Label htmlFor={`${q.id}-yes`} className="text-sm cursor-pointer">Yes</Label>
+                                      <Label htmlFor={`${q.id}-yes`}>Yes</Label>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-2">
                                       <RadioGroupItem value="No" id={`${q.id}-no`} />
-                                      <Label htmlFor={`${q.id}-no`} className="text-sm cursor-pointer">No</Label>
+                                      <Label htmlFor={`${q.id}-no`}>No</Label>
                                     </div>
                                   </RadioGroup>
-                                )}
-                                {q.question_type === "multiple_choice" && q.options && (
+                                ) : q.question_type === "multiple_choice" && q.options ? (
                                   <RadioGroup
                                     value={answers[q.id] || existingAnswer?.answer || ""}
-                                    onValueChange={(v) => setAnswers(prev => ({ ...prev, [q.id]: v }))}
-                                    className="space-y-1.5"
+                                    onValueChange={v => setAnswers(p => ({ ...p, [q.id]: v }))}
+                                    className="space-y-2"
                                   >
-                                    {(q.options as string[]).map((opt) => (
-                                      <div key={opt} className="flex items-center gap-1.5">
+                                    {(q.options as string[]).map(opt => (
+                                      <div key={opt} className="flex items-center gap-2">
                                         <RadioGroupItem value={opt} id={`${q.id}-${opt}`} />
-                                        <Label htmlFor={`${q.id}-${opt}`} className="text-sm cursor-pointer">{opt}</Label>
+                                        <Label htmlFor={`${q.id}-${opt}`}>{opt}</Label>
                                       </div>
                                     ))}
                                   </RadioGroup>
-                                )}
-                                {q.question_type === "subjective" && (
+                                ) : (
                                   <Input
-                                    placeholder="Your answer (1-4 words)"
+                                    placeholder="Your answer..."
                                     value={answers[q.id] || existingAnswer?.answer || ""}
-                                    onChange={(e) => setAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                    maxLength={50}
-                                    className="max-w-xs"
+                                    onChange={e => setAnswers(p => ({ ...p, [q.id]: e.target.value }))}
                                   />
                                 )}
                               </>
                             )}
 
-                            {/* Show locked answer if contest closed but not resolved */}
+                            {/* Show locked answer if closed but not resolved */}
                             {!isOpen && !isResolved && existingAnswer && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground p-2 bg-muted/50 rounded">
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <HelpCircle className="h-3.5 w-3.5" />
-                                Your answer: {existingAnswer.answer}
+                                <span>Your answer: <strong>{existingAnswer.answer}</strong></span>
                               </div>
                             )}
                           </CardContent>
@@ -474,60 +514,16 @@ const PredictionContests = () => {
                     })}
                   </div>
 
-                  {isOpen && (
+                  {/* Submit button */}
+                  {isOpen && hasJoined && (
                     <Button
-                      className="mt-4 w-full sm:w-auto"
+                      className="w-full mt-4"
                       onClick={() => submitMutation.mutate()}
                       disabled={submitMutation.isPending}
                     >
                       {submitMutation.isPending ? "Saving..." : "Save Predictions"}
                     </Button>
                   )}
-                </div>
-              )}
-
-              {/* Leaderboard */}
-              {entries && entries.length > 0 && (
-                <div>
-                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-yellow-500" /> Leaderboard
-                  </h2>
-                  <Card>
-                    <CardContent className="p-0">
-                      <div className="divide-y divide-border">
-                        {entries
-                          .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
-                          .map((entry, idx) => {
-                            const profile = entryProfiles?.[entry.user_id];
-                            const isMe = entry.user_id === user?.id;
-                            const rankIcon = entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : null;
-                            return (
-                              <div key={entry.id} className={cn(
-                                "flex items-center gap-3 px-4 py-3",
-                                isMe && "bg-primary/5"
-                              )}>
-                                <span className="w-8 text-center font-mono text-sm">
-                                  {rankIcon || (entry.rank ?? idx + 1)}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <p className={cn("text-sm truncate", isMe && "font-semibold")}>
-                                    {profile?.name || "Participant"} {isMe && "(You)"}
-                                  </p>
-                                </div>
-                                <div className="text-right shrink-0">
-                                  <p className="text-sm font-semibold">
-                                    {isResolved ? `${entry.score}/${entry.total_points} pts` : "—"}
-                                  </p>
-                                  {entry.payout != null && entry.payout > 0 && (
-                                    <p className="text-xs text-green-600 font-medium">+{entry.payout} tokens</p>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </CardContent>
-                  </Card>
                 </div>
               )}
 
