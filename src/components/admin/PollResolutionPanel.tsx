@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Pencil, X, Check, Plus, Trash2 } from "lucide-react";
+import { Trophy, Pencil, X, Check, Plus, Trash2, ChevronDown, ChevronUp, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface PollOption {
   id: string;
@@ -36,6 +37,42 @@ const PollResolutionPanel = () => {
   const [editClosesAt, setEditClosesAt] = useState("");
   const [editOptions, setEditOptions] = useState<{ id: string; text: string; isNew?: boolean; markedForDelete?: boolean }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [expandedPoll, setExpandedPoll] = useState<string | null>(null);
+  const [voters, setVoters] = useState<Record<string, { user_name: string; user_email: string; option_text: string; amount: number }[]>>({});
+  const [loadingVoters, setLoadingVoters] = useState<string | null>(null);
+
+  const fetchVoters = async (pollId: string) => {
+    if (expandedPoll === pollId) { setExpandedPoll(null); return; }
+    setLoadingVoters(pollId);
+    const { data } = await supabase
+      .from("poll_votes")
+      .select("user_id, amount, option_id")
+      .eq("poll_id", pollId);
+
+    if (!data?.length) { setVoters(prev => ({ ...prev, [pollId]: [] })); setExpandedPoll(pollId); setLoadingVoters(null); return; }
+
+    const userIds = [...new Set(data.map(v => v.user_id))];
+    const optionIds = [...new Set(data.map(v => v.option_id))];
+
+    const [{ data: profiles }, { data: options }] = await Promise.all([
+      supabase.from("profiles").select("id, name, email, display_name, username").in("id", userIds),
+      supabase.from("poll_options").select("id, option_text").in("id", optionIds),
+    ]);
+
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+    const optionMap = Object.fromEntries((options || []).map(o => [o.id, o.option_text]));
+
+    const enriched = data.map(v => ({
+      user_name: profileMap[v.user_id]?.display_name || profileMap[v.user_id]?.username || profileMap[v.user_id]?.name || "Unknown",
+      user_email: profileMap[v.user_id]?.email || "",
+      option_text: optionMap[v.option_id] || "Unknown",
+      amount: Number(v.amount),
+    }));
+
+    setVoters(prev => ({ ...prev, [pollId]: enriched }));
+    setExpandedPoll(pollId);
+    setLoadingVoters(null);
+  };
 
   const fetchPolls = async () => {
     setLoading(true);
@@ -333,6 +370,53 @@ const PollResolutionPanel = () => {
                       {resolving === poll.id ? "Resolving..." : "Resolve"}
                     </Button>
                   </div>
+
+                  {/* Participants toggle */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-2 text-xs text-muted-foreground"
+                    onClick={() => fetchVoters(poll.id)}
+                    disabled={loadingVoters === poll.id}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    {loadingVoters === poll.id ? "Loading..." : expandedPoll === poll.id ? "Hide Participants" : "Show Participants"}
+                    {expandedPoll === poll.id ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+                  </Button>
+
+                  {expandedPoll === poll.id && (
+                    <div className="mt-2">
+                      {(voters[poll.id]?.length ?? 0) === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">No participants yet</p>
+                      ) : (
+                        <div className="rounded-md border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs h-8 px-2">User</TableHead>
+                                <TableHead className="text-xs h-8 px-2">Option</TableHead>
+                                <TableHead className="text-xs h-8 px-2 text-right">Amount</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {voters[poll.id].map((v, i) => (
+                                <TableRow key={i}>
+                                  <TableCell className="text-xs py-1.5 px-2">
+                                    <div>{v.user_name}</div>
+                                    <div className="text-[10px] text-muted-foreground">{v.user_email}</div>
+                                  </TableCell>
+                                  <TableCell className="text-xs py-1.5 px-2">
+                                    <Badge variant="outline" className="text-[10px]">{v.option_text}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs py-1.5 px-2 text-right font-medium">{v.amount}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </Card>
