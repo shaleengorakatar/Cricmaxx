@@ -34,7 +34,7 @@ const PollResolutionPanel = () => {
   const [editingPoll, setEditingPoll] = useState<string | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
   const [editClosesAt, setEditClosesAt] = useState("");
-  const [editOptions, setEditOptions] = useState<{ id: string; text: string; isNew?: boolean }[]>([]);
+  const [editOptions, setEditOptions] = useState<{ id: string; text: string; isNew?: boolean; markedForDelete?: boolean }[]>([]);
   const [saving, setSaving] = useState(false);
 
   const fetchPolls = async () => {
@@ -86,6 +86,11 @@ const PollResolutionPanel = () => {
 
   const handleSaveEdit = async (pollId: string) => {
     if (!editQuestion.trim() || !editClosesAt) return;
+    const remaining = editOptions.filter(o => !o.markedForDelete);
+    if (remaining.length < 2) {
+      toast({ title: "Error", description: "A poll must have at least 2 options.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       // Update poll question and closing time
@@ -99,8 +104,30 @@ const PollResolutionPanel = () => {
 
       if (pollError) throw pollError;
 
+      // Delete removed options (only existing ones, not new)
+      const toDelete = editOptions.filter(o => o.markedForDelete && !o.isNew);
+      for (const opt of toDelete) {
+        // Check if option has votes before deleting
+        const { count } = await supabase
+          .from("poll_votes")
+          .select("*", { count: "exact", head: true })
+          .eq("option_id", opt.id);
+        
+        if (count && count > 0) {
+          toast({ title: "Cannot remove", description: `"${opt.text}" has ${count} vote(s). Remove votes first.`, variant: "destructive" });
+          setSaving(false);
+          return;
+        }
+
+        const { error } = await supabase
+          .from("poll_options")
+          .delete()
+          .eq("id", opt.id);
+        if (error) throw error;
+      }
+
       // Update existing options
-      for (const opt of editOptions.filter(o => !o.isNew)) {
+      for (const opt of remaining.filter(o => !o.isNew)) {
         const { error } = await supabase
           .from("poll_options")
           .update({ option_text: opt.text.trim() })
@@ -109,7 +136,7 @@ const PollResolutionPanel = () => {
       }
 
       // Insert new options
-      const newOpts = editOptions.filter(o => o.isNew && o.text.trim());
+      const newOpts = remaining.filter(o => o.isNew && o.text.trim());
       if (newOpts.length > 0) {
         const { error } = await supabase.from("poll_options").insert(
           newOpts.map(o => ({ poll_id: pollId, option_text: o.text.trim() }))
@@ -201,30 +228,39 @@ const PollResolutionPanel = () => {
                   <div>
                     <Label className="text-xs">Options</Label>
                     <div className="space-y-2 mt-1">
-                      {editOptions.map((opt, idx) => (
-                        <div key={opt.id} className="flex items-center gap-2">
-                          <Input
-                            value={opt.text}
-                            onChange={(e) => {
-                              const updated = [...editOptions];
-                              updated[idx] = { ...updated[idx], text: e.target.value };
-                              setEditOptions(updated);
-                            }}
-                            placeholder={`Option ${idx + 1}`}
-                            className="text-sm"
-                          />
-                          {opt.isNew && (
+                      {editOptions.filter(o => !o.markedForDelete).map((opt, idx) => {
+                        const originalIdx = editOptions.indexOf(opt);
+                        return (
+                          <div key={opt.id} className="flex items-center gap-2">
+                            <Input
+                              value={opt.text}
+                              onChange={(e) => {
+                                const updated = [...editOptions];
+                                updated[originalIdx] = { ...updated[originalIdx], text: e.target.value };
+                                setEditOptions(updated);
+                              }}
+                              placeholder={`Option ${idx + 1}`}
+                              className="text-sm"
+                            />
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 shrink-0"
-                              onClick={() => setEditOptions(editOptions.filter((_, i) => i !== idx))}
+                              onClick={() => {
+                                if (opt.isNew) {
+                                  setEditOptions(editOptions.filter((_, i) => i !== originalIdx));
+                                } else {
+                                  const updated = [...editOptions];
+                                  updated[originalIdx] = { ...updated[originalIdx], markedForDelete: true };
+                                  setEditOptions(updated);
+                                }
+                              }}
                             >
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
-                          )}
-                        </div>
-                      ))}
+                          </div>
+                        );
+                      })}
                       <Button
                         variant="outline"
                         size="sm"
