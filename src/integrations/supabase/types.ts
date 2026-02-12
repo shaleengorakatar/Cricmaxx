@@ -1510,6 +1510,7 @@ export type Database = {
           display_name: string | null
           id: string | null
           last_active_at: string | null
+          name: string | null
           predictions_correct: number | null
           predictions_total: number | null
           rating_score: number | null
@@ -1521,6 +1522,7 @@ export type Database = {
           display_name?: string | null
           id?: string | null
           last_active_at?: string | null
+          name?: string | null
           predictions_correct?: number | null
           predictions_total?: number | null
           rating_score?: number | null
@@ -1532,6 +1534,7 @@ export type Database = {
           display_name?: string | null
           id?: string | null
           last_active_at?: string | null
+          name?: string | null
           predictions_correct?: number | null
           predictions_total?: number | null
           rating_score?: number | null
@@ -1545,6 +1548,7 @@ export type Database = {
           avatar_url: string | null
           display_name: string | null
           id: string | null
+          name: string | null
           predictions_correct: number | null
           predictions_total: number | null
           rating_score: number | null
@@ -1555,6 +1559,7 @@ export type Database = {
           avatar_url?: string | null
           display_name?: string | null
           id?: string | null
+          name?: string | null
           predictions_correct?: number | null
           predictions_total?: number | null
           rating_score?: number | null
@@ -1565,6 +1570,7 @@ export type Database = {
           avatar_url?: string | null
           display_name?: string | null
           id?: string | null
+          name?: string | null
           predictions_correct?: number | null
           predictions_total?: number | null
           rating_score?: number | null
