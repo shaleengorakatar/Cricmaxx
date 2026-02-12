@@ -80,6 +80,17 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
     },
   });
 
+  const updatePointsMutation = useMutation({
+    mutationFn: async ({ qId, points }: { qId: string; points: number }) => {
+      const { error } = await supabase.from("contest_questions").update({ points }).eq("id", qId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Points updated");
+      queryClient.invalidateQueries({ queryKey: ["contest-questions", contestId] });
+    },
+  });
+
   const setCorrectAnswerMutation = useMutation({
     mutationFn: async ({ qId, answer }: { qId: string; answer: string }) => {
       const { error } = await supabase.from("contest_questions").update({ correct_answer: answer }).eq("id", qId);
@@ -163,9 +174,24 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
                 <p className="text-sm font-medium">Q{idx + 1}: {q.question_text}</p>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <Badge variant="secondary" className="text-[10px]">{q.question_type}</Badge>
-                  <Badge variant="outline" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
-                  {tiebreakerQuestionId === q.id && (
-                    <Badge className="text-[10px] bg-accent text-accent-foreground">Tiebreaker</Badge>
+                   {isEditable ? (
+                     <Input
+                       type="number"
+                       min="1"
+                       defaultValue={q.points}
+                       className="h-6 w-16 text-[10px] px-1.5"
+                       onBlur={(e) => {
+                         const val = Number(e.target.value);
+                         if (val > 0 && val !== q.points) {
+                           updatePointsMutation.mutate({ qId: q.id, points: val });
+                         }
+                       }}
+                     />
+                   ) : (
+                     <Badge variant="outline" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                   )}
+                   {tiebreakerQuestionId === q.id && (
+                     <Badge className="text-[10px] bg-accent text-accent-foreground">Tiebreaker</Badge>
                   )}
                 </div>
                 {q.options && <p className="text-xs text-muted-foreground mt-1">Options: {(q.options as string[]).join(", ")}</p>}
