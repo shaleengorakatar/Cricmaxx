@@ -30,7 +30,7 @@ interface Poll {
 }
 
 const PredictionPolls = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
@@ -147,9 +147,11 @@ const PredictionPolls = () => {
                   <Button variant="outline" size="sm" onClick={() => setShowLeaderboard(true)}>
                     <Trophy className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">Leaderboard</span><span className="sm:hidden">Board</span>
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
-                    <Plus className="h-4 w-4 mr-1" /> Create
-                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline" size="sm" onClick={() => setShowCreate(!showCreate)}>
+                      <Plus className="h-4 w-4 mr-1" /> Create
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
