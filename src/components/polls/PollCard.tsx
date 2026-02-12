@@ -236,11 +236,11 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
                 const optAmount = opt.total_amount || 0;
                 const isSelected = selectedOption === opt.id;
                 return (
-                  <button
+                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => setSelectedOption(opt.id)}
-                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all duration-200 text-left ${
+                    className={`w-full flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 rounded-xl border-2 transition-all duration-200 text-left ${
                       isSelected
                         ? "border-primary bg-primary/10 shadow-sm shadow-primary/20"
                         : "border-border hover:border-primary/40 hover:bg-muted/50"
@@ -265,14 +265,14 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
 
             <div>
               <p className="text-xs text-muted-foreground mb-2">Your vote costs tokens (weighted voting):</p>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                 {STAKE_OPTIONS.map((s) => (
                   <Button
                     key={s}
                     variant={selectedStake === s ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedStake(s)}
-                    className="flex-1"
+                    className="w-full text-xs sm:text-sm"
                   >
                     {s}
                   </Button>
@@ -281,12 +281,12 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
             </div>
 
             {selectedOption && potentialPayout !== null && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-accent/10 border border-accent/20">
-                <div className="flex items-center gap-1.5 text-sm">
-                  <TrendingUp className="h-4 w-4 text-accent" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2.5 sm:p-3 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+                  <TrendingUp className="h-4 w-4 text-accent shrink-0" />
                   <span className="text-muted-foreground">Potential payout:</span>
                 </div>
-                <span className="text-sm font-bold text-accent">
+                <span className="text-sm font-bold text-accent ml-5 sm:ml-0">
                   {potentialPayout} tokens
                   <span className="text-[11px] font-normal text-muted-foreground ml-1">
                     ({((potentialPayout / selectedStake - 1) * 100).toFixed(0)}% return)
@@ -312,18 +312,18 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
               const optVotes = opt.vote_count || 0;
 
               return (
-                <div key={opt.id} className={`relative overflow-hidden rounded-lg border p-3 ${isWinner ? "border-accent bg-accent/5" : "border-border"}`}>
+                <div key={opt.id} className={`relative overflow-hidden rounded-lg border p-2.5 sm:p-3 ${isWinner ? "border-accent bg-accent/5" : "border-border"}`}>
                   <div
                     className="absolute inset-y-0 left-0 bg-primary/10 transition-all"
                     style={{ width: `${pct}%` }}
                   />
-                  <div className="relative flex items-center justify-between">
+                  <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
                     <span className="text-sm font-medium flex items-center gap-1.5">
-                      {isWinner && <Trophy className="h-3.5 w-3.5 text-accent" />}
-                      {isUserVote && <Check className="h-3.5 w-3.5 text-primary" />}
+                      {isWinner && <Trophy className="h-3.5 w-3.5 text-accent shrink-0" />}
+                      {isUserVote && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
                       {opt.option_text}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-[11px] sm:text-xs text-muted-foreground">
                       {optVotes} {optVotes === 1 ? "vote" : "votes"} · {(opt.total_amount || 0)} tokens · {pct.toFixed(0)}%
                     </span>
                   </div>
