@@ -2,11 +2,8 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-import { Label } from "@/components/ui/label";
-import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2 } from "lucide-react";
+import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,13 +28,15 @@ interface Poll {
 interface PollCardProps {
   poll: Poll;
   onVoted: () => void;
+  defaultExpanded?: boolean;
 }
 
 const STAKE_OPTIONS = [5, 10, 15, 20];
 
-export const PollCard = ({ poll, onVoted }: PollCardProps) => {
+export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardProps) => {
   const { user, refetchProfile } = useAuth();
   const { toast } = useToast();
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [selectedStake, setSelectedStake] = useState<number>(5);
   const [voting, setVoting] = useState(false);
@@ -48,24 +47,19 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
 
   const totalVotes = poll.options.reduce((sum, o) => sum + (o.vote_count || 0), 0);
 
-  // Calculate potential payout for the selected option and stake
   const potentialPayout = useMemo(() => {
     if (!selectedOption || !selectedStake) return null;
     const selectedOpt = poll.options.find((o) => o.id === selectedOption);
     if (!selectedOpt) return null;
-
     const currentWinningPool = (selectedOpt.total_amount || 0) + selectedStake;
     const currentLosingPool = poll.total_pool - (selectedOpt.total_amount || 0);
-
     if (currentWinningPool <= 0) return selectedStake;
-
     const payout = selectedStake + (selectedStake / currentWinningPool) * currentLosingPool;
     return Math.round(payout * 100) / 100;
   }, [selectedOption, selectedStake, poll.options, poll.total_pool]);
 
   const handleVote = async () => {
     if (!user || !selectedOption) return;
-
     setVoting(true);
     try {
       const { error: balanceError } = await supabase.rpc("process_wallet_operation_pooled", {
@@ -74,7 +68,6 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
         _amount: selectedStake,
         _metadata: { source: "poll_vote", poll_id: poll.id },
       });
-
       if (balanceError) throw balanceError;
 
       const { error } = await supabase.from("poll_votes").insert({
@@ -112,8 +105,38 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
     return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
   };
 
+  // Compact collapsed view
+  if (!expanded) {
+    return (
+      <Card
+        className="overflow-hidden cursor-pointer hover:border-primary/40 transition-colors"
+        onClick={() => setExpanded(true)}
+      >
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground line-clamp-2 mb-2">{poll.question}</p>
+              <div className="flex items-center flex-wrap gap-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Users className="h-3 w-3" />{totalVotes} votes</span>
+                <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{poll.total_pool} tokens</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeLeft()}</span>
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <Badge variant={isResolved ? "default" : isClosed ? "secondary" : "outline"} className="shrink-0">
+                {isResolved ? "Resolved" : isClosed ? "Closed" : "Open"}
+              </Badge>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Expanded full view
   return (
-    <Card className={`overflow-hidden ${isResolved ? "border-accent/30" : ""}`}>
+    <Card className={`overflow-hidden ${isResolved ? "border-accent/30" : "border-primary/30"}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">{poll.question}</CardTitle>
@@ -122,7 +145,19 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={async () => {
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(false);
+              }}
+            >
+              <ChevronUp className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={async (e) => {
+                e.stopPropagation();
                 const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
                 const copyFallback = async () => {
                   try {
@@ -199,7 +234,6 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               })}
             </div>
 
-            {/* Stake selection */}
             <div>
               <p className="text-xs text-muted-foreground mb-2">Your vote costs tokens (weighted voting):</p>
               <div className="flex gap-2">
@@ -217,7 +251,6 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               </div>
             </div>
 
-            {/* Live potential payout */}
             {selectedOption && potentialPayout !== null && (
               <div className="flex items-center justify-between p-3 rounded-lg bg-accent/10 border border-accent/20">
                 <div className="flex items-center gap-1.5 text-sm">
@@ -242,7 +275,6 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
             </Button>
           </>
         ) : (
-          /* Results view */
           <div className="space-y-2">
             {poll.options.map((opt) => {
               const pct = poll.total_pool > 0 ? ((opt.total_amount || 0) / poll.total_pool) * 100 : 0;

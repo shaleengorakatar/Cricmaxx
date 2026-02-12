@@ -214,7 +214,7 @@ const PredictionPolls = () => {
             <div className="space-y-4">
               {polls.map((poll) => (
                 <div key={poll.id} id={`poll-${poll.id}`} className={highlightId === poll.id ? "ring-2 ring-primary rounded-lg" : ""}>
-                  <PollCard poll={poll} onVoted={fetchPolls} />
+                  <PollCard poll={poll} onVoted={fetchPolls} defaultExpanded={highlightId === poll.id} />
                 </div>
               ))}
             </div>
