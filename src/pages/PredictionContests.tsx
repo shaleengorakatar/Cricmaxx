@@ -407,7 +407,7 @@ const PredictionContests = () => {
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className={cn("text-sm truncate", isMe && "font-semibold")}>
-                                    {profile?.name || (isMe ? "You" : "Loading...")} {isMe && profile?.name && "(You)"}
+                                    {profile?.name || (isMe ? "You" : "Participant")} {isMe && profile?.name && "(You)"}
                                   </p>
                                 </div>
                                 <div className="text-right shrink-0">
