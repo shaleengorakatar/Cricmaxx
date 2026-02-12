@@ -86,41 +86,44 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-3">
         <CardTitle className="text-lg">Create a Poll</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label>Question</Label>
+            <Label className="text-xs sm:text-sm">Question</Label>
             <Input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Who will be the top scorer?"
               required
+              className="mt-1 text-sm"
            />
           </div>
 
           <div>
-            <Label>Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Label className="text-xs sm:text-sm">Description <span className="text-muted-foreground text-xs">(optional)</span></Label>
             <Input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Additional context shown when expanded"
+              className="mt-1 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Options</Label>
+            <Label className="text-xs sm:text-sm">Options</Label>
             {options.map((opt, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="flex items-center gap-1.5">
                 <Input
                   value={opt}
                   onChange={(e) => updateOption(i, e.target.value)}
                   placeholder={`Option ${i + 1}`}
+                  className="text-sm min-w-0"
                 />
                 {options.length > 2 && (
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeOption(i)}>
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => removeOption(i)}>
                     <X className="h-4 w-4" />
                   </Button>
                 )}
@@ -134,14 +137,15 @@ export const CreatePollForm = ({ onCreated }: CreatePollFormProps) => {
           </div>
 
           <div>
-            <Label>Closes at</Label>
+            <Label className="text-xs sm:text-sm">Closes at</Label>
             <Input
               type="datetime-local"
               value={closesAt}
               onChange={(e) => setClosesAt(e.target.value)}
               required
+              className="mt-1 text-sm"
             />
-            <p className="text-xs text-muted-foreground mt-1">Should close 30 minutes before the match</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">Should close 30 minutes before the match</p>
           </div>
 
           <Button type="submit" disabled={creating} className="w-full">
