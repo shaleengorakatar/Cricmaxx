@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Users, Smartphone } from "lucide-react";
+import { TrendingUp, Coins, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
 
@@ -44,7 +44,11 @@ const buttonVariants: Variants = {
 const Hero = () => {
   const navigate = useNavigate();
 
-  const handleStartTrading = () => {
+  const handleGoToPolls = () => {
+    navigate('/polls');
+  };
+
+  const handleGoToMarkets = () => {
     navigate('/markets');
   };
 
@@ -105,28 +109,49 @@ const Hero = () => {
             <span className="block mt-2 text-accent font-medium">🚀 Closed Beta — World Cup 2026</span>
           </motion.p>
 
-          {/* Mobile-optimized buttons - stack on mobile, side-by-side on larger screens */}
-          <motion.div 
-            className="flex flex-col gap-3 sm:gap-4 justify-center items-center max-w-md sm:max-w-none mx-auto px-4"
+          {/* Start Predicting heading */}
+          <motion.p
+            className="text-lg sm:text-xl md:text-2xl font-bold mb-4 text-primary-foreground/90"
             variants={itemVariants}
           >
-            <motion.div variants={buttonVariants}>
+            <TrendingUp className="inline h-5 w-5 mr-2 text-accent" />
+            Start Predicting
+          </motion.p>
+
+          {/* Two CTA buttons */}
+          <motion.div 
+            className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center max-w-lg mx-auto px-4"
+            variants={itemVariants}
+          >
+            <motion.div variants={buttonVariants} className="w-full sm:w-auto">
               <Button 
                 size="lg" 
                 className="bg-accent text-accent-foreground hover:bg-accent/90 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
-                onClick={handleStartTrading}
+                onClick={handleGoToPolls}
               >
-                <TrendingUp className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Start Predicting
+                <Coins className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Token Based Polls
               </Button>
             </motion.div>
-            <motion.p 
-              className="text-sm sm:text-base text-primary-foreground/70 text-center max-w-md"
-              variants={itemVariants}
-            >
-              Trade with CricMaxx Tokens — <span className="font-semibold text-accent">1 Token = $1 USD</span>
-            </motion.p>
+            <motion.div variants={buttonVariants} className="w-full sm:w-auto">
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                onClick={handleGoToMarkets}
+              >
+                <BarChart3 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                Contract Markets
+              </Button>
+            </motion.div>
           </motion.div>
+
+          <motion.p 
+            className="text-sm sm:text-base text-primary-foreground/70 text-center max-w-md mx-auto mt-4"
+            variants={itemVariants}
+          >
+            Trade with CricMaxx Tokens — <span className="font-semibold text-accent">1 Token = $1 USD</span>
+          </motion.p>
         </motion.div>
       </div>
     </section>
