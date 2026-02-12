@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Clock, Users, Trophy, Check, Coins, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +36,7 @@ interface PollCardProps {
 const STAKE_OPTIONS = [5, 10, 15, 20];
 
 export const PollCard = ({ poll, onVoted }: PollCardProps) => {
-  const { user } = useAuth();
+  const { user, refetchProfile } = useAuth();
   const { toast } = useToast();
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [selectedStake, setSelectedStake] = useState<number>(5);
@@ -94,6 +95,7 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
       }
 
       toast({ title: "Vote placed!", description: `You staked ${selectedStake} tokens.` });
+      refetchProfile();
       onVoted();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
