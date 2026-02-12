@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { Label } from "@/components/ui/label";
 import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -166,24 +166,38 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
       <CardContent className="space-y-4">
         {!hasVoted && !isClosed ? (
           <>
-            <RadioGroup value={selectedOption} onValueChange={setSelectedOption} className="space-y-2">
+            <div className="space-y-2">
               {poll.options.map((opt) => {
                 const optVotes = opt.vote_count || 0;
                 const optAmount = opt.total_amount || 0;
+                const isSelected = selectedOption === opt.id;
                 return (
-                  <div key={opt.id} className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${selectedOption === opt.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}>
-                    <RadioGroupItem value={opt.id} id={opt.id} />
-                    <Label htmlFor={opt.id} className="flex-1 cursor-pointer">
-                      <span className="text-sm font-medium">{opt.option_text}</span>
-                      <span className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
-                        <span>{optVotes} {optVotes === 1 ? "vote" : "votes"}</span>
-                        <span>{optAmount} tokens</span>
-                      </span>
-                    </Label>
-                  </div>
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSelectedOption(opt.id)}
+                    className={`w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all duration-200 text-left ${
+                      isSelected
+                        ? "border-primary bg-primary/10 shadow-sm shadow-primary/20"
+                        : "border-border hover:border-primary/40 hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                    }`}>
+                      {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{opt.option_text}</span>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
+                        <span className="flex items-center gap-1"><Users className="h-3 w-3" />{optVotes}</span>
+                        <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{optAmount} tokens</span>
+                      </div>
+                    </div>
+                  </button>
                 );
               })}
-            </RadioGroup>
+            </div>
 
             {/* Stake selection */}
             <div>
