@@ -231,19 +231,51 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
               )}
             </div>
             {/* Correct answer */}
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Set correct answer"
-                defaultValue={q.correct_answer || ""}
-                className="text-sm h-8"
-                onBlur={(e) => {
-                  if (e.target.value !== (q.correct_answer || "")) {
-                    setCorrectAnswerMutation.mutate({ qId: q.id, answer: e.target.value });
-                  }
-                }}
-              />
-              {q.correct_answer && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />}
-            </div>
+            {q.question_type === "multiple_choice" && q.options ? (
+              <div className="flex flex-wrap gap-2">
+                {(q.options as string[]).map((opt) => (
+                  <Button
+                    key={opt}
+                    size="sm"
+                    variant={q.correct_answer === opt ? "default" : "outline"}
+                    className="text-xs h-7"
+                    onClick={() => setCorrectAnswerMutation.mutate({ qId: q.id, answer: opt })}
+                  >
+                    {opt}
+                    {q.correct_answer === opt && <CheckCircle className="h-3 w-3 ml-1" />}
+                  </Button>
+                ))}
+              </div>
+            ) : q.question_type === "yes_no" ? (
+              <div className="flex gap-2">
+                {["Yes", "No"].map((opt) => (
+                  <Button
+                    key={opt}
+                    size="sm"
+                    variant={q.correct_answer === opt ? "default" : "outline"}
+                    className="text-xs h-7"
+                    onClick={() => setCorrectAnswerMutation.mutate({ qId: q.id, answer: opt })}
+                  >
+                    {opt}
+                    {q.correct_answer === opt && <CheckCircle className="h-3 w-3 ml-1" />}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Set correct answer"
+                  defaultValue={q.correct_answer || ""}
+                  className="text-sm h-8"
+                  onBlur={(e) => {
+                    if (e.target.value !== (q.correct_answer || "")) {
+                      setCorrectAnswerMutation.mutate({ qId: q.id, answer: e.target.value });
+                    }
+                  }}
+                />
+                {q.correct_answer && <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />}
+              </div>
+            )}
           </div>
         ))}
 
