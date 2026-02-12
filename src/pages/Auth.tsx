@@ -370,14 +370,14 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
                     <Checkbox id="rememberMe" />
-                    <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer">
+                    <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none">
                       Remember me
                     </Label>
                   </div>
-                  <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                  <Link to="/forgot-password" className="text-sm text-primary hover:underline whitespace-nowrap">
                     Forgot password?
                   </Link>
                 </div>
@@ -450,6 +450,12 @@ const Auth = () => {
                     required
                   />
                   <PasswordRequirements password={signUpData.password} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox id="rememberMeSignup" />
+                  <Label htmlFor="rememberMeSignup" className="text-sm font-normal cursor-pointer leading-none">
+                    Remember me
+                  </Label>
                 </div>
                 <Button 
                   type="submit" 
