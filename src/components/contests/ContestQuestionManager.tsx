@@ -80,6 +80,17 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
     },
   });
 
+  const updateTextMutation = useMutation({
+    mutationFn: async ({ qId, text }: { qId: string; text: string }) => {
+      const { error } = await supabase.from("contest_questions").update({ question_text: text }).eq("id", qId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Question updated");
+      queryClient.invalidateQueries({ queryKey: ["contest-questions", contestId] });
+    },
+  });
+
   const updatePointsMutation = useMutation({
     mutationFn: async ({ qId, points }: { qId: string; points: number }) => {
       const { error } = await supabase.from("contest_questions").update({ points }).eq("id", qId);
@@ -171,7 +182,19 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
           <div key={q.id} className="border border-border rounded-lg p-3 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-sm font-medium">Q{idx + 1}: {q.question_text}</p>
+                {isEditable ? (
+                  <Input
+                    defaultValue={q.question_text}
+                    className="text-sm font-medium h-8"
+                    onBlur={(e) => {
+                      if (e.target.value && e.target.value !== q.question_text) {
+                        updateTextMutation.mutate({ qId: q.id, text: e.target.value });
+                      }
+                    }}
+                  />
+                ) : (
+                  <p className="text-sm font-medium">Q{idx + 1}: {q.question_text}</p>
+                )}
                 <div className="flex flex-wrap items-center gap-2 mt-1">
                   <Badge variant="secondary" className="text-[10px]">{q.question_type}</Badge>
                    {isEditable ? (
