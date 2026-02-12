@@ -222,7 +222,7 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
                 };
                 try {
                   const optionsList = poll.options.map(o => `• ${o.option_text}`).join('\n');
-                  const shareData = { title: poll.question, text: `${poll.question}\n\nOptions:\n${optionsList}\n\nFor new users, use invite code WC26 to enter the website.\n\nHead on over to CricMaxx to predict!`, url };
+                  const shareData = { title: poll.question, text: `${poll.question}\n\nOptions:\n${optionsList}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`, url };
                   if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
                     await navigator.share(shareData);
                     return;
