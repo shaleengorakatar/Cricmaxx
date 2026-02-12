@@ -16,6 +16,7 @@ import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, Chec
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContestFormDialog from "@/components/contests/ContestFormDialog";
+import ContestQuestionManager from "@/components/contests/ContestQuestionManager";
 
 type Contest = {
   id: string;
@@ -368,6 +369,15 @@ const PredictionContests = () => {
                     <p className="text-muted-foreground">Sign in to join this contest</p>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Admin question management */}
+              {isAdmin && selectedContest.status !== "resolved" && (
+                <ContestQuestionManager
+                  contestId={selectedContest.id}
+                  contestStatus={selectedContest.status}
+                  tiebreakerQuestionId={selectedContest.tiebreaker_question_id}
+                />
               )}
 
               {/* Questions */}
