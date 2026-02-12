@@ -181,7 +181,7 @@ const PredictionPolls = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">Load up tokens to participate in polls and win big!</p>
               </div>
-              <Button size="sm" onClick={() => navigate("/mobile/wallet")}>Load Tokens</Button>
+              <Button size="sm" onClick={() => navigate("/dashboard#wallet")}>Load Tokens</Button>
             </div>
           ) : null}
 
