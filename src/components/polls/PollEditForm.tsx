@@ -97,36 +97,36 @@ export const PollEditForm = ({ poll, onSaved, onCancel }: PollEditFormProps) => 
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold text-muted-foreground">Edit Poll</span>
-        <Button variant="ghost" size="icon" onClick={onCancel} className="h-7 w-7">
+        <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8">
           <X className="h-4 w-4" />
         </Button>
       </div>
 
       <div>
         <Label className="text-xs">Question</Label>
-        <Input value={question} onChange={(e) => setQuestion(e.target.value)} className="mt-1" />
+        <Input value={question} onChange={(e) => setQuestion(e.target.value)} className="mt-1 text-sm" />
       </div>
 
       <div>
         <Label className="text-xs">Description <span className="text-muted-foreground">(optional)</span></Label>
-        <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Additional context" className="mt-1" />
+        <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Additional context" className="mt-1 text-sm" />
       </div>
 
       <div>
         <Label className="text-xs">Closes At</Label>
-        <Input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="mt-1" />
+        <Input type="datetime-local" value={closesAt} onChange={(e) => setClosesAt(e.target.value)} className="mt-1 text-sm" />
       </div>
 
       <div>
         <Label className="text-xs">Options</Label>
-        <div className="space-y-2 mt-1">
+        <div className="space-y-2 mt-1.5">
           {options.filter(o => !o.markedForDelete).map((opt, idx) => {
             const originalIdx = options.indexOf(opt);
             return (
-              <div key={opt.id} className="flex items-center gap-2">
+              <div key={opt.id} className="flex items-center gap-1.5">
                 <Input
                   value={opt.text}
                   onChange={(e) => {
@@ -135,12 +135,12 @@ export const PollEditForm = ({ poll, onSaved, onCancel }: PollEditFormProps) => 
                     setOptions(updated);
                   }}
                   placeholder={`Option ${idx + 1}`}
-                  className="text-sm"
+                  className="text-sm min-w-0"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0"
+                  className="h-9 w-9 shrink-0"
                   onClick={() => {
                     if (opt.isNew) {
                       setOptions(options.filter((_, i) => i !== originalIdx));
@@ -166,7 +166,7 @@ export const PollEditForm = ({ poll, onSaved, onCancel }: PollEditFormProps) => 
         </div>
       </div>
 
-      <Button onClick={handleSave} disabled={saving || !question.trim()} className="w-full" size="sm">
+      <Button onClick={handleSave} disabled={saving || !question.trim()} className="w-full">
         {saving ? "Saving..." : "Save Changes"}
       </Button>
     </div>
