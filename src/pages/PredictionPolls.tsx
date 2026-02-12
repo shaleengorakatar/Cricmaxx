@@ -135,7 +135,7 @@ const PredictionPolls = () => {
       <Navigation />
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4 max-w-2xl">
-          <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           <div className="mb-6">
