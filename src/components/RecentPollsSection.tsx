@@ -43,7 +43,7 @@ export const RecentPollsSection = () => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {polls.map((p) => (
-            <Link key={p.id} to="/polls">
+            <Link key={p.id} to={`/polls?highlight=${p.id}`}>
               <Card className="hover:border-accent/50 transition-colors h-full">
                 <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
                   <p className="font-medium text-sm text-foreground line-clamp-2">{p.question}</p>
