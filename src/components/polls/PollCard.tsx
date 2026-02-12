@@ -138,7 +138,7 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
                   toast({ title: "Link copied!", description: "Share this poll with friends." });
                 };
                 try {
-                  const shareData = { title: poll.question, text: "Check out this poll on CricMaxx!", url };
+                  const shareData = { title: poll.question, text: `${poll.question} — Head on over to CricMaxx to predict!`, url };
                   if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
                     await navigator.share(shareData);
                     return;
