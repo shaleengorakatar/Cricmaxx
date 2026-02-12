@@ -220,7 +220,26 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
                 </div>
               );
             })}
-            {hasVoted && (
+            {hasVoted && poll.user_vote && !isResolved && (() => {
+              const userStake = poll.user_vote!.amount;
+              const userOptAmount = poll.options.find(o => o.id === poll.user_vote!.option_id)?.total_amount || 0;
+              const losingPool = poll.total_pool - userOptAmount;
+              const estimatedPayout = userOptAmount > 0
+                ? userStake + (userStake / userOptAmount) * losingPool
+                : userStake;
+              const winnings = Math.round((estimatedPayout - userStake) * 100) / 100;
+              return (
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-accent/10 border border-accent/20 mt-2">
+                  <span className="text-xs text-muted-foreground">
+                    If correct: <span className="font-semibold text-foreground">{userStake}</span> back + <span className="font-semibold text-accent">{winnings}</span> winnings
+                  </span>
+                  <span className="text-sm font-bold text-accent">
+                    = {Math.round(estimatedPayout * 100) / 100} tokens
+                  </span>
+                </div>
+              );
+            })()}
+            {hasVoted && isResolved && (
               <p className="text-xs text-muted-foreground text-center mt-2">
                 You voted with {poll.user_vote?.amount} tokens
               </p>
