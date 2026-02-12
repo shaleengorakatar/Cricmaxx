@@ -6,7 +6,7 @@ import { PollCard } from "@/components/polls/PollCard";
 import { CreatePollForm } from "@/components/polls/CreatePollForm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, BarChart3, Plus } from "lucide-react";
+import { ArrowLeft, BarChart3, Plus, LogIn, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,7 +29,7 @@ interface Poll {
 }
 
 const PredictionPolls = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
@@ -158,6 +158,32 @@ const PredictionPolls = () => {
             <p>• If your option wins, you get your stake back + a proportional share of the losing pool</p>
             <p>• Higher stakes = bigger share of winnings</p>
           </div>
+
+          {/* Auth / balance prompts */}
+          {!user ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 mb-6 flex items-center gap-3">
+              <LogIn className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">You're not signed in</p>
+                <p className="text-xs text-muted-foreground">Sign in or create an account to participate in polls and win tokens!</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button size="sm" variant="outline" onClick={() => navigate("/auth?redirect=/polls")}>Sign In</Button>
+                <Button size="sm" onClick={() => navigate("/auth?redirect=/polls")}>Sign Up</Button>
+              </div>
+            </div>
+          ) : profile && (profile.balance ?? 0) < 10 ? (
+            <div className="rounded-lg border border-accent/20 bg-accent/5 p-4 mb-6 flex items-center gap-3">
+              <Coins className="h-5 w-5 text-accent shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  You have {profile.balance ?? 0} token{(profile.balance ?? 0) !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-muted-foreground">Load up tokens to participate in polls and win big!</p>
+              </div>
+              <Button size="sm" onClick={() => navigate("/mobile/wallet")}>Load Tokens</Button>
+            </div>
+          ) : null}
 
           {showCreate && (
             <div className="mb-6">
