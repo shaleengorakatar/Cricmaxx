@@ -68,8 +68,8 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
       // Get user profiles
       const userIds = [...userMap.keys()];
       const { data: profiles } = await supabase
-        .from('friend_profiles')
-        .select('id, username, display_name, avatar_url')
+        .from('leaderboard_profiles')
+        .select('id, username, display_name, name, avatar_url')
         .in('id', userIds);
 
       const profileMap = new Map<string, any>();
@@ -82,7 +82,7 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
         return {
           id: uid,
           username: prof?.username || null,
-          display_name: prof?.display_name || null,
+          display_name: prof?.display_name || prof?.name || null,
           avatar_url: prof?.avatar_url || null,
           total_votes: stats.total_votes,
           total_staked: stats.total_staked,
