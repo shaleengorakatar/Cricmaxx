@@ -137,7 +137,7 @@ const Hero = () => {
               <Button 
                 size="lg" 
                 variant="outline"
-                className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
+                className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto"
                 onClick={handleGoToMarkets}
               >
                 <BarChart3 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
