@@ -221,7 +221,8 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
                   toast({ title: "Link copied!", description: "Share this poll with friends." });
                 };
                 try {
-                  const shareData = { title: poll.question, text: `${poll.question}\n\nFor new users, use invite code WC26 to enter the website.\n\nHead on over to CricMaxx to predict!`, url };
+                  const optionsList = poll.options.map(o => `• ${o.option_text}`).join('\n');
+                  const shareData = { title: poll.question, text: `${poll.question}\n\nOptions:\n${optionsList}\n\nFor new users, use invite code WC26 to enter the website.\n\nHead on over to CricMaxx to predict!`, url };
                   if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
                     await navigator.share(shareData);
                     return;
