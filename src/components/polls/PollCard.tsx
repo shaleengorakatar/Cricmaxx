@@ -122,10 +122,18 @@ export const PollCard = ({ poll, onVoted }: PollCardProps) => {
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              onClick={() => {
+              onClick={async () => {
                 const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
-                navigator.clipboard.writeText(url);
-                toast({ title: "Link copied!", description: "Share this poll with friends." });
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: poll.question, text: "Check out this poll on CricMaxx!", url });
+                  } catch (e) {
+                    // User cancelled share — ignore
+                  }
+                } else {
+                  navigator.clipboard.writeText(url);
+                  toast({ title: "Link copied!", description: "Share this poll with friends." });
+                }
               }}
             >
               <Share2 className="h-3.5 w-3.5" />
