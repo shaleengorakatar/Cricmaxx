@@ -64,12 +64,15 @@ const PredictionContests = () => {
 
   // Fetch all visible contests
   const { data: contests, isLoading } = useQuery({
-    queryKey: ["contests"],
+    queryKey: ["contests", isAdmin],
     queryFn: async () => {
+      const statuses = isAdmin
+        ? ["draft", "open", "closed", "resolved"]
+        : ["open", "closed", "resolved"];
       const { data, error } = await supabase
         .from("prediction_contests")
         .select("*")
-        .in("status", ["open", "closed", "resolved"])
+        .in("status", statuses)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Contest[];
