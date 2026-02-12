@@ -333,6 +333,11 @@ const Auth = () => {
           <CardDescription className="text-base">Fast. Live. Fun.</CardDescription>
         </CardHeader>
         <CardContent className="px-4 md:px-6">
+          <div className="rounded-lg bg-accent/10 border border-accent/20 p-3 mb-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              <span className="font-semibold text-accent">Beta:</span> We know you might have to log in on the browser every time — sorry for the inconvenience! We're working on the app version 🚀
+            </p>
+          </div>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 h-12">
               <TabsTrigger value="login" className="text-sm md:text-base">Login</TabsTrigger>
