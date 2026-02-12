@@ -175,7 +175,7 @@ const PredictionPolls = () => {
             <p className="font-medium text-foreground text-sm">How it works</p>
             <p>• Pick an option and stake 5, 10, 15, or 20 tokens</p>
             <p>• Polls close 30 minutes before the match</p>
-            <p>• If your option wins, you get your stake back + your proportional share of the losing pool</p>
+            <p>• If your option wins, you get your proportional share of the pool</p>
             <p>• Higher stakes = bigger share of winnings</p>
             <div className="mt-2 pt-2 border-t border-border/40 space-y-1">
               <p className="font-medium text-foreground text-xs">Example</p>
