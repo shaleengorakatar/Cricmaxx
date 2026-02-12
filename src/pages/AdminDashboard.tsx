@@ -81,6 +81,9 @@ const AdminDashboard = () => {
                 <TabsTrigger value="predictions" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Predictions
                 </TabsTrigger>
+                <TabsTrigger value="polls" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Polls
+                </TabsTrigger>
                 <TabsTrigger value="approvals" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Approvals
                 </TabsTrigger>
@@ -108,14 +111,15 @@ const AdminDashboard = () => {
                 <TabsTrigger value="loadtest" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Load Test
                 </TabsTrigger>
-                <TabsTrigger value="polls" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
-                  Polls
-                </TabsTrigger>
               </TabsList>
             </div>
 
             <TabsContent value="predictions">
               <PredictionsOverviewPanel />
+            </TabsContent>
+
+            <TabsContent value="polls">
+              <PollResolutionPanel />
             </TabsContent>
 
             <TabsContent value="approvals">
@@ -155,10 +159,6 @@ const AdminDashboard = () => {
 
             <TabsContent value="loadtest">
               <LoadTestPanel />
-            </TabsContent>
-
-            <TabsContent value="polls">
-              <PollResolutionPanel />
             </TabsContent>
           </Tabs>
         </div>
