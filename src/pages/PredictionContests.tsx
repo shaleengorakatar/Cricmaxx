@@ -62,6 +62,7 @@ const PredictionContests = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editContest, setEditContest] = useState<any>(null);
+  const [isEditingPredictions, setIsEditingPredictions] = useState(false);
 
   // Fetch all visible contests
   const { data: contests, isLoading } = useQuery({
@@ -189,6 +190,7 @@ const PredictionContests = () => {
     },
     onSuccess: () => {
       toast.success("Predictions saved!");
+      setIsEditingPredictions(false);
       queryClient.invalidateQueries({ queryKey: ["contest-answers"] });
     },
     onError: (e: any) => toast.error(e.message),
@@ -428,41 +430,72 @@ const PredictionContests = () => {
               {/* Questions */}
               {hasJoined && questions && questions.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="font-semibold text-lg mb-3">Predictions</h2>
-                  <div className="space-y-3">
-                    {questions.map((q, idx) => {
-                      const existingAnswer = userAnswers?.find(a => a.question_id === q.id);
-                      const isTiebreaker = selectedContest.tiebreaker_question_id === q.id;
-                      return (
-                        <Card key={q.id} className={cn(isTiebreaker && "border-yellow-500/40 bg-yellow-500/5")}>
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-mono text-muted-foreground">Q{idx + 1}</span>
-                                <p className="font-medium text-sm">{q.question_text}</p>
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                {isTiebreaker && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
-                                <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
-                              </div>
-                            </div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-lg">Predictions</h2>
+                    {isOpen && userAnswers && userAnswers.length > 0 && !isEditingPredictions && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => {
+                          const existing: Record<string, string> = {};
+                          userAnswers.forEach(a => { existing[a.question_id] = a.answer; });
+                          setAnswers(existing);
+                          setIsEditingPredictions(true);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Edit Predictions
+                      </Button>
+                    )}
+                  </div>
 
-                            {/* Show result if resolved */}
-                            {isResolved && existingAnswer && (
-                              <div className={cn(
-                                "flex items-center gap-2 mb-2 px-2 py-1.5 rounded-md text-xs",
-                                existingAnswer.is_correct ? "bg-green-500/10 text-green-700" : "bg-destructive/10 text-destructive"
-                              )}>
-                                {existingAnswer.is_correct ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
-                                <span>Your answer: <strong>{existingAnswer.answer}</strong></span>
-                                {q.correct_answer && <span className="ml-auto">Correct: <strong>{q.correct_answer}</strong></span>}
-                                <span className="ml-2 font-semibold">{existingAnswer.points_earned}/{q.points} pts</span>
+                  {/* Saved answers view (not editing) */}
+                  {userAnswers && userAnswers.length > 0 && !isEditingPredictions && !isResolved && (
+                    <Card className="mb-4 border-primary/20 bg-primary/5">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle className="h-4 w-4 text-primary" />
+                          <p className="text-sm font-medium">Your predictions are saved!</p>
+                          {isOpen && <Badge variant="secondary" className="text-[10px] ml-auto">Editable until close</Badge>}
+                        </div>
+                        <div className="space-y-2">
+                          {questions.map((q, idx) => {
+                            const ans = userAnswers.find(a => a.question_id === q.id);
+                            return (
+                              <div key={q.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                                <span className="text-muted-foreground">Q{idx + 1}: {q.question_text}</span>
+                                <Badge variant={ans ? "default" : "outline"} className="text-xs shrink-0 ml-2">
+                                  {ans ? ans.answer : "Not answered"}
+                                </Badge>
                               </div>
-                            )}
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                            {/* Answer input */}
-                            {isOpen && hasJoined && !isResolved && (
-                              <>
+                  {/* Input mode: show when editing, or when no answers saved yet */}
+                  {(isEditingPredictions || (isOpen && (!userAnswers || userAnswers.length === 0))) && (
+                    <>
+                      <div className="space-y-3">
+                        {questions.map((q, idx) => {
+                          const existingAnswer = userAnswers?.find(a => a.question_id === q.id);
+                          const isTiebreaker = selectedContest.tiebreaker_question_id === q.id;
+                          return (
+                            <Card key={q.id} className={cn(isTiebreaker && "border-yellow-500/40 bg-yellow-500/5")}>
+                              <CardContent className="p-4">
+                                <div className="flex items-start justify-between gap-2 mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-mono text-muted-foreground">Q{idx + 1}</span>
+                                    <p className="font-medium text-sm">{q.question_text}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    {isTiebreaker && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
+                                    <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                                  </div>
+                                </div>
+
                                 {q.question_type === "yes_no" ? (
                                   <RadioGroup
                                     value={answers[q.id] || existingAnswer?.answer || ""}
@@ -498,31 +531,84 @@ const PredictionContests = () => {
                                     onChange={e => setAnswers(p => ({ ...p, [q.id]: e.target.value }))}
                                   />
                                 )}
-                              </>
-                            )}
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
 
-                            {/* Show locked answer if closed but not resolved */}
-                            {!isOpen && !isResolved && existingAnswer && (
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <HelpCircle className="h-3.5 w-3.5" />
-                                <span>Your answer: <strong>{existingAnswer.answer}</strong></span>
+                      <div className="flex gap-2 mt-4">
+                        <Button
+                          className="flex-1"
+                          onClick={() => submitMutation.mutate()}
+                          disabled={submitMutation.isPending}
+                        >
+                          {submitMutation.isPending ? "Saving..." : "Save Predictions"}
+                        </Button>
+                        {isEditingPredictions && (
+                          <Button variant="outline" onClick={() => setIsEditingPredictions(false)}>
+                            Cancel
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Resolved results */}
+                  {isResolved && (
+                    <div className="space-y-3">
+                      {questions.map((q, idx) => {
+                        const existingAnswer = userAnswers?.find(a => a.question_id === q.id);
+                        const isTiebreaker = selectedContest.tiebreaker_question_id === q.id;
+                        return (
+                          <Card key={q.id} className={cn(isTiebreaker && "border-yellow-500/40 bg-yellow-500/5")}>
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-mono text-muted-foreground">Q{idx + 1}</span>
+                                  <p className="font-medium text-sm">{q.question_text}</p>
+                                </div>
+                                <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
+                              {existingAnswer && (
+                                <div className={cn(
+                                  "flex items-center gap-2 px-2 py-1.5 rounded-md text-xs",
+                                  existingAnswer.is_correct ? "bg-green-500/10 text-green-700" : "bg-destructive/10 text-destructive"
+                                )}>
+                                  {existingAnswer.is_correct ? <CheckCircle className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                                  <span>Your answer: <strong>{existingAnswer.answer}</strong></span>
+                                  {q.correct_answer && <span className="ml-auto">Correct: <strong>{q.correct_answer}</strong></span>}
+                                  <span className="ml-2 font-semibold">{existingAnswer.points_earned}/{q.points} pts</span>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
 
-                  {/* Submit button */}
-                  {isOpen && hasJoined && (
-                    <Button
-                      className="w-full mt-4"
-                      onClick={() => submitMutation.mutate()}
-                      disabled={submitMutation.isPending}
-                    >
-                      {submitMutation.isPending ? "Saving..." : "Save Predictions"}
-                    </Button>
+                  {/* Show locked answer if closed but not resolved */}
+                  {!isOpen && !isResolved && userAnswers && userAnswers.length > 0 && !isEditingPredictions && (
+                    <Card className="border-muted">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <p className="text-sm font-medium text-muted-foreground">Contest closed — predictions locked</p>
+                        </div>
+                        <div className="space-y-2">
+                          {questions.map((q, idx) => {
+                            const ans = userAnswers.find(a => a.question_id === q.id);
+                            return (
+                              <div key={q.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                                <span className="text-muted-foreground">Q{idx + 1}: {q.question_text}</span>
+                                <span className="text-xs font-medium">{ans?.answer || "—"}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
