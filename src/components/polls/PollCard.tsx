@@ -2,10 +2,11 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PollEditForm } from "./PollEditForm";
 
 interface PollOption {
   id: string;
@@ -35,9 +36,10 @@ interface PollCardProps {
 const STAKE_OPTIONS = [5, 10, 15, 20];
 
 export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardProps) => {
-  const { user, refetchProfile } = useAuth();
+  const { user, refetchProfile, isAdmin } = useAuth();
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const [editing, setEditing] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [selectedStake, setSelectedStake] = useState<number>(5);
   const [voting, setVoting] = useState(false);
@@ -163,10 +165,30 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
   // Expanded full view
   return (
     <Card className={`overflow-hidden ${isResolved ? "border-accent/30" : "border-primary/30"}`}>
+      {editing ? (
+        <CardContent className="pt-5">
+          <PollEditForm
+            poll={poll}
+            onSaved={() => { setEditing(false); onVoted(); }}
+            onCancel={() => setEditing(false)}
+          />
+        </CardContent>
+      ) : (
+      <>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-base leading-tight">{poll.question}</CardTitle>
           <div className="flex items-center gap-1.5 shrink-0">
+            {isAdmin && !isResolved && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="icon"
@@ -365,6 +387,8 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
           </div>
         )}
       </CardContent>
+      </>
+      )}
     </Card>
   );
 };
