@@ -38,6 +38,23 @@ const detailedSections = [
       "CricMaxx is a prediction market for cricket. You buy contracts that pay out if your prediction is correct. Think of it like placing a friendly bet with your mates — except the price tells you what everyone thinks the odds are.",
   },
   {
+    emoji: "🗳️",
+    title: "Token Based Polls",
+    content:
+      "Polls are the simplest way to predict on CricMaxx. Pick an option and stake tokens (5, 10, 15, or 20). If your pick is correct, you get your stake back plus a share of what the losing side put in — proportional to how much you staked. No complex trading, just pick and stake!",
+    example: {
+      heading: "Example",
+      lines: [
+        "Poll: \"Who will be Player of the Match?\"",
+        "Options: Kohli, Smith, Williamson.",
+        "You stake 20 tokens on Kohli. Others stake a combined 100 tokens across all options.",
+        "Kohli wins! The total losing pool is 80 tokens.",
+        "✅ You get: 20 (your stake) + your proportional share of 80 = big returns!",
+        "❌ If Kohli doesn't win: you lose your 20 token stake.",
+      ],
+    },
+  },
+  {
     emoji: "💰",
     title: "How Contracts Work",
     content:
