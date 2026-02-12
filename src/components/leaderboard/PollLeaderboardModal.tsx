@@ -68,7 +68,7 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
       // Get user profiles
       const userIds = [...userMap.keys()];
       const { data: profiles } = await supabase
-        .from('leaderboard_profiles')
+        .from('friend_profiles')
         .select('id, username, display_name, avatar_url')
         .in('id', userIds);
 
