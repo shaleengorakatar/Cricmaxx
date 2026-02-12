@@ -1578,6 +1578,7 @@ export type Database = {
           avatar_url: string | null
           display_name: string | null
           id: string | null
+          name: string | null
           predictions_correct: number | null
           predictions_total: number | null
           rank: number | null
