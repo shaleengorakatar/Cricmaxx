@@ -19,6 +19,7 @@ interface PollOption {
 interface Poll {
   id: string;
   question: string;
+  description?: string | null;
   status: string;
   total_pool: number;
   closes_at: string;
@@ -34,6 +35,7 @@ const PollResolutionPanel = () => {
   const [resolving, setResolving] = useState<string | null>(null);
   const [editingPoll, setEditingPoll] = useState<string | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
+  const [editDescription, setEditDescription] = useState("");
   const [editClosesAt, setEditClosesAt] = useState("");
   const [editOptions, setEditOptions] = useState<{ id: string; text: string; isNew?: boolean; markedForDelete?: boolean }[]>([]);
   const [saving, setSaving] = useState(false);
@@ -92,6 +94,7 @@ const PollResolutionPanel = () => {
     const enriched = pollsData.map((p: any) => ({
       id: p.id,
       question: p.question,
+      description: p.description || null,
       status: p.status,
       total_pool: Number(p.total_pool),
       closes_at: p.closes_at,
@@ -107,7 +110,7 @@ const PollResolutionPanel = () => {
   const startEdit = (poll: Poll) => {
     setEditingPoll(poll.id);
     setEditQuestion(poll.question);
-    // Format for datetime-local input
+    setEditDescription(poll.description || "");
     const dt = new Date(poll.closes_at);
     const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setEditClosesAt(local);
@@ -117,6 +120,7 @@ const PollResolutionPanel = () => {
   const cancelEdit = () => {
     setEditingPoll(null);
     setEditQuestion("");
+    setEditDescription("");
     setEditClosesAt("");
     setEditOptions([]);
   };
@@ -135,6 +139,7 @@ const PollResolutionPanel = () => {
         .from("prediction_polls")
         .update({
           question: editQuestion.trim(),
+          description: editDescription.trim() || null,
           closes_at: new Date(editClosesAt).toISOString(),
         })
         .eq("id", pollId);
@@ -263,6 +268,16 @@ const PollResolutionPanel = () => {
                   </div>
 
                   <div>
+                    <Label className="text-xs">Description <span className="text-muted-foreground">(optional)</span></Label>
+                    <Input
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="Additional context shown when expanded"
+                      className="mt-1"
+                    />
+                  </div>
+
+                  <div>
                     <Label className="text-xs">Closes At</Label>
                     <Input
                       type="datetime-local"
@@ -335,6 +350,9 @@ const PollResolutionPanel = () => {
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div>
                       <p className="font-medium text-sm">{poll.question}</p>
+                      {poll.description && (
+                        <p className="text-xs text-muted-foreground/80 mt-0.5">{poll.description}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         Pool: {poll.total_pool} tokens · Closes: {new Date(poll.closes_at).toLocaleString()}
                       </p>
