@@ -1202,6 +1202,7 @@ export type Database = {
           resolved_by: string | null
           status: string
           tiebreaker_question_id: string | null
+          tiebreaker_question_id_2: string | null
           title: string
           total_points: number
           updated_at: string
@@ -1220,6 +1221,7 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           tiebreaker_question_id?: string | null
+          tiebreaker_question_id_2?: string | null
           title: string
           total_points?: number
           updated_at?: string
@@ -1238,11 +1240,20 @@ export type Database = {
           resolved_by?: string | null
           status?: string
           tiebreaker_question_id?: string | null
+          tiebreaker_question_id_2?: string | null
           title?: string
           total_points?: number
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "prediction_contests_tiebreaker_question_id_2_fkey"
+            columns: ["tiebreaker_question_id_2"]
+            isOneToOne: false
+            referencedRelation: "contest_questions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prediction_polls: {
         Row: {
