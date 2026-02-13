@@ -126,6 +126,27 @@ const PredictionContests = () => {
     enabled: !!selectedContestId && !!user?.id,
   });
 
+  const _selectedContest = contests?.find(c => c.id === selectedContestId);
+  const _tiebreakerQid = _selectedContest?.tiebreaker_question_id;
+
+  // Fetch tiebreaker answers for all participants (for live ranking)
+  const { data: tiebreakerAnswers } = useQuery({
+    queryKey: ["contest-tiebreaker-answers", selectedContestId, _tiebreakerQid],
+    queryFn: async () => {
+      if (!_tiebreakerQid) return {};
+      const { data, error } = await supabase
+        .from("contest_answers")
+        .select("user_id, is_correct")
+        .eq("contest_id", selectedContestId!)
+        .eq("question_id", _tiebreakerQid);
+      if (error) throw error;
+      const map: Record<string, boolean> = {};
+      data?.forEach(a => { map[a.user_id] = a.is_correct ?? false; });
+      return map;
+    },
+    enabled: !!selectedContestId && !!_tiebreakerQid,
+  });
+
   // Fetch profiles for leaderboard names
   const { data: entryProfiles } = useQuery({
     queryKey: ["contest-entry-profiles", entries?.map(e => e.user_id)],
@@ -408,7 +429,16 @@ const PredictionContests = () => {
                     <CardContent className="p-0">
                       <div className="divide-y divide-border">
                         {entries
-                          .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
+                          .sort((a, b) => {
+                            // If ranks are set (resolved), use them
+                            if (a.rank != null && b.rank != null) return a.rank - b.rank;
+                            // Otherwise sort by score DESC, tiebreaker correct DESC, entry time ASC
+                            if (b.score !== a.score) return b.score - a.score;
+                            const aTb = tiebreakerAnswers?.[a.user_id] ? 1 : 0;
+                            const bTb = tiebreakerAnswers?.[b.user_id] ? 1 : 0;
+                            if (bTb !== aTb) return bTb - aTb;
+                            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                          })
                           .map((entry, idx) => {
                             const profile = entryProfiles?.[entry.user_id];
                             const isMe = entry.user_id === user?.id;
