@@ -169,14 +169,14 @@ const MobileAuth = () => {
               {!isLogin && <PasswordRequirements password={formData.password} />}
             </div>
 
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
               <Switch
                 id="rememberMe"
                 checked={rememberMe}
                 onCheckedChange={(checked) => setRememberMe(checked)}
-                className="scale-90"
+                className="scale-75 origin-left"
               />
-              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none text-muted-foreground">
+              <Label htmlFor="rememberMe" className="text-xs font-normal cursor-pointer leading-none text-muted-foreground">
                 Remember me
               </Label>
             </div>
