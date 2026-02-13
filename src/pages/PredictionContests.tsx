@@ -286,28 +286,24 @@ const PredictionContests = () => {
                       className="cursor-pointer hover:border-primary/40 transition-colors"
                       onClick={() => { setSelectedContestId(contest.id); initAnswers(); }}
                     >
-                      <CardContent className="p-4 flex items-center gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold truncate">{contest.title}</h3>
-                            <Badge variant={
-                              contest.status === "resolved" ? "default" :
-                              contest.status === "open" && !closed ? "secondary" : "outline"
-                            } className="text-[10px] shrink-0">
-                              {contest.status === "resolved" ? "Resolved" :
-                               closed ? "Closed" : "Open"}
-                            </Badge>
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h3 className="font-semibold text-sm sm:text-base leading-tight line-clamp-2">{contest.title}</h3>
+                              <Badge variant={
+                                contest.status === "resolved" ? "default" :
+                                contest.status === "open" && !closed ? "secondary" : "outline"
+                              } className="text-[10px] shrink-0">
+                                {contest.status === "resolved" ? "Resolved" :
+                                 closed ? "Closed" : "Open"}
+                              </Badge>
+                            </div>
+                            {contest.match_name && (
+                              <p className="text-xs text-muted-foreground">{contest.match_name}</p>
+                            )}
                           </div>
-                          {contest.match_name && (
-                            <p className="text-xs text-muted-foreground mb-1">{contest.match_name}</p>
-                          )}
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{contest.buy_in_amount} tokens</span>
-                            <span className="flex items-center gap-1"><Star className="h-3 w-3" />{contest.total_points} pts</span>
-                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(contest.closes_at), "MMM d, h:mm a")}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-0.5 shrink-0 -mt-0.5">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -347,6 +343,12 @@ const PredictionContests = () => {
                             <Share2 className="h-3.5 w-3.5" />
                           </Button>
                           <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5 flex-wrap">
+                          <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{contest.buy_in_amount} tokens</span>
+                          <span className="flex items-center gap-1"><Star className="h-3 w-3" />{contest.total_points} pts</span>
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(contest.closes_at), "MMM d, h:mm a")}</span>
                         </div>
                       </CardContent>
                     </Card>
