@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -12,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil, ChevronDown, Info } from "lucide-react";
+import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil, ChevronDown, Info, Share2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -61,7 +62,9 @@ type ContestEntry = {
 const PredictionContests = () => {
   const { isAuthenticated, user, isAdmin, profile, refetchProfile } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+  const highlightId = searchParams.get("highlight");
+  const [selectedContestId, setSelectedContestId] = useState<string | null>(highlightId);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editContest, setEditContest] = useState<any>(null);
@@ -304,7 +307,47 @@ const PredictionContests = () => {
                             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(contest.closes_at), "MMM d, h:mm a")}</span>
                           </div>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const url = `https://cricmaxx.com/contests?highlight=${contest.id}`;
+                              const copyFallback = async () => {
+                                try {
+                                  await navigator.clipboard.writeText(url);
+                                } catch {
+                                  const input = document.createElement('input');
+                                  input.value = url;
+                                  document.body.appendChild(input);
+                                  input.select();
+                                  document.execCommand('copy');
+                                  document.body.removeChild(input);
+                                }
+                                toast.success("Link copied! Share this contest with friends.");
+                              };
+                              try {
+                                const shareData = {
+                                  title: contest.title,
+                                  text: `PREDICTION CONTEST\n\n${contest.title}${contest.match_name ? `\n${contest.match_name}` : ''}\n\nBuy-in: ${contest.buy_in_amount} tokens\nTotal Points: ${contest.total_points}\nCloses: ${format(new Date(contest.closes_at), "MMM d, h:mm a")}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
+                                  url,
+                                };
+                                if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+                                  await navigator.share(shareData);
+                                  return;
+                                }
+                              } catch (e: any) {
+                                if (e?.name === 'AbortError') return;
+                              }
+                              await copyFallback();
+                            }}
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        </div>
                       </CardContent>
                     </Card>
                   );
