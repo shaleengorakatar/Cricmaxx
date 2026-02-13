@@ -1,0 +1,1 @@
+ALTER TABLE public.prediction_contests ADD COLUMN tiebreaker_question_id_2 UUID REFERENCES public.contest_questions(id) ON DELETE SET NULL;
