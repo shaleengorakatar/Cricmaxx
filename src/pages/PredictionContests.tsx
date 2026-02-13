@@ -433,6 +433,17 @@ const PredictionContests = () => {
                   <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-amber-700" /> 3rd: {(totalPot * 0.2).toFixed(0)} tokens</Badge>
                 </div>
 
+                {!isAuthenticated && isOpen && (
+                  <Card className="mt-4 mb-2 border-primary/30">
+                    <CardContent className="p-4 text-center space-y-2">
+                      <p className="text-muted-foreground">Sign in to join this contest</p>
+                      <Button variant="outline" onClick={() => navigate(`/auth?mode=login&redirect=${encodeURIComponent('/contests?highlight=' + selectedContest.id)}`)}>
+                        Sign In
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <ContestHowItWorks compact />
               </div>
 
@@ -450,17 +461,6 @@ const PredictionContests = () => {
                       disabled={joinMutation.isPending}
                     >
                       {joinMutation.isPending ? "Joining..." : `Join for ${selectedContest.buy_in_amount} tokens`}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {!isAuthenticated && isOpen && (
-                <Card className="mb-6 border-primary/30">
-                  <CardContent className="p-4 text-center space-y-2">
-                    <p className="text-muted-foreground">Sign in to join this contest</p>
-                    <Button variant="outline" onClick={() => window.location.href = `/auth?redirect=/contests`}>
-                      Sign In
                     </Button>
                   </CardContent>
                 </Card>
