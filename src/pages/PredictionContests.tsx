@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +60,7 @@ type ContestEntry = {
 };
 
 const PredictionContests = () => {
+  const navigate = useNavigate();
   const { isAuthenticated, user, isAdmin, profile, refetchProfile } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
@@ -262,6 +263,15 @@ const PredictionContests = () => {
                 Compete against others! Answer prediction questions, climb the leaderboard, and win from the prize pot.
               </p>
             </div>
+
+            {!isAuthenticated && (
+              <Card className="mb-4 border-primary/20 bg-primary/5">
+                <CardContent className="p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground text-center sm:text-left">Sign in to join contests and compete for prizes!</p>
+                  <Button size="sm" onClick={() => navigate(`/auth?mode=login&redirect=${encodeURIComponent('/contests')}`)}>Sign In</Button>
+                </CardContent>
+              </Card>
+            )}
 
             <ContestHowItWorks />
 
