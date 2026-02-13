@@ -6,7 +6,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Fingerprint, Mail, User, ArrowLeft } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/useAuth";
 import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -170,12 +170,13 @@ const MobileAuth = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <Switch
+              <Checkbox
                 id="rememberMe"
                 checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked)}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+                className="h-4 w-4"
               />
-              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none text-muted-foreground whitespace-nowrap">
+              <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none text-muted-foreground">
                 Remember me
               </Label>
             </div>
