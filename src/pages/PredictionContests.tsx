@@ -631,7 +631,9 @@ const PredictionContests = () => {
                       <div className="space-y-3">
                         {questions.map((q, idx) => {
                           const existingAnswer = userAnswers?.find(a => a.question_id === q.id);
-                          const isTiebreaker = selectedContest.tiebreaker_question_id === q.id;
+                          const isTiebreaker1 = selectedContest.tiebreaker_question_id === q.id;
+                          const isTiebreaker2 = selectedContest.tiebreaker_question_id_2 === q.id;
+                          const isTiebreaker = isTiebreaker1 || isTiebreaker2;
                           return (
                             <Card key={q.id} className={cn(isTiebreaker && "border-yellow-500/40 bg-yellow-500/5")}>
                               <CardContent className="p-4">
@@ -641,7 +643,8 @@ const PredictionContests = () => {
                                     <p className="font-medium text-sm">{q.question_text}</p>
                                   </div>
                                   <div className="flex items-center gap-1.5 shrink-0">
-                                    {isTiebreaker && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
+                                    {isTiebreaker1 && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
+                                    {isTiebreaker2 && <Badge variant="outline" className="text-[10px] border-yellow-500/70 text-yellow-600">Tiebreaker 2</Badge>}
                                     <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
                                   </div>
                                 </div>
@@ -709,7 +712,9 @@ const PredictionContests = () => {
                     <div className="space-y-3">
                       {questions.map((q, idx) => {
                         const existingAnswer = userAnswers?.find(a => a.question_id === q.id);
-                        const isTiebreaker = selectedContest.tiebreaker_question_id === q.id;
+                        const isTiebreaker1 = selectedContest.tiebreaker_question_id === q.id;
+                        const isTiebreaker2 = selectedContest.tiebreaker_question_id_2 === q.id;
+                        const isTiebreaker = isTiebreaker1 || isTiebreaker2;
                         return (
                           <Card key={q.id} className={cn(isTiebreaker && "border-yellow-500/40 bg-yellow-500/5")}>
                             <CardContent className="p-4">
@@ -718,7 +723,11 @@ const PredictionContests = () => {
                                   <span className="text-xs font-mono text-muted-foreground">Q{idx + 1}</span>
                                   <p className="font-medium text-sm">{q.question_text}</p>
                                 </div>
-                                <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isTiebreaker1 && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
+                                  {isTiebreaker2 && <Badge variant="outline" className="text-[10px] border-yellow-500/70 text-yellow-600">Tiebreaker 2</Badge>}
+                                  <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                                </div>
                               </div>
                               {existingAnswer && (
                                 <div className={cn(
