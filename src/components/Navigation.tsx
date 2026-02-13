@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +19,10 @@ const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin, loading, profileLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const goToLogin = () => navigate(`/auth?mode=login&redirect=${encodeURIComponent(location.pathname + location.search)}`);
+  const goToSignup = () => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(location.pathname + location.search)}`);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
   
   // Only show authenticated links when auth is fully resolved AND user is authenticated
@@ -137,7 +140,7 @@ const Navigation = () => {
                 variant="default"
                 size="sm"
                 className="lg:hidden bg-accent text-accent-foreground hover:bg-accent/90"
-                onClick={() => navigate('/auth?mode=login')}
+                onClick={goToLogin}
               >
                 Sign In
               </Button>
@@ -162,7 +165,7 @@ const Navigation = () => {
                         <Button 
                           className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
                           onClick={() => {
-                            navigate('/auth?mode=signup');
+                            goToSignup();
                             setMobileMenuOpen(false);
                           }}
                         >
@@ -172,7 +175,7 @@ const Navigation = () => {
                           variant="outline"
                           className="flex-1"
                           onClick={() => {
-                            navigate('/auth?mode=login');
+                            goToLogin();
                             setMobileMenuOpen(false);
                           }}
                         >
@@ -314,7 +317,7 @@ const Navigation = () => {
                           variant="outline" 
                           className="w-full"
                           onClick={() => {
-                            navigate('/auth?mode=login');
+                            goToLogin();
                             setMobileMenuOpen(false);
                           }}
                         >
@@ -323,7 +326,7 @@ const Navigation = () => {
                         <Button 
                           className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
                           onClick={() => {
-                            navigate('/auth?mode=signup');
+                            goToSignup();
                             setMobileMenuOpen(false);
                           }}
                         >
@@ -397,14 +400,14 @@ const Navigation = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate('/auth?mode=login')}
+                  onClick={goToLogin}
                 >
                   Sign In
                 </Button>
                 <Button 
                   size="sm"
                   className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={() => navigate('/auth?mode=signup')}
+                  onClick={goToSignup}
                 >
                   Sign Up
                 </Button>
