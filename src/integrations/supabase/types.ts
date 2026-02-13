@@ -2010,6 +2010,14 @@ export type Database = {
             Args: {
               _admin_id: string
               _poll_id: string
+              _winning_option_ids: string[]
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _admin_id: string
+              _poll_id: string
               _winning_option_id: string
             }
             Returns: Json

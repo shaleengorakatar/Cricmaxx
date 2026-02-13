@@ -489,7 +489,32 @@ const PredictionContests = () => {
                 />
               )}
 
-              {/* Leaderboard - at top */}
+              {/* Winner/Result banner for resolved contests */}
+              {isResolved && hasJoined && (
+                <Card className={cn(
+                  "mb-6 border-2",
+                  userEntry && userEntry.payout && userEntry.payout > 0 
+                    ? "border-green-500/40 bg-green-500/10" 
+                    : "border-border bg-muted/30"
+                )}>
+                  <CardContent className="p-4 text-center">
+                    {userEntry && userEntry.payout && userEntry.payout > 0 ? (
+                      <>
+                        <Trophy className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+                        <p className="font-bold text-lg">🎉 You won {userEntry.payout} tokens!</p>
+                        <p className="text-sm text-muted-foreground">You placed #{userEntry.rank} out of {participantCount} participants</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium">Contest Resolved</p>
+                        <p className="text-sm text-muted-foreground">You scored {userEntry?.score ?? 0}/{userEntry?.total_points ?? 0} points. Better luck next time!</p>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Leaderboard */}
               {entries && entries.length > 0 && (
                 <div className="mb-6">
                   <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
@@ -500,9 +525,7 @@ const PredictionContests = () => {
                       <div className="divide-y divide-border">
                         {entries
                           .sort((a, b) => {
-                            // If ranks are set (resolved), use them
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
-                            // Otherwise sort by score DESC, tb1 DESC, tb2 DESC, entry time ASC
                             if (b.score !== a.score) return b.score - a.score;
                             const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
                             const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
@@ -515,19 +538,27 @@ const PredictionContests = () => {
                           .map((entry, idx) => {
                             const profile = entryProfiles?.[entry.user_id];
                             const isMe = entry.user_id === user?.id;
-                            const rankIcon = entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : null;
+                            const rankNum = entry.rank ?? idx + 1;
+                            const rankIcon = rankNum === 1 ? "🥇" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : null;
+                            // Calculate what each position wins
+                            const prizeLabel = rankNum === 1 ? `${(totalPot * 0.5).toFixed(0)} tokens` 
+                              : rankNum === 2 ? `${(totalPot * 0.3).toFixed(0)} tokens`
+                              : rankNum === 3 ? `${(totalPot * 0.2).toFixed(0)} tokens` : null;
                             return (
                               <div key={entry.id} className={cn(
                                 "flex items-center gap-3 px-4 py-3",
                                 isMe && "bg-primary/5"
                               )}>
                                 <span className="w-8 text-center font-mono text-sm">
-                                  {rankIcon || (entry.rank ?? idx + 1)}
+                                  {rankIcon || rankNum}
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className={cn("text-sm truncate", isMe && "font-semibold")}>
                                     {profile?.name || (isMe ? "You" : "Participant")} {isMe && profile?.name && "(You)"}
                                   </p>
+                                  {!isResolved && prizeLabel && (
+                                    <p className="text-[10px] text-muted-foreground">Wins: {prizeLabel}</p>
+                                  )}
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold">

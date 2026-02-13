@@ -168,11 +168,19 @@ export function NotificationsBell() {
                     'p-3 hover:bg-muted/50 cursor-pointer transition-colors',
                     !notification.read && 'bg-primary/5'
                   )}
-                  onClick={() => {
+                   onClick={() => {
                     if (!notification.read) {
                       markReadMutation.mutate(notification.id);
                     }
-                    navigate(`/market/${notification.market_id}`);
+                    // Check if notification message contains contest/poll keywords to route correctly
+                    const msg = (notification.title + notification.message).toLowerCase();
+                    if (msg.includes('contest')) {
+                      navigate(`/contests?highlight=${notification.market_id}`);
+                    } else if (msg.includes('poll')) {
+                      navigate(`/polls`);
+                    } else {
+                      navigate(`/market/${notification.market_id}`);
+                    }
                     setIsOpen(false);
                   }}
                 >
