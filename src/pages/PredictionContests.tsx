@@ -12,11 +12,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil } from "lucide-react";
+import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil, ChevronDown, Info } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContestFormDialog from "@/components/contests/ContestFormDialog";
 import ContestQuestionManager from "@/components/contests/ContestQuestionManager";
+import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
 
 type Contest = {
   id: string;
@@ -250,6 +252,8 @@ const PredictionContests = () => {
               </p>
             </div>
 
+            <ContestHowItWorks />
+
             {isLoading ? (
               <div className="space-y-3">
                 {[1,2,3].map(i => <div key={i} className="h-24 bg-muted/50 rounded-xl animate-pulse" />)}
@@ -365,6 +369,8 @@ const PredictionContests = () => {
                   <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-gray-400" /> 2nd: {(totalPot * 0.3).toFixed(0)} tokens</Badge>
                   <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-amber-700" /> 3rd: {(totalPot * 0.2).toFixed(0)} tokens</Badge>
                 </div>
+
+                <ContestHowItWorks compact />
               </div>
 
               {/* Join button */}
