@@ -58,7 +58,7 @@ type ContestEntry = {
 };
 
 const PredictionContests = () => {
-  const { isAuthenticated, user, isAdmin, profile } = useAuth();
+  const { isAuthenticated, user, isAdmin, profile, refetchProfile } = useAuth();
   const queryClient = useQueryClient();
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -187,10 +187,11 @@ const PredictionContests = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      toast.success("Joined contest!");
+    onSuccess: (data: any) => {
+      const result = typeof data === 'string' ? JSON.parse(data) : data;
+      toast.success(`Joined contest! ${result?.buy_in ?? selectedContest?.buy_in_amount} tokens deducted.`);
+      refetchProfile();
       queryClient.invalidateQueries({ queryKey: ["contest-entries"] });
-      queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
     },
     onError: (e: any) => toast.error(e.message),
   });

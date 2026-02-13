@@ -152,6 +152,8 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
         toast.success(`Contest resolved! Pot: ${data.total_pot} tokens, ${data.winners_paid} winners paid.`);
       }
       queryClient.invalidateQueries({ queryKey: ["contests"] });
+      queryClient.invalidateQueries({ queryKey: ["contest-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-profile"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
