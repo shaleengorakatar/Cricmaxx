@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { z } from "zod";
@@ -364,9 +364,9 @@ const Auth = () => {
                   />
                 </div>
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="rememberMe" />
-                    <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none">
+                  <div className="flex items-center gap-2.5">
+                    <Switch id="rememberMe" className="scale-90" />
+                    <Label htmlFor="rememberMe" className="text-sm font-normal cursor-pointer leading-none text-muted-foreground">
                       Remember me
                     </Label>
                   </div>
@@ -444,9 +444,9 @@ const Auth = () => {
                   />
                   <PasswordRequirements password={signUpData.password} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox id="rememberMeSignup" />
-                  <Label htmlFor="rememberMeSignup" className="text-sm font-normal cursor-pointer leading-none">
+                <div className="flex items-center gap-2.5">
+                  <Switch id="rememberMeSignup" className="scale-90" />
+                  <Label htmlFor="rememberMeSignup" className="text-sm font-normal cursor-pointer leading-none text-muted-foreground">
                     Remember me
                   </Label>
                 </div>
