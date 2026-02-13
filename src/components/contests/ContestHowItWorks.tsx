@@ -39,7 +39,7 @@ const ContestHowItWorks = ({ compact = false }: ContestHowItWorksProps) => {
             <Star className="h-4 w-4 text-accent shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-foreground">Earn points for correct answers</p>
-              <p className="text-muted-foreground text-xs">After the event, admins set correct answers. Your total points determine your rank. If scores are tied, the tiebreaker question decides who ranks higher, followed by earliest entry time.</p>
+              <p className="text-muted-foreground text-xs">After the event, admins set correct answers. Your total points determine your rank. If scores are tied, Tiebreaker 1 decides. If still tied, Tiebreaker 2 decides. If still tied after both, players share the combined prize pool of the positions they occupy.</p>
             </div>
           </div>
 
@@ -48,7 +48,7 @@ const ContestHowItWorks = ({ compact = false }: ContestHowItWorksProps) => {
             <div>
               <p className="font-medium text-foreground">Win from the prize pot</p>
               <p className="text-muted-foreground text-xs">
-                Top 3 win: <span className="font-semibold text-foreground">1st — 50%</span>, <span className="font-semibold text-foreground">2nd — 30%</span>, <span className="font-semibold text-foreground">3rd — 20%</span> of the total pot. If fewer than 3 people join, the contest is voided and all buy-ins are refunded.
+                Top 3 win: <span className="font-semibold text-foreground">1st — 50%</span>, <span className="font-semibold text-foreground">2nd — 30%</span>, <span className="font-semibold text-foreground">3rd — 20%</span> of the total pot. If two players are fully tied for 1st, they split the combined 1st + 2nd prize equally (40% each), and 3rd gets 20%. If fewer than 3 join, the contest is voided and buy-ins refunded.
               </p>
             </div>
           </div>
