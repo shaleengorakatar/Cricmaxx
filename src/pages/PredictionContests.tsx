@@ -31,6 +31,7 @@ type Contest = {
   closes_at: string;
   resolved_at: string | null;
   tiebreaker_question_id: string | null;
+  tiebreaker_question_id_2?: string | null;
   min_participants: number;
   created_at: string;
 };
@@ -130,23 +131,29 @@ const PredictionContests = () => {
 
   const _selectedContest = contests?.find(c => c.id === selectedContestId);
   const _tiebreakerQid = _selectedContest?.tiebreaker_question_id;
+  const _tiebreakerQid2 = _selectedContest?.tiebreaker_question_id_2;
 
   // Fetch tiebreaker answers for all participants (for live ranking)
   const { data: tiebreakerAnswers } = useQuery({
-    queryKey: ["contest-tiebreaker-answers", selectedContestId, _tiebreakerQid],
+    queryKey: ["contest-tiebreaker-answers", selectedContestId, _tiebreakerQid, _tiebreakerQid2],
     queryFn: async () => {
-      if (!_tiebreakerQid) return {};
+      const qids = [_tiebreakerQid, _tiebreakerQid2].filter(Boolean) as string[];
+      if (!qids.length) return { tb1: {} as Record<string, boolean>, tb2: {} as Record<string, boolean> };
       const { data, error } = await supabase
         .from("contest_answers")
-        .select("user_id, is_correct")
+        .select("user_id, question_id, is_correct")
         .eq("contest_id", selectedContestId!)
-        .eq("question_id", _tiebreakerQid);
+        .in("question_id", qids);
       if (error) throw error;
-      const map: Record<string, boolean> = {};
-      data?.forEach(a => { map[a.user_id] = a.is_correct ?? false; });
-      return map;
+      const tb1: Record<string, boolean> = {};
+      const tb2: Record<string, boolean> = {};
+      data?.forEach(a => {
+        if (a.question_id === _tiebreakerQid) tb1[a.user_id] = a.is_correct ?? false;
+        if (a.question_id === _tiebreakerQid2) tb2[a.user_id] = a.is_correct ?? false;
+      });
+      return { tb1, tb2 };
     },
-    enabled: !!selectedContestId && !!_tiebreakerQid,
+    enabled: !!selectedContestId && (!!_tiebreakerQid || !!_tiebreakerQid2),
   });
 
   // Fetch profiles for leaderboard names
@@ -423,6 +430,7 @@ const PredictionContests = () => {
                   contestId={selectedContest.id}
                   contestStatus={selectedContest.status}
                   tiebreakerQuestionId={selectedContest.tiebreaker_question_id}
+                  tiebreakerQuestionId2={selectedContest.tiebreaker_question_id_2 ?? null}
                 />
               )}
 
@@ -439,11 +447,14 @@ const PredictionContests = () => {
                           .sort((a, b) => {
                             // If ranks are set (resolved), use them
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
-                            // Otherwise sort by score DESC, tiebreaker correct DESC, entry time ASC
+                            // Otherwise sort by score DESC, tb1 DESC, tb2 DESC, entry time ASC
                             if (b.score !== a.score) return b.score - a.score;
-                            const aTb = tiebreakerAnswers?.[a.user_id] ? 1 : 0;
-                            const bTb = tiebreakerAnswers?.[b.user_id] ? 1 : 0;
-                            if (bTb !== aTb) return bTb - aTb;
+                            const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
+                            const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
+                            if (bTb1 !== aTb1) return bTb1 - aTb1;
+                            const aTb2 = tiebreakerAnswers?.tb2?.[a.user_id] ? 1 : 0;
+                            const bTb2 = tiebreakerAnswers?.tb2?.[b.user_id] ? 1 : 0;
+                            if (bTb2 !== aTb2) return bTb2 - aTb2;
                             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                           })
                           .map((entry, idx) => {

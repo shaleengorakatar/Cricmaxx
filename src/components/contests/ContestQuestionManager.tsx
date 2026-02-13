@@ -14,6 +14,7 @@ interface ContestQuestionManagerProps {
   contestId: string;
   contestStatus: string;
   tiebreakerQuestionId: string | null;
+  tiebreakerQuestionId2: string | null;
 }
 
 type Question = {
@@ -27,7 +28,7 @@ type Question = {
   sort_order: number;
 };
 
-const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId }: ContestQuestionManagerProps) => {
+const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId, tiebreakerQuestionId2 }: ContestQuestionManagerProps) => {
   const queryClient = useQueryClient();
   const [newQuestion, setNewQuestion] = useState({
     question_text: "", question_type: "yes_no", points: "1", options: "",
@@ -114,12 +115,13 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
   });
 
   const setTiebreakerMutation = useMutation({
-    mutationFn: async (qId: string) => {
-      const { error } = await supabase.from("prediction_contests").update({ tiebreaker_question_id: qId }).eq("id", contestId);
+    mutationFn: async ({ qId, slot }: { qId: string; slot: 1 | 2 }) => {
+      const field = slot === 1 ? 'tiebreaker_question_id' : 'tiebreaker_question_id_2';
+      const { error } = await supabase.from("prediction_contests").update({ [field]: qId }).eq("id", contestId);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Tiebreaker set!");
+    onSuccess: (_, { slot }) => {
+      toast.success(`Tiebreaker ${slot} set!`);
       queryClient.invalidateQueries({ queryKey: ["contests"] });
     },
   });
@@ -216,15 +218,21 @@ const ContestQuestionManager = ({ contestId, contestStatus, tiebreakerQuestionId
                      <Badge variant="outline" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
                    )}
                    {tiebreakerQuestionId === q.id && (
-                     <Badge className="text-[10px] bg-accent text-accent-foreground">Tiebreaker</Badge>
-                  )}
+                     <Badge className="text-[10px] bg-accent text-accent-foreground">TB 1</Badge>
+                   )}
+                   {tiebreakerQuestionId2 === q.id && (
+                     <Badge className="text-[10px] bg-accent/70 text-accent-foreground">TB 2</Badge>
+                   )}
                 </div>
                 {q.options && <p className="text-xs text-muted-foreground mt-1">Options: {(q.options as string[]).join(", ")}</p>}
               </div>
               {isEditable && (
                 <div className="flex gap-1 shrink-0">
-                  <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate(q.id)} title="Set as tiebreaker">
+                  <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate({ qId: q.id, slot: 1 })} title="Set as Tiebreaker 1">
                     <Star className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate({ qId: q.id, slot: 2 })} title="Set as Tiebreaker 2">
+                    <Star className="h-3.5 w-3.5 opacity-50" />
                   </Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteQuestionMutation.mutate(q.id)}>
                     <Trash2 className="h-3.5 w-3.5" />
