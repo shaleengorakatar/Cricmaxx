@@ -160,6 +160,39 @@ const PredictionContests = () => {
     enabled: !!selectedContestId && (!!_tiebreakerQid || !!_tiebreakerQid2),
   });
 
+  // Admin: fetch ALL answers for preview leaderboard (admin RLS allows this)
+  const { data: adminAllAnswers } = useQuery({
+    queryKey: ["admin-contest-all-answers", selectedContestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contest_answers")
+        .select("user_id, question_id, answer")
+        .eq("contest_id", selectedContestId!);
+      if (error) throw error;
+      return data as { user_id: string; question_id: string; answer: string }[];
+    },
+    enabled: !!selectedContestId && !!isAdmin,
+  });
+
+  // Compute projected scores for admin preview
+  const projectedScores = (() => {
+    if (!isAdmin || !adminAllAnswers || !questions || !entries) return null;
+    const scoreMap: Record<string, { score: number; total: number }> = {};
+    entries.forEach(e => { scoreMap[e.user_id] = { score: 0, total: 0 }; });
+    questions.forEach(q => {
+      if (!q.correct_answer) return;
+      adminAllAnswers.forEach(a => {
+        if (a.question_id !== q.id) return;
+        if (!scoreMap[a.user_id]) scoreMap[a.user_id] = { score: 0, total: 0 };
+        scoreMap[a.user_id].total += q.points;
+        if (a.answer.trim().toLowerCase() === q.correct_answer!.trim().toLowerCase()) {
+          scoreMap[a.user_id].score += q.points;
+        }
+      });
+    });
+    return scoreMap;
+  })();
+
   // Fetch profiles for leaderboard names
   const { data: entryProfiles } = useQuery({
     queryKey: ["contest-entry-profiles", entries?.map(e => e.user_id)],
@@ -554,8 +587,11 @@ const PredictionContests = () => {
               {/* Leaderboard */}
               {entries && entries.length > 0 && (
                 <div className="mb-6">
-                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2 flex-wrap">
                     <Trophy className="h-5 w-5 text-yellow-500" /> Leaderboard
+                      {isAdmin && !isResolved && projectedScores && (
+                        <Badge variant="outline" className="text-[10px] ml-auto">Preview — based on answers set</Badge>
+                      )}
                   </h2>
                   <Card>
                     <CardContent className="p-0">
@@ -563,7 +599,10 @@ const PredictionContests = () => {
                         {entries
                           .sort((a, b) => {
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
-                            if (b.score !== a.score) return b.score - a.score;
+                            // Use projected scores for admin preview
+                            const aScore = projectedScores?.[a.user_id]?.score ?? b.score;
+                            const bScore = projectedScores?.[b.user_id]?.score ?? a.score;
+                            if (bScore !== aScore) return bScore - aScore;
                             const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
                             const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
                             if (bTb1 !== aTb1) return bTb1 - aTb1;
@@ -599,7 +638,11 @@ const PredictionContests = () => {
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold">
-                                    {isResolved ? `${entry.score}/${entry.total_points} pts` : "—"}
+                                    {isResolved 
+                                      ? `${entry.score}/${entry.total_points} pts` 
+                                      : isAdmin && projectedScores?.[entry.user_id] 
+                                        ? `${projectedScores[entry.user_id].score}/${selectedContest?.total_points ?? '?'} pts`
+                                        : "—"}
                                   </p>
                                   {entry.payout != null && entry.payout > 0 && (
                                     <p className="text-xs text-green-600 font-medium">+{entry.payout} tokens</p>
