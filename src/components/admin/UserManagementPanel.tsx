@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, ArrowUpDown, TrendingUp, TrendingDown } from "lucide-react";
+import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, ArrowUpDown, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -246,6 +246,23 @@ const UserManagementPanel = () => {
     onError: () => { toast({ title: "Error", description: "Failed to remove role", variant: "destructive" }); },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setSelectedUserId(null);
+      toast({ title: "User account deleted" });
+    },
+    onError: (e: Error) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
+  });
+
   const getHighestRole = (roles: string[]): string => {
     if (roles.includes('admin')) return 'admin';
     if (roles.includes('creator')) return 'creator';
@@ -440,6 +457,32 @@ const UserManagementPanel = () => {
                   <Button size="sm" variant="outline" className="text-destructive border-destructive" onClick={() => removeRoleMutation.mutate({ userId: selectedUser.id, role: 'admin' })}>
                     <Crown className="h-3 w-3 mr-1" />Remove Admin
                   </Button>
+                )}
+                {!selectedUser.roles.includes('admin') && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="text-destructive border-destructive">
+                        <Trash2 className="h-3 w-3 mr-1" />Delete Account
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently delete <strong>{selectedUser.name}</strong>'s account, profile, and all associated data. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => deleteUserMutation.mutate(selectedUser.id)}
+                        >
+                          Delete Permanently
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </Card>
