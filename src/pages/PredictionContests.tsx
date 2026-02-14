@@ -395,6 +395,43 @@ const PredictionContests = () => {
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <h1 className="text-xl md:text-2xl font-bold">{selectedContest.title}</h1>
                   <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      onClick={async () => {
+                        const url = `https://cricmaxx.com/contests?highlight=${selectedContest.id}`;
+                        const copyFallback = async () => {
+                          try {
+                            await navigator.clipboard.writeText(url);
+                          } catch {
+                            const input = document.createElement('input');
+                            input.value = url;
+                            document.body.appendChild(input);
+                            input.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(input);
+                          }
+                          toast.success("Link copied! Share this contest with friends.");
+                        };
+                        try {
+                          const shareData = {
+                            title: selectedContest.title,
+                            text: `PREDICTION CONTEST\n\n${selectedContest.title}${selectedContest.match_name ? `\n${selectedContest.match_name}` : ''}\n\nBuy-in: ${selectedContest.buy_in_amount} tokens\nTotal Points: ${selectedContest.total_points}\nCloses: ${format(new Date(selectedContest.closes_at), "MMM d, h:mm a")}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
+                            url,
+                          };
+                          if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+                            await navigator.share(shareData);
+                            return;
+                          }
+                        } catch (e: any) {
+                          if (e?.name === 'AbortError') return;
+                        }
+                        await copyFallback();
+                      }}
+                    >
+                      <Share2 className="h-3.5 w-3.5" /> Share
+                    </Button>
                     {isAdmin && selectedContest.status !== "resolved" && (
                       <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditContest(selectedContest)}>
                         <Pencil className="h-3.5 w-3.5" /> Edit
