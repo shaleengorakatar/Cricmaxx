@@ -146,7 +146,7 @@ const Hero = () => {
           <motion.div variants={buttonVariants} className="flex justify-center mt-4 px-4">
             <Button 
               size="lg" 
-              className="bg-primary-foreground text-primary border-0 hover:bg-primary-foreground/90 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto max-w-lg"
+              className="bg-gradient-to-r from-yellow-500 to-amber-500 text-white border-0 hover:from-yellow-400 hover:to-amber-400 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto max-w-lg"
               onClick={handleGoToContests}
             >
               <Trophy className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
