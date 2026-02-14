@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Coins, BarChart3 } from "lucide-react";
+import { TrendingUp, Coins, BarChart3, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, type Variants } from "framer-motion";
 
@@ -44,13 +44,9 @@ const buttonVariants: Variants = {
 const Hero = () => {
   const navigate = useNavigate();
 
-  const handleGoToPolls = () => {
-    navigate('/polls');
-  };
-
-  const handleGoToMarkets = () => {
-    navigate('/markets');
-  };
+  const handleGoToPolls = () => navigate('/polls');
+  const handleGoToMarkets = () => navigate('/markets');
+  const handleGoToContests = () => navigate('/contests');
 
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground overflow-hidden">
@@ -146,12 +142,57 @@ const Hero = () => {
             </motion.div>
           </motion.div>
 
+          {/* Prediction Contests CTA */}
+          <motion.div variants={buttonVariants} className="flex justify-center mt-4 px-4">
+            <Button 
+              size="lg" 
+              className="bg-accent/20 text-accent border border-accent/40 hover:bg-accent/30 text-base sm:text-lg px-6 sm:px-8 py-5 sm:py-6 h-auto font-semibold shadow-lg hover:shadow-xl transition-all w-full sm:w-auto max-w-lg"
+              onClick={handleGoToContests}
+            >
+              <Trophy className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+              Prediction Contests
+            </Button>
+          </motion.div>
+
           <motion.p 
             className="text-sm sm:text-base text-primary-foreground/70 text-center max-w-md mx-auto mt-4"
             variants={itemVariants}
           >
             Trade with CricMaxx Tokens — <span className="font-semibold text-accent">1 Token = $1 USD</span>
           </motion.p>
+
+          {/* How It Works mini-guide */}
+          <motion.div
+            className="mt-8 max-w-2xl mx-auto px-4"
+            variants={itemVariants}
+          >
+            <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-5 sm:p-6 border border-primary-foreground/10">
+              <h3 className="text-base sm:text-lg font-bold mb-4 text-center text-primary-foreground/90">How It Works</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="text-center space-y-1.5">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
+                    <Coins className="h-4 w-4 text-accent" />
+                  </div>
+                  <p className="font-semibold text-primary-foreground/90">Polls</p>
+                  <p className="text-primary-foreground/60 text-xs leading-relaxed">Stake tokens on your pick. Winners split the pool based on their share.</p>
+                </div>
+                <div className="text-center space-y-1.5">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
+                    <BarChart3 className="h-4 w-4 text-accent" />
+                  </div>
+                  <p className="font-semibold text-primary-foreground/90">Markets</p>
+                  <p className="text-primary-foreground/60 text-xs leading-relaxed">Buy Yes/No contracts (1¢–99¢). Correct pays $1, wrong pays $0.</p>
+                </div>
+                <div className="text-center space-y-1.5">
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
+                    <Trophy className="h-4 w-4 text-accent" />
+                  </div>
+                  <p className="font-semibold text-primary-foreground/90">Contests</p>
+                  <p className="text-primary-foreground/60 text-xs leading-relaxed">Pay a buy-in, answer questions, and compete for the prize pot (50/30/20 split).</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
