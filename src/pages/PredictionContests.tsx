@@ -368,9 +368,9 @@ const PredictionContests = () => {
                                 toast.success("Link copied! Share this contest with friends.");
                               };
                               try {
-                                const shareData = {
+                              const shareData = {
                                   title: contest.title,
-                                  text: `PREDICTION CONTEST\n\n${contest.title}${contest.match_name ? `\n${contest.match_name}` : ''}\n\nBuy-in: ${contest.buy_in_amount} tokens\nTotal Points: ${contest.total_points}\nCloses: ${format(new Date(contest.closes_at), "MMM d, h:mm a")}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
+                                  text: `PREDICTION CONTEST\n\n${contest.title}${contest.match_name ? `\n${contest.match_name}` : ''}\n\nBuy-in: ${contest.buy_in_amount} tokens | ${contest.total_points} pts\nCloses: ${format(new Date(contest.closes_at), "MMM d, h:mm a")}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
                                   url,
                                 };
                                 if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
@@ -448,9 +448,13 @@ const PredictionContests = () => {
                           toast.success("Link copied! Share this contest with friends.");
                         };
                         try {
+                          const questionsText = questions?.length ? '\n\nQuestions:\n' + questions.map((q, i) => {
+                            const opts = q.options as string[] | null;
+                            return `${i + 1}. ${q.question_text}${opts?.length ? `\n   ${opts.join(' · ')}` : ''}`;
+                          }).join('\n') : '';
                           const shareData = {
                             title: selectedContest.title,
-                            text: `PREDICTION CONTEST\n\n${selectedContest.title}${selectedContest.match_name ? `\n${selectedContest.match_name}` : ''}\n\nBuy-in: ${selectedContest.buy_in_amount} tokens\nTotal Points: ${selectedContest.total_points}\nCloses: ${format(new Date(selectedContest.closes_at), "MMM d, h:mm a")}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
+                            text: `PREDICTION CONTEST\n\n${selectedContest.title}${selectedContest.match_name ? `\n${selectedContest.match_name}` : ''}\n\nBuy-in: ${selectedContest.buy_in_amount} tokens | ${selectedContest.total_points} pts\nCloses: ${format(new Date(selectedContest.closes_at), "MMM d, h:mm a")}${questionsText}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`,
                             url,
                           };
                           if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
