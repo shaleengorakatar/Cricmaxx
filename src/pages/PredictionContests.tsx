@@ -13,12 +13,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Plus, Pencil, ChevronDown, Info, Share2 } from "lucide-react";
+import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Pencil, ChevronDown, Info, Share2 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
-import ContestFormDialog from "@/components/contests/ContestFormDialog";
-import ContestQuestionManager from "@/components/contests/ContestQuestionManager";
 import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
 
 type Contest = {
@@ -61,27 +59,22 @@ type ContestEntry = {
 
 const PredictionContests = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, isAdmin, profile, refetchProfile } = useAuth();
+  const { isAuthenticated, user, profile, refetchProfile } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
   const [selectedContestId, setSelectedContestId] = useState<string | null>(highlightId);
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editContest, setEditContest] = useState<any>(null);
   const [isEditingPredictions, setIsEditingPredictions] = useState(false);
 
   // Fetch all visible contests
   const { data: contests, isLoading } = useQuery({
-    queryKey: ["contests", isAdmin],
+    queryKey: ["contests"],
     queryFn: async () => {
-      const statuses = isAdmin
-        ? ["draft", "open", "closed", "resolved"]
-        : ["open", "closed", "resolved"];
       const { data, error } = await supabase
         .from("prediction_contests")
         .select("*")
-        .in("status", statuses)
+        .in("status", ["open", "closed", "resolved"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Contest[];
@@ -160,38 +153,6 @@ const PredictionContests = () => {
     enabled: !!selectedContestId && (!!_tiebreakerQid || !!_tiebreakerQid2),
   });
 
-  // Admin: fetch ALL answers for preview leaderboard (admin RLS allows this)
-  const { data: adminAllAnswers } = useQuery({
-    queryKey: ["admin-contest-all-answers", selectedContestId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contest_answers")
-        .select("user_id, question_id, answer")
-        .eq("contest_id", selectedContestId!);
-      if (error) throw error;
-      return data as { user_id: string; question_id: string; answer: string }[];
-    },
-    enabled: !!selectedContestId && !!isAdmin,
-  });
-
-  // Compute projected scores for admin preview
-  const projectedScores = (() => {
-    if (!isAdmin || !adminAllAnswers || !questions || !entries) return null;
-    const scoreMap: Record<string, { score: number; total: number }> = {};
-    entries.forEach(e => { scoreMap[e.user_id] = { score: 0, total: 0 }; });
-    questions.forEach(q => {
-      if (!q.correct_answer) return;
-      adminAllAnswers.forEach(a => {
-        if (a.question_id !== q.id) return;
-        if (!scoreMap[a.user_id]) scoreMap[a.user_id] = { score: 0, total: 0 };
-        scoreMap[a.user_id].total += q.points;
-        if (a.answer.trim().toLowerCase() === q.correct_answer!.trim().toLowerCase()) {
-          scoreMap[a.user_id].score += q.points;
-        }
-      });
-    });
-    return scoreMap;
-  })();
 
   // Fetch profiles for leaderboard names
   const { data: entryProfiles } = useQuery({
@@ -286,11 +247,6 @@ const PredictionContests = () => {
                   <Trophy className="h-7 w-7 text-accent" />
                   <h1 className="text-2xl md:text-3xl font-bold">Prediction Contests</h1>
                 </div>
-                {isAdmin && (
-                  <Button size="sm" className="gap-1" onClick={() => setCreateOpen(true)}>
-                    <Plus className="h-4 w-4" /> New Contest
-                  </Button>
-                )}
               </div>
               <p className="text-muted-foreground text-sm">
                 Compete against others! Answer prediction questions, climb the leaderboard, and win from the prize pot.
@@ -400,9 +356,6 @@ const PredictionContests = () => {
               </div>
             )}
 
-            {/* Admin dialogs */}
-            <ContestFormDialog open={createOpen} onOpenChange={setCreateOpen} />
-            <ContestFormDialog open={!!editContest} onOpenChange={(o) => { if (!o) setEditContest(null); }} editContest={editContest} />
           </div>
         </main>
         <Footer />
@@ -469,11 +422,6 @@ const PredictionContests = () => {
                     >
                       <Share2 className="h-3.5 w-3.5" /> Share
                     </Button>
-                    {isAdmin && selectedContest.status !== "resolved" && (
-                      <Button size="sm" variant="outline" className="gap-1" onClick={() => setEditContest(selectedContest)}>
-                        <Pencil className="h-3.5 w-3.5" /> Edit
-                      </Button>
-                    )}
                     <Badge variant={isResolved ? "default" : isOpen ? "secondary" : "outline"}>
                       {isResolved ? "Resolved" : isOpen ? "Open" : "Closed"}
                     </Badge>
@@ -553,15 +501,6 @@ const PredictionContests = () => {
                 </Card>
               )}
 
-              {/* Admin question management */}
-              {isAdmin && selectedContest.status !== "resolved" && (
-                <ContestQuestionManager
-                  contestId={selectedContest.id}
-                  contestStatus={selectedContest.status}
-                  tiebreakerQuestionId={selectedContest.tiebreaker_question_id}
-                  tiebreakerQuestionId2={selectedContest.tiebreaker_question_id_2 ?? null}
-                />
-              )}
 
               {/* Winner/Result banner for resolved contests */}
               {isResolved && hasJoined && (
@@ -593,9 +532,6 @@ const PredictionContests = () => {
                 <div className="mb-6">
                   <h2 className="font-semibold text-lg mb-3 flex items-center gap-2 flex-wrap">
                     <Trophy className="h-5 w-5 text-yellow-500" /> Leaderboard
-                      {isAdmin && !isResolved && projectedScores && (
-                        <Badge variant="outline" className="text-[10px] ml-auto">Preview — based on answers set</Badge>
-                      )}
                   </h2>
                   <Card>
                     <CardContent className="p-0">
@@ -603,10 +539,7 @@ const PredictionContests = () => {
                         {entries
                           .sort((a, b) => {
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
-                            // Use projected scores for admin preview
-                            const aScore = projectedScores?.[a.user_id]?.score ?? b.score;
-                            const bScore = projectedScores?.[b.user_id]?.score ?? a.score;
-                            if (bScore !== aScore) return bScore - aScore;
+                            if (b.score !== a.score) return b.score - a.score;
                             const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
                             const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
                             if (bTb1 !== aTb1) return bTb1 - aTb1;
@@ -644,9 +577,7 @@ const PredictionContests = () => {
                                   <p className="text-sm font-semibold">
                                     {isResolved 
                                       ? `${entry.score}/${entry.total_points} pts` 
-                                      : isAdmin && projectedScores?.[entry.user_id] 
-                                        ? `${projectedScores[entry.user_id].score}/${selectedContest?.total_points ?? '?'} pts`
-                                        : "—"}
+                                      : "—"}
                                   </p>
                                   {entry.payout != null && entry.payout > 0 && (
                                     <p className="text-xs text-green-600 font-medium">+{entry.payout} tokens</p>
@@ -867,8 +798,6 @@ const PredictionContests = () => {
             </>
           )}
 
-          {/* Admin edit dialog in detail view */}
-          <ContestFormDialog open={!!editContest} onOpenChange={(o) => { if (!o) setEditContest(null); }} editContest={editContest} />
         </div>
       </main>
       <Footer />
