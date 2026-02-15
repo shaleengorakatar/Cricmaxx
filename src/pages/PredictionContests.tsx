@@ -176,6 +176,20 @@ const PredictionContests = () => {
     enabled: !!entries && entries.length > 0,
   });
 
+  // Admin: fetch all answers for all participants to compute contest-specific correct counts
+  const { data: adminAllAnswers } = useQuery({
+    queryKey: ["admin-contest-all-answers-page", selectedContestId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contest_answers")
+        .select("user_id, question_id, answer, is_correct")
+        .eq("contest_id", selectedContestId!);
+      if (error) throw error;
+      return data as { user_id: string; question_id: string; answer: string; is_correct: boolean | null }[];
+    },
+    enabled: !!selectedContestId && isAdmin,
+  });
+
   const selectedContest = contests?.find(c => c.id === selectedContestId);
   const userEntry = entries?.find(e => e.user_id === user?.id);
   const hasJoined = !!userEntry;
@@ -577,16 +591,45 @@ const PredictionContests = () => {
                                   <p className={cn("text-sm truncate", isMe && "font-semibold")}>
                                     {prof?.name || (isMe ? "You" : "Participant")} {isMe && prof?.name && "(You)"}
                                   </p>
-                                  <div className="flex items-center gap-2">
-                                    {prof && prof.predictions_total > 0 && (
-                                      <p className="text-[10px] text-muted-foreground">
-                                        {prof.predictions_correct}/{prof.predictions_total} correct
-                                      </p>
-                                    )}
-                                    {!isResolved && prizeLabel && (
-                                      <p className="text-[10px] text-muted-foreground">· Prize: {prizeLabel}</p>
-                                    )}
-                                  </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                     {isAdmin && adminAllAnswers && questions ? (() => {
+                                       const userAns = adminAllAnswers.filter(a => a.user_id === entry.user_id);
+                                       const correctCount = userAns.filter(a => {
+                                         const q = questions.find(qq => qq.id === a.question_id);
+                                         return q?.correct_answer && a.answer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase();
+                                       }).length;
+                                       const answeredCount = userAns.length;
+                                       const totalQ = questions.length;
+                                       const tb1Ok = tiebreakerAnswers?.tb1?.[entry.user_id];
+                                       const tb2Ok = tiebreakerAnswers?.tb2?.[entry.user_id];
+                                       return (
+                                         <>
+                                           <p className="text-[10px] text-muted-foreground">
+                                             {correctCount}/{totalQ} correct
+                                           </p>
+                                           {_tiebreakerQid && (
+                                             <span className={`text-[10px] ${tb1Ok ? 'text-green-600' : 'text-destructive'}`}>
+                                               TB1{tb1Ok ? '✓' : '✗'}
+                                             </span>
+                                           )}
+                                           {_tiebreakerQid2 && (
+                                             <span className={`text-[10px] ${tb2Ok ? 'text-green-600' : 'text-destructive'}`}>
+                                               TB2{tb2Ok ? '✓' : '✗'}
+                                             </span>
+                                           )}
+                                         </>
+                                       );
+                                     })() : (
+                                       prof && prof.predictions_total > 0 && (
+                                         <p className="text-[10px] text-muted-foreground">
+                                           {prof.predictions_correct}/{prof.predictions_total} correct
+                                         </p>
+                                       )
+                                     )}
+                                     {!isResolved && prizeLabel && (
+                                       <p className="text-[10px] text-muted-foreground">· Prize: {prizeLabel}</p>
+                                     )}
+                                   </div>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold">
