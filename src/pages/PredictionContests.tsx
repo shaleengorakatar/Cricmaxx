@@ -600,8 +600,12 @@ const PredictionContests = () => {
                                        }).length;
                                        const answeredCount = userAns.length;
                                        const totalQ = questions.length;
-                                       const tb1Ok = tiebreakerAnswers?.tb1?.[entry.user_id];
-                                       const tb2Ok = tiebreakerAnswers?.tb2?.[entry.user_id];
+                                       const tb1Q = _tiebreakerQid ? questions.find(qq => qq.id === _tiebreakerQid) : null;
+                                       const tb1Ans = _tiebreakerQid ? userAns.find(a => a.question_id === _tiebreakerQid) : null;
+                                       const tb1Ok = tb1Q?.correct_answer && tb1Ans ? tb1Ans.answer.trim().toLowerCase() === tb1Q.correct_answer.trim().toLowerCase() : false;
+                                       const tb2Q = _tiebreakerQid2 ? questions.find(qq => qq.id === _tiebreakerQid2) : null;
+                                       const tb2Ans = _tiebreakerQid2 ? userAns.find(a => a.question_id === _tiebreakerQid2) : null;
+                                       const tb2Ok = tb2Q?.correct_answer && tb2Ans ? tb2Ans.answer.trim().toLowerCase() === tb2Q.correct_answer.trim().toLowerCase() : false;
                                        return (
                                          <>
                                            <p className="text-[10px] text-muted-foreground">
