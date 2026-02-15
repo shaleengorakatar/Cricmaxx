@@ -536,8 +536,8 @@ const PredictionContests = () => {
                   <Card>
                     <CardContent className="p-0">
                       <div className="divide-y divide-border">
-                        {entries
-                          .sort((a, b) => {
+                        {(() => {
+                          const sorted = [...entries].sort((a, b) => {
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
                             if (b.score !== a.score) return b.score - a.score;
                             const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
@@ -547,16 +547,23 @@ const PredictionContests = () => {
                             const bTb2 = tiebreakerAnswers?.tb2?.[b.user_id] ? 1 : 0;
                             if (bTb2 !== aTb2) return bTb2 - aTb2;
                             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-                          })
-                          .map((entry, idx) => {
-                            const profile = entryProfiles?.[entry.user_id];
+                          });
+
+                          // Top 3 entries visible to all
+                          const top3 = sorted.slice(0, 3);
+                          // Find current user's entry if not in top 3
+                          const myEntry = user ? sorted.find((e, idx) => e.user_id === user.id && idx >= 3) : null;
+                          const myIdx = myEntry ? sorted.indexOf(myEntry) : -1;
+
+                          const renderEntry = (entry: ContestEntry, idx: number) => {
+                            const prof = entryProfiles?.[entry.user_id];
                             const isMe = entry.user_id === user?.id;
                             const rankNum = entry.rank ?? idx + 1;
                             const rankIcon = rankNum === 1 ? "🥇" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : null;
-                            // Calculate what each position wins
                             const prizeLabel = rankNum === 1 ? `${(totalPot * 0.5).toFixed(0)} tokens` 
                               : rankNum === 2 ? `${(totalPot * 0.3).toFixed(0)} tokens`
                               : rankNum === 3 ? `${(totalPot * 0.2).toFixed(0)} tokens` : null;
+                            const hasScore = entry.score > 0 || isResolved;
                             return (
                               <div key={entry.id} className={cn(
                                 "flex items-center gap-3 px-4 py-3",
@@ -567,7 +574,7 @@ const PredictionContests = () => {
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className={cn("text-sm truncate", isMe && "font-semibold")}>
-                                    {profile?.name || (isMe ? "You" : "Participant")} {isMe && profile?.name && "(You)"}
+                                    {prof?.name || (isMe ? "You" : "Participant")} {isMe && prof?.name && "(You)"}
                                   </p>
                                   {!isResolved && prizeLabel && (
                                     <p className="text-[10px] text-muted-foreground">Wins: {prizeLabel}</p>
@@ -575,7 +582,7 @@ const PredictionContests = () => {
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold">
-                                    {isResolved 
+                                    {hasScore
                                       ? `${entry.score}/${entry.total_points} pts` 
                                       : "—"}
                                   </p>
@@ -585,7 +592,22 @@ const PredictionContests = () => {
                                 </div>
                               </div>
                             );
-                          })}
+                          };
+
+                          return (
+                            <>
+                              {top3.map((entry, idx) => renderEntry(entry, idx))}
+                              {myEntry && (
+                                <>
+                                  {myIdx > 3 && (
+                                    <div className="px-4 py-2 text-center text-xs text-muted-foreground">···</div>
+                                  )}
+                                  {renderEntry(myEntry, myIdx)}
+                                </>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </CardContent>
                   </Card>
