@@ -164,12 +164,12 @@ const PredictionContests = () => {
       const userIds = entries.map(e => e.user_id);
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, display_name, name, username, avatar_url")
+        .select("id, display_name, name, username, avatar_url, predictions_correct, predictions_total")
         .in("id", userIds);
       if (error) throw error;
-      const map: Record<string, { name: string; avatar_url: string | null }> = {};
+      const map: Record<string, { name: string; avatar_url: string | null; predictions_correct: number; predictions_total: number }> = {};
       data?.forEach(p => {
-        map[p.id] = { name: p.display_name || p.name || p.username || "Anonymous", avatar_url: p.avatar_url };
+        map[p.id] = { name: p.display_name || p.name || p.username || "Anonymous", avatar_url: p.avatar_url, predictions_correct: p.predictions_correct, predictions_total: p.predictions_total };
       });
       return map;
     },
@@ -578,9 +578,16 @@ const PredictionContests = () => {
                                   <p className={cn("text-sm truncate", isMe && "font-semibold")}>
                                     {prof?.name || (isMe ? "You" : "Participant")} {isMe && prof?.name && "(You)"}
                                   </p>
-                                  {!isResolved && prizeLabel && (
-                                    <p className="text-[10px] text-muted-foreground">Wins: {prizeLabel}</p>
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {prof && prof.predictions_total > 0 && (
+                                      <p className="text-[10px] text-muted-foreground">
+                                        Win rate: {((prof.predictions_correct / prof.predictions_total) * 100).toFixed(0)}%
+                                      </p>
+                                    )}
+                                    {!isResolved && prizeLabel && (
+                                      <p className="text-[10px] text-muted-foreground">· Prize: {prizeLabel}</p>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold">
