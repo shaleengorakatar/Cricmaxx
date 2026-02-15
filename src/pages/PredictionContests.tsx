@@ -18,6 +18,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
+import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 
 type Contest = {
   id: string;
@@ -66,6 +67,7 @@ const PredictionContests = () => {
   const [selectedContestId, setSelectedContestId] = useState<string | null>(highlightId);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isEditingPredictions, setIsEditingPredictions] = useState(false);
+  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
 
   // Fetch all visible contests
   const { data: contests, isLoading } = useQuery({
@@ -494,7 +496,7 @@ const PredictionContests = () => {
                     <p className="text-sm text-muted-foreground">
                       You need at least {selectedContest.buy_in_amount} tokens to join. Your balance: {profile?.balance ?? 0} tokens.
                     </p>
-                    <Button variant="outline" onClick={() => window.location.href = `/wallet`}>
+                    <Button variant="outline" onClick={() => setBuyDialogOpen(true)}>
                       Add Balance
                     </Button>
                   </CardContent>
@@ -823,6 +825,11 @@ const PredictionContests = () => {
         </div>
       </main>
       <Footer />
+      <PaymentMethodsDialog
+        isOpen={buyDialogOpen}
+        onClose={() => setBuyDialogOpen(false)}
+        onSuccess={() => { refetchProfile(); }}
+      />
     </div>
   );
 };
