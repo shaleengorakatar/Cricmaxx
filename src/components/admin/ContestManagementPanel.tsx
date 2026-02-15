@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Plus, Trash2, Trophy, CheckCircle, Star, Eye, Users, Clock, Coins, Medal } from "lucide-react";
+import { Plus, Trash2, Trophy, CheckCircle, Star, Eye, Users, Clock, Coins, Medal, Download } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
@@ -203,6 +203,79 @@ const ContestManagementPanel = () => {
 
   const selectedContest = contests?.find(c => c.id === selectedContestId);
 
+  const downloadContestResults = async () => {
+    if (!selectedContest || !questions?.length) return;
+    try {
+      // Fetch all answers for this contest
+      const { data: allAnswers, error: ansError } = await supabase
+        .from("contest_answers")
+        .select("user_id, question_id, answer")
+        .eq("contest_id", selectedContest.id);
+      if (ansError) throw ansError;
+
+      // Fetch all entries for ranks/scores
+      const { data: allEntries, error: entError } = await supabase
+        .from("contest_entries")
+        .select("user_id, score, total_points, rank, payout")
+        .eq("contest_id", selectedContest.id);
+      if (entError) throw entError;
+
+      const userIds = [...new Set((allAnswers || []).map(a => a.user_id))];
+      if (!userIds.length) { toast.info("No answers to download"); return; }
+
+      // Fetch profiles
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name, name, username")
+        .in("id", userIds);
+      const profMap: Record<string, string> = {};
+      profiles?.forEach(p => { profMap[p.id] = p.display_name || p.name || p.username || "Anonymous"; });
+
+      const entryMap: Record<string, { score: number; total_points: number; rank: number | null; payout: number | null }> = {};
+      allEntries?.forEach(e => { entryMap[e.user_id] = e; });
+
+      // Build answer lookup: userId -> questionId -> answer
+      const ansMap: Record<string, Record<string, string>> = {};
+      allAnswers?.forEach(a => {
+        if (!ansMap[a.user_id]) ansMap[a.user_id] = {};
+        ansMap[a.user_id][a.question_id] = a.answer;
+      });
+
+      // CSV header
+      const escapeCsv = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+      const qHeaders = questions.map((q, i) => `Q${i + 1}: ${q.question_text}`);
+      const header = ["User", ...qHeaders, "Score", "Rank", "Payout"].map(escapeCsv).join(",");
+
+      // Correct answers row
+      const correctRow = ["CORRECT ANSWERS", ...questions.map(q => q.correct_answer || "—"), "", "", ""].map(escapeCsv).join(",");
+
+      // Data rows
+      const rows = userIds.map(uid => {
+        const entry = entryMap[uid];
+        const cols = [
+          profMap[uid] || uid,
+          ...questions.map(q => ansMap[uid]?.[q.id] || "—"),
+          entry ? `${entry.score}/${entry.total_points}` : "—",
+          entry?.rank != null ? String(entry.rank) : "—",
+          entry?.payout != null ? String(entry.payout) : "0",
+        ];
+        return cols.map(escapeCsv).join(",");
+      });
+
+      const csv = [header, correctRow, ...rows].join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${selectedContest.title.replace(/[^a-zA-Z0-9]/g, "_")}_results.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Results downloaded!");
+    } catch (err: any) {
+      toast.error("Download failed: " + err.message);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -271,6 +344,11 @@ const ContestManagementPanel = () => {
               <span>{selectedContest.title} — Questions</span>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-normal text-muted-foreground">{entryCount} participants</span>
+                {(selectedContest.status === "closed" || selectedContest.status === "resolved") && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={downloadContestResults}>
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" className="gap-1" onClick={() => setPreviewOpen(true)}>
                   <Eye className="h-3.5 w-3.5" /> Preview
                 </Button>
