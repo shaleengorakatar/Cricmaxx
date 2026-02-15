@@ -11,9 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Plus, Trash2, Trophy, CheckCircle, Star } from "lucide-react";
+import { Plus, Trash2, Trophy, CheckCircle, Star, Eye, Users, Clock, Coins, Medal } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
 
 type Contest = {
   id: string;
@@ -47,6 +50,7 @@ const ContestManagementPanel = () => {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedContestId, setSelectedContestId] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [newContest, setNewContest] = useState({
     title: "", description: "", buy_in_amount: "10", total_points: "10",
     match_name: "", closes_at: "", min_participants: "3",
@@ -265,7 +269,12 @@ const ContestManagementPanel = () => {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center justify-between">
               <span>{selectedContest.title} — Questions</span>
-              <span className="text-sm font-normal text-muted-foreground">{entryCount} participants</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-normal text-muted-foreground">{entryCount} participants</span>
+                <Button size="sm" variant="outline" className="gap-1" onClick={() => setPreviewOpen(true)}>
+                  <Eye className="h-3.5 w-3.5" /> Preview
+                </Button>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -354,6 +363,119 @@ const ContestManagementPanel = () => {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Preview Dialog */}
+      {selectedContest && (
+        <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" /> Contest Preview (User View)
+              </DialogTitle>
+              <DialogDescription>This is how the contest appears to participants.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Header */}
+              <div>
+                <h3 className="text-lg font-bold">{selectedContest.title}</h3>
+                {selectedContest.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{selectedContest.description}</p>
+                )}
+                {selectedContest.match_name && (
+                  <p className="text-xs text-muted-foreground mt-1">🏏 {selectedContest.match_name}</p>
+                )}
+              </div>
+
+              {/* Meta badges */}
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-lg">
+                  <Coins className="h-3.5 w-3.5 text-accent" /> Buy-in: {selectedContest.buy_in_amount} tokens
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-lg">
+                  <Users className="h-3.5 w-3.5" /> {entryCount} joined
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-lg">
+                  <Trophy className="h-3.5 w-3.5 text-yellow-500" /> Pot: {(entryCount || 0) * selectedContest.buy_in_amount} tokens
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-lg">
+                  <Clock className="h-3.5 w-3.5" /> {format(new Date(selectedContest.closes_at), "MMM d, h:mm a")}
+                </span>
+              </div>
+
+              {/* Prize breakdown */}
+              {(() => {
+                const pot = (entryCount || 0) * selectedContest.buy_in_amount;
+                return (
+                  <div className="flex gap-2">
+                    <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-yellow-500" /> 1st: {(pot * 0.5).toFixed(0)} tokens</Badge>
+                    <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-gray-400" /> 2nd: {(pot * 0.3).toFixed(0)} tokens</Badge>
+                    <Badge variant="outline" className="gap-1"><Medal className="h-3 w-3 text-amber-700" /> 3rd: {(pot * 0.2).toFixed(0)} tokens</Badge>
+                  </div>
+                );
+              })()}
+
+              <ContestHowItWorks compact />
+
+              {/* Questions preview */}
+              {questions && questions.length > 0 ? (
+                <div>
+                  <h4 className="font-semibold text-base mb-3">Predictions</h4>
+                  <div className="space-y-3">
+                    {questions.map((q, idx) => {
+                      const isTiebreaker1 = selectedContest.tiebreaker_question_id === q.id;
+                      return (
+                        <Card key={q.id} className={cn(isTiebreaker1 && "border-yellow-500/40 bg-yellow-500/5")}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono text-muted-foreground">Q{idx + 1}</span>
+                                <p className="font-medium text-sm">{q.question_text}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                {isTiebreaker1 && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">Tiebreaker</Badge>}
+                                <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                              </div>
+                            </div>
+
+                            {q.question_type === "yes_no" ? (
+                              <RadioGroup disabled className="flex gap-4">
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value="Yes" id={`preview-${q.id}-yes`} disabled />
+                                  <Label htmlFor={`preview-${q.id}-yes`} className="text-muted-foreground">Yes</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value="No" id={`preview-${q.id}-no`} disabled />
+                                  <Label htmlFor={`preview-${q.id}-no`} className="text-muted-foreground">No</Label>
+                                </div>
+                              </RadioGroup>
+                            ) : q.question_type === "multiple_choice" && q.options ? (
+                              <RadioGroup disabled className="space-y-2">
+                                {(q.options as string[]).map(opt => (
+                                  <div key={opt} className="flex items-center gap-2">
+                                    <RadioGroupItem value={opt} id={`preview-${q.id}-${opt}`} disabled />
+                                    <Label htmlFor={`preview-${q.id}-${opt}`} className="text-muted-foreground">{opt}</Label>
+                                  </div>
+                                ))}
+                              </RadioGroup>
+                            ) : (
+                              <Input placeholder="Your answer..." disabled className="text-sm" />
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  No questions added yet. Add questions above to see them here.
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
