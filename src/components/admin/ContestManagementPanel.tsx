@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
-import { Plus, Trash2, Trophy, CheckCircle, Star, Eye, Users, Clock, Coins, Medal, Download } from "lucide-react";
+import { Plus, Trash2, Trophy, CheckCircle, Star, Eye, Users, Clock, Coins, Medal, Download, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import ContestHowItWorks from "@/components/contests/ContestHowItWorks";
@@ -86,6 +86,48 @@ const ContestManagementPanel = () => {
       return count || 0;
     },
     enabled: !!selectedContestId,
+  });
+
+  // Fetch all entries for admin leaderboard
+  const { data: allEntries } = useQuery({
+    queryKey: ["admin-contest-all-entries", selectedContestId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("contest_entries").select("*").eq("contest_id", selectedContestId!);
+      if (error) throw error;
+      return data as { user_id: string; score: number; total_points: number; rank: number | null; payout: number | null; created_at: string }[];
+    },
+    enabled: !!selectedContestId,
+  });
+
+  // Fetch all answers for admin leaderboard scoring
+  const { data: allAdminAnswers } = useQuery({
+    queryKey: ["admin-contest-all-answers", selectedContestId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("contest_answers").select("user_id, question_id, answer").eq("contest_id", selectedContestId!);
+      if (error) throw error;
+      return data as { user_id: string; question_id: string; answer: string }[];
+    },
+    enabled: !!selectedContestId,
+  });
+
+  // Fetch profiles for leaderboard
+  const { data: adminEntryProfiles } = useQuery({
+    queryKey: ["admin-contest-entry-profiles", allEntries?.map(e => e.user_id)],
+    queryFn: async () => {
+      if (!allEntries || allEntries.length === 0) return {};
+      const userIds = allEntries.map(e => e.user_id);
+      const { data, error } = await supabase.from("profiles").select("id, display_name, name, username, predictions_correct, predictions_total").in("id", userIds);
+      if (error) throw error;
+      const map: Record<string, { name: string; winRate: number | null }> = {};
+      data?.forEach(p => {
+        map[p.id] = {
+          name: p.display_name || p.name || p.username || "Anonymous",
+          winRate: p.predictions_total > 0 ? Math.round((p.predictions_correct / p.predictions_total) * 100) : null,
+        };
+      });
+      return map;
+    },
+    enabled: !!allEntries && allEntries.length > 0,
   });
 
   const createContestMutation = useMutation({
@@ -437,6 +479,81 @@ const ContestManagementPanel = () => {
                 {questions && !questions.every(q => q.correct_answer) && (
                   <p className="text-xs text-destructive">Set correct answers for all questions before resolving.</p>
                 )}
+              </>
+            )}
+
+            {/* Admin Leaderboard - live scoring */}
+            {allEntries && allEntries.length > 0 && questions && questions.length > 0 && (
+              <>
+                <Separator />
+                <div>
+                  <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3">
+                    <BarChart3 className="h-4 w-4" /> Live Leaderboard ({allEntries.length} participants)
+                  </h3>
+                  <div className="border rounded-lg divide-y divide-border">
+                    {(() => {
+                      // Calculate live scores based on correct answers set
+                      const ansMap: Record<string, Record<string, string>> = {};
+                      allAdminAnswers?.forEach(a => {
+                        if (!ansMap[a.user_id]) ansMap[a.user_id] = {};
+                        ansMap[a.user_id][a.question_id] = a.answer;
+                      });
+
+                      const scored = allEntries.map(entry => {
+                        let liveScore = 0;
+                        let answeredCorrectly = 0;
+                        let totalAnswered = 0;
+                        questions.forEach(q => {
+                          const userAns = ansMap[entry.user_id]?.[q.id];
+                          if (userAns) {
+                            totalAnswered++;
+                            if (q.correct_answer && userAns.trim().toLowerCase() === q.correct_answer.trim().toLowerCase()) {
+                              liveScore += q.points;
+                              answeredCorrectly++;
+                            }
+                          }
+                        });
+                        return { ...entry, liveScore, answeredCorrectly, totalAnswered };
+                      });
+
+                      scored.sort((a, b) => b.liveScore - a.liveScore || new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+                      const pot = allEntries.length * (selectedContest?.buy_in_amount || 0);
+
+                      return scored.map((entry, idx) => {
+                        const prof = adminEntryProfiles?.[entry.user_id];
+                        const rankIcon = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : null;
+                        const isResolved = selectedContest?.status === "resolved";
+                        return (
+                          <div key={entry.user_id} className="flex items-center gap-3 px-3 py-2.5">
+                            <span className="w-7 text-center font-mono text-sm">{rankIcon || idx + 1}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{prof?.name || "Participant"}</p>
+                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                {prof?.winRate != null && <span>Win rate: {prof.winRate}%</span>}
+                                <span>{entry.totalAnswered}/{questions.length} answered</span>
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-semibold">{entry.liveScore}/{selectedContest?.total_points || 0} pts</p>
+                              {isResolved && entry.payout != null && entry.payout > 0 && (
+                                <p className="text-xs text-green-600 font-medium">+{entry.payout} tokens</p>
+                              )}
+                              {!isResolved && idx < 3 && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  {idx === 0 ? `${(pot * 0.5).toFixed(0)}` : idx === 1 ? `${(pot * 0.3).toFixed(0)}` : `${(pot * 0.2).toFixed(0)}`} tokens
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  {!questions.every(q => q.correct_answer) && (
+                    <p className="text-xs text-muted-foreground mt-2">💡 Set correct answers above to see live scores update.</p>
+                  )}
+                </div>
               </>
             )}
           </CardContent>
