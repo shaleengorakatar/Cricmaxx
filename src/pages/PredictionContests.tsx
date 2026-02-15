@@ -60,7 +60,7 @@ type ContestEntry = {
 
 const PredictionContests = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, user, profile, refetchProfile } = useAuth();
+  const { isAuthenticated, user, profile, refetchProfile, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
@@ -551,10 +551,9 @@ const PredictionContests = () => {
                             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                           });
 
-                          // Top 3 entries visible to all
-                          const top3 = sorted.slice(0, 3);
-                          // Find current user's entry if not in top 3
-                          const myEntry = user ? sorted.find((e, idx) => e.user_id === user.id && idx >= 3) : null;
+                          // Admins see full leaderboard, others see top 3 + own entry
+                          const visibleEntries = isAdmin ? sorted : sorted.slice(0, 3);
+                          const myEntry = !isAdmin && user ? sorted.find((e, idx) => e.user_id === user.id && idx >= 3) : null;
                           const myIdx = myEntry ? sorted.indexOf(myEntry) : -1;
 
                           const renderEntry = (entry: ContestEntry, idx: number) => {
@@ -605,7 +604,7 @@ const PredictionContests = () => {
 
                           return (
                             <>
-                              {top3.map((entry, idx) => renderEntry(entry, idx))}
+                              {visibleEntries.map((entry, idx) => renderEntry(entry, idx))}
                               {myEntry && (
                                 <>
                                   {myIdx > 3 && (
