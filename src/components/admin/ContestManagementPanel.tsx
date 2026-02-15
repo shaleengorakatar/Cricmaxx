@@ -118,11 +118,12 @@ const ContestManagementPanel = () => {
       const userIds = allEntries.map(e => e.user_id);
       const { data, error } = await supabase.from("profiles").select("id, display_name, name, username, predictions_correct, predictions_total").in("id", userIds);
       if (error) throw error;
-      const map: Record<string, { name: string; winRate: number | null }> = {};
+      const map: Record<string, { name: string; predictionsCorrect: number; predictionsTotal: number }> = {};
       data?.forEach(p => {
         map[p.id] = {
           name: p.display_name || p.name || p.username || "Anonymous",
-          winRate: p.predictions_total > 0 ? Math.round((p.predictions_correct / p.predictions_total) * 100) : null,
+          predictionsCorrect: p.predictions_correct,
+          predictionsTotal: p.predictions_total,
         };
       });
       return map;
@@ -530,7 +531,9 @@ const ContestManagementPanel = () => {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{prof?.name || "Participant"}</p>
                               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                {prof?.winRate != null && <span>Win rate: {prof.winRate}%</span>}
+                                {prof?.predictionsCorrect != null && prof?.predictionsTotal != null && prof.predictionsTotal > 0 && (
+                                  <span>{prof.predictionsCorrect}/{prof.predictionsTotal} correct</span>
+                                )}
                                 <span>{entry.totalAnswered}/{questions.length} answered</span>
                               </div>
                             </div>

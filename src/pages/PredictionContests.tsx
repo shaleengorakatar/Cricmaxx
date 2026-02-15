@@ -581,7 +581,7 @@ const PredictionContests = () => {
                                   <div className="flex items-center gap-2">
                                     {prof && prof.predictions_total > 0 && (
                                       <p className="text-[10px] text-muted-foreground">
-                                        Win rate: {((prof.predictions_correct / prof.predictions_total) * 100).toFixed(0)}%
+                                        {prof.predictions_correct}/{prof.predictions_total} correct
                                       </p>
                                     )}
                                     {!isResolved && prizeLabel && (
