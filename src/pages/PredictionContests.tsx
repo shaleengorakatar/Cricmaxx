@@ -553,15 +553,45 @@ const PredictionContests = () => {
                     <CardContent className="p-0">
                       <div className="divide-y divide-border">
                         {(() => {
+                          // Helper to compute correct count and tiebreaker correctness from answers + questions
+                          const computeCorrect = (userId: string) => {
+                            if (!isAdmin || !adminAllAnswers || !questions) return { correct: 0, tb1: false, tb2: false };
+                            const userAns = adminAllAnswers.filter(a => a.user_id === userId);
+                            const correct = userAns.filter(a => {
+                              const q = questions.find(qq => qq.id === a.question_id);
+                              return q?.correct_answer && a.answer.trim().toLowerCase() === q.correct_answer.trim().toLowerCase();
+                            }).length;
+                            const tb1Q = _tiebreakerQid ? questions.find(qq => qq.id === _tiebreakerQid) : null;
+                            const tb1A = _tiebreakerQid ? userAns.find(a => a.question_id === _tiebreakerQid) : null;
+                            const tb1 = !!(tb1Q?.correct_answer && tb1A && tb1A.answer.trim().toLowerCase() === tb1Q.correct_answer.trim().toLowerCase());
+                            const tb2Q = _tiebreakerQid2 ? questions.find(qq => qq.id === _tiebreakerQid2) : null;
+                            const tb2A = _tiebreakerQid2 ? userAns.find(a => a.question_id === _tiebreakerQid2) : null;
+                            const tb2 = !!(tb2Q?.correct_answer && tb2A && tb2A.answer.trim().toLowerCase() === tb2Q.correct_answer.trim().toLowerCase());
+                            return { correct, tb1, tb2 };
+                          };
+
                           const sorted = [...entries].sort((a, b) => {
                             if (a.rank != null && b.rank != null) return a.rank - b.rank;
-                            if (b.score !== a.score) return b.score - a.score;
-                            const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
-                            const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
-                            if (bTb1 !== aTb1) return bTb1 - aTb1;
-                            const aTb2 = tiebreakerAnswers?.tb2?.[a.user_id] ? 1 : 0;
-                            const bTb2 = tiebreakerAnswers?.tb2?.[b.user_id] ? 1 : 0;
-                            if (bTb2 !== aTb2) return bTb2 - aTb2;
+                            // For admin with live data, sort by computed correct count
+                            if (isAdmin && adminAllAnswers && questions) {
+                              const aStats = computeCorrect(a.user_id);
+                              const bStats = computeCorrect(b.user_id);
+                              if (bStats.correct !== aStats.correct) return bStats.correct - aStats.correct;
+                              const aTb1 = aStats.tb1 ? 1 : 0;
+                              const bTb1 = bStats.tb1 ? 1 : 0;
+                              if (bTb1 !== aTb1) return bTb1 - aTb1;
+                              const aTb2 = aStats.tb2 ? 1 : 0;
+                              const bTb2 = bStats.tb2 ? 1 : 0;
+                              if (bTb2 !== aTb2) return bTb2 - aTb2;
+                            } else {
+                              if (b.score !== a.score) return b.score - a.score;
+                              const aTb1 = tiebreakerAnswers?.tb1?.[a.user_id] ? 1 : 0;
+                              const bTb1 = tiebreakerAnswers?.tb1?.[b.user_id] ? 1 : 0;
+                              if (bTb1 !== aTb1) return bTb1 - aTb1;
+                              const aTb2 = tiebreakerAnswers?.tb2?.[a.user_id] ? 1 : 0;
+                              const bTb2 = tiebreakerAnswers?.tb2?.[b.user_id] ? 1 : 0;
+                              if (bTb2 !== aTb2) return bTb2 - aTb2;
+                            }
                             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                           });
 
