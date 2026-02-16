@@ -1487,10 +1487,11 @@ export type Database = {
       }
       resolution_notifications: {
         Row: {
+          contest_id: string | null
           created_at: string
           email_sent: boolean | null
           id: string
-          market_id: string
+          market_id: string | null
           message: string
           notification_type: string
           outcome: string | null
@@ -1501,10 +1502,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          contest_id?: string | null
           created_at?: string
           email_sent?: boolean | null
           id?: string
-          market_id: string
+          market_id?: string | null
           message: string
           notification_type: string
           outcome?: string | null
@@ -1515,10 +1517,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          contest_id?: string | null
           created_at?: string
           email_sent?: boolean | null
           id?: string
-          market_id?: string
+          market_id?: string | null
           message?: string
           notification_type?: string
           outcome?: string | null
@@ -1529,6 +1532,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "resolution_notifications_contest_id_fkey"
+            columns: ["contest_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_contests"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resolution_notifications_market_id_fkey"
             columns: ["market_id"]

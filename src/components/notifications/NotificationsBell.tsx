@@ -17,7 +17,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface ResolutionNotification {
   id: string;
-  market_id: string;
+  market_id: string | null;
+  contest_id: string | null;
   notification_type: string;
   title: string;
   message: string;
@@ -27,7 +28,7 @@ interface ResolutionNotification {
   created_at: string;
   markets?: {
     question: string;
-  };
+  } | null;
 }
 
 export function NotificationsBell() {
@@ -174,11 +175,11 @@ export function NotificationsBell() {
                     }
                     // Check if notification message contains contest/poll keywords to route correctly
                     const msg = (notification.title + notification.message).toLowerCase();
-                    if (msg.includes('contest')) {
-                      navigate(`/contests?highlight=${notification.market_id}`);
+                    if (msg.includes('contest') || notification.contest_id) {
+                      navigate(`/contests?highlight=${notification.contest_id || notification.market_id}`);
                     } else if (msg.includes('poll')) {
                       navigate(`/polls`);
-                    } else {
+                    } else if (notification.market_id) {
                       navigate(`/market/${notification.market_id}`);
                     }
                     setIsOpen(false);
