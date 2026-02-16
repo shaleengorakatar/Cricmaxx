@@ -40,21 +40,35 @@ export function isAuthTokenCorrupted(): boolean {
     
     const token = JSON.parse(tokenStr);
     
-    // Check if token has expired (with 5 minute buffer)
-    if (token.expires_at) {
-      const expiresAt = token.expires_at * 1000; // Convert to milliseconds
-      const now = Date.now();
-      const bufferMs = 5 * 60 * 1000; // 5 minutes
-      
-      if (expiresAt < now - bufferMs) {
-        console.log('[AuthUtils] Token appears expired');
+    // Only check for structurally corrupt tokens — NOT expired ones.
+    // Expired access tokens are normal; Supabase's refreshSession() will
+    // use the refresh_token to obtain a new access token. Deleting the
+    // refresh token here would log the user out unnecessarily (especially
+    // on Safari iOS where users close & reopen tabs frequently).
+    
+    // Check if the access_token is structurally valid (3-part JWT)
+    if (token.access_token && typeof token.access_token === 'string') {
+      const parts = token.access_token.split('.');
+      if (parts.length !== 3) {
+        console.log('[AuthUtils] Access token is not a valid JWT structure');
+        return true;
+      }
+      // Check for 'sub' claim in payload
+      try {
+        const payload = JSON.parse(atob(parts[1]));
+        if (!payload.sub) {
+          console.log('[AuthUtils] Token missing sub claim');
+          return true;
+        }
+      } catch {
+        console.log('[AuthUtils] Token payload not decodable');
         return true;
       }
     }
     
-    // Check if required fields are missing
-    if (!token.access_token || !token.refresh_token) {
-      console.log('[AuthUtils] Token missing required fields');
+    // Missing refresh token means we can't recover — that's truly corrupt
+    if (!token.refresh_token) {
+      console.log('[AuthUtils] Token missing refresh_token');
       return true;
     }
     
