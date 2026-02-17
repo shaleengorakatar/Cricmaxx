@@ -74,7 +74,7 @@ export function FeaturedMarketHero() {
   const goPrev = () => setCurrentIndex((i) => (i - 1 + markets.length) % markets.length);
 
   if (loading) {
-    return <Card className="p-8 animate-pulse"><div className="h-48 bg-muted rounded" /></Card>;
+    return <Card className="p-4 animate-pulse"><div className="h-32 bg-muted rounded" /></Card>;
   }
 
   if (error) {
@@ -95,107 +95,87 @@ export function FeaturedMarketHero() {
   const noPercent = 100 - yesPercent;
   const priceData = market.price_history?.map((p: any) => p.y) || [];
 
-  // Build sub-outcomes from top markets (simulate multi-outcome display like Kalshi)
-  const subOutcomes = markets.slice(0, 3).map((m) => ({
-    label: m.category,
-    odds: Math.round(m.yesPrice * 100),
-    multiplier: (1 / m.yesPrice).toFixed(1),
-  }));
-
   return (
     <Card
       className="border-border/40 overflow-hidden cursor-pointer hover:border-primary/30 transition-colors"
       onClick={() => navigate(`/market/${market.id}`)}
     >
-      <div className="p-6 sm:p-8">
+      <div className="p-4 sm:p-5">
         {/* Header: Question + Navigation */}
-        <div className="flex items-start justify-between gap-4 mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-tight flex-1">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <h2 className="text-lg sm:text-xl font-bold text-foreground leading-snug flex-1">
             {market.question}
           </h2>
           {markets.length > 1 && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={(e) => { e.stopPropagation(); goPrev(); }}
-                className="p-1.5 rounded-full border border-border hover:bg-muted transition-colors"
+                className="p-1 rounded-full border border-border hover:bg-muted transition-colors"
               >
-                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
-              <span className="text-sm text-muted-foreground font-medium">
+              <span className="text-xs text-muted-foreground font-medium">
                 {currentIndex + 1} of {markets.length}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); goNext(); }}
-                className="p-1.5 rounded-full border border-border hover:bg-muted transition-colors"
+                className="p-1 rounded-full border border-border hover:bg-muted transition-colors"
               >
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
             </div>
           )}
         </div>
 
-        {/* Content: Table + Chart side by side on desktop */}
-        <div className="flex flex-col lg:flex-row gap-6">
+        {/* Content: Table + Chart side by side */}
+        <div className="flex flex-col sm:flex-row gap-4">
           {/* Left: Outcomes table */}
           <div className="flex-1 min-w-0">
-            {/* Table header */}
-            <div className="grid grid-cols-3 gap-4 text-xs text-muted-foreground font-medium pb-2 border-b border-border/40">
+            <div className="grid grid-cols-3 gap-3 text-xs text-muted-foreground font-medium pb-1.5 border-b border-border/40">
               <span>Market</span>
               <span className="text-center">Pays out</span>
               <span className="text-center">Odds</span>
             </div>
 
-            {/* YES row */}
-            <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-border/20">
+            <div className="grid grid-cols-3 gap-3 items-center py-2 border-b border-border/20">
               <span className="text-sm font-medium text-foreground">Yes</span>
               <span className="text-sm text-muted-foreground text-center">{(1 / market.yesPrice).toFixed(2)}x</span>
               <div className="flex justify-center">
-                <span className={cn(
-                  "text-sm font-bold px-4 py-1 rounded-full border",
-                  "border-accent/40 text-accent"
-                )}>
+                <span className="text-xs font-bold px-3 py-0.5 rounded-full border border-accent/40 text-accent">
                   {yesPercent}%
                 </span>
               </div>
             </div>
 
-            {/* NO row */}
-            <div className="grid grid-cols-3 gap-4 items-center py-3 border-b border-border/20">
+            <div className="grid grid-cols-3 gap-3 items-center py-2 border-b border-border/20">
               <span className="text-sm font-medium text-foreground">No</span>
               <span className="text-sm text-muted-foreground text-center">{(1 / market.noPrice).toFixed(2)}x</span>
               <div className="flex justify-center">
-                <span className={cn(
-                  "text-sm font-bold px-4 py-1 rounded-full border",
-                  "border-muted-foreground/30 text-muted-foreground"
-                )}>
+                <span className="text-xs font-bold px-3 py-0.5 rounded-full border border-muted-foreground/30 text-muted-foreground">
                   {noPercent}%
                 </span>
               </div>
             </div>
 
-            {/* Volume + category */}
-            <div className="flex items-center justify-between pt-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between pt-2 text-xs text-muted-foreground">
               <span className="font-medium">${market.volume.toLocaleString()} vol</span>
               <span>{market.category}</span>
             </div>
 
-            {/* Description snippet */}
             {market.description && (
-              <div className="mt-4 pt-3 border-t border-border/20">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {market.description}
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 mt-2 pt-2 border-t border-border/20">
+                {market.description}
+              </p>
             )}
           </div>
 
-          {/* Right: Chart */}
-          {priceData.length > 1 && (
-            <div className="lg:w-[45%] shrink-0 flex flex-col justify-center">
+          {/* Right: Chart — only if meaningful data */}
+          {priceData.length > 2 && (
+            <div className="sm:w-[40%] shrink-0 flex items-center">
               <Sparkline
                 data={priceData}
-                width={320}
-                height={140}
+                width={240}
+                height={100}
                 strokeColor="hsl(var(--accent))"
                 className="w-full"
               />
