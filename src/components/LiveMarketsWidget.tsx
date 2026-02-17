@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Clock, ArrowRight, RefreshCw } from "lucide-react";
+import { TrendingUp, ArrowRight, RefreshCw } from "lucide-react";
+import MarketCard from "@/components/markets/MarketCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
@@ -135,17 +134,6 @@ export default function LiveMarketsWidget() {
     return () => clearInterval(refreshInterval);
   }, [fetchLiveMarkets]);
 
-  const getTimeUntilExpiry = (expiryTime: string) => {
-    const now = new Date();
-    const expiry = new Date(expiryTime);
-    const diff = expiry.getTime() - now.getTime();
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d`;
-    return `${hours}h`;
-  };
-
   if (loading) {
     return (
       <section className="py-12 bg-gradient-to-b from-background to-secondary/5">
@@ -208,45 +196,7 @@ export default function LiveMarketsWidget() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {markets.map((market) => (
-            <Card
-              key={market.id}
-              className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => navigate(`/market/${market.id}`)}
-            >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {market.category}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {getTimeUntilExpiry(market.expiryTime)}
-                  </Badge>
-                </div>
-
-                <h3 className="font-semibold text-sm line-clamp-2 leading-snug">
-                  {market.question}
-                </h3>
-
-                <div className="flex items-center justify-between pt-2">
-                  <div className="flex gap-2">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">Yes</p>
-                      <p className="text-base font-bold text-success">
-                        {Math.round(market.yesPrice * 100)}¢
-                      </p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground">No</p>
-                      <p className="text-base font-bold text-destructive">
-                        {100 - Math.round(market.yesPrice * 100)}¢
-                      </p>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-            </Card>
+            <MarketCard key={market.id} market={market} />
           ))}
         </div>
 
