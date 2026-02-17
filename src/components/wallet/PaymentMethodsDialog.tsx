@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Coins, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { WALLET_TERMS, TOKEN_PRESETS, MIN_TOKEN_PURCHASE } from "@/lib/walletTerminology";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasAccepted, setHasAccepted] = useState(false);
   const { toast } = useToast();
+  const { refetchProfile } = useAuth();
 
   const finalAmount = selectedAmount || (customAmount ? parseInt(customAmount, 10) : 0);
   const isValidAmount = finalAmount >= MIN_TOKEN_PURCHASE && finalAmount <= 10000;
@@ -52,6 +54,7 @@ const PaymentMethodsDialog = ({ isOpen, onClose, onSuccess }: PaymentMethodsDial
       if (error) throw error;
 
       if (data?.success) {
+        await refetchProfile();
         toast({
           title: "Tokens added!",
           description: `${finalAmount} tokens added to your wallet`,
