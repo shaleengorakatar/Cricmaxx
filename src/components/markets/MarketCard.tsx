@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, Clock, BookOpen, Zap } from "lucide-react";
+import { TrendingUp, Clock, BookOpen, Zap, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
@@ -19,6 +20,7 @@ interface MarketCardProps {
 
 const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
+  const [showBook, setShowBook] = useState(false);
 
   const yesPrice = Number(market.yesPrice) || 0.5;
   const noPrice = Number(market.noPrice) || 0.5;
@@ -31,7 +33,6 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
     navigate(`/market/${market.id}`);
   };
 
-  // Calculate P&L if position exists
   const pnl = position
     ? ((position.side === "yes" ? yesPrice : noPrice) - position.entryPrice) * position.size
     : null;
@@ -106,6 +107,48 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
             </span>
           </div>
         </div>
+
+        {/* Collapsible Order Book Table */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowBook(!showBook); }}
+          className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full"
+        >
+          <BookOpen className="h-3 w-3" />
+          <span className="font-medium">Order Book</span>
+          <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", showBook && "rotate-180")} />
+        </button>
+
+        {showBook && (
+          <div className="rounded-md border border-border/40 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground font-medium px-3 py-1.5 bg-muted/30">
+              <span>Market</span>
+              <span className="text-center">Pays out</span>
+              <span className="text-center">Odds</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-center px-3 py-2 border-t border-border/20">
+              <span className="text-xs font-medium text-foreground">Yes</span>
+              <span className="text-xs text-muted-foreground text-center">{yesMultiplier}x</span>
+              <div className="flex justify-center">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-accent/40 text-accent">
+                  {yesPercent}%
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-center px-3 py-2 border-t border-border/20">
+              <span className="text-xs font-medium text-foreground">No</span>
+              <span className="text-xs text-muted-foreground text-center">{noMultiplier}x</span>
+              <div className="flex justify-center">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-muted-foreground/30 text-muted-foreground">
+                  {noPercent}%
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/20 text-[10px] text-muted-foreground bg-muted/20">
+              <span className="font-medium">${Number(market.volume || 0).toLocaleString()} vol</span>
+              <span>{market.category}</span>
+            </div>
+          </div>
+        )}
 
         {/* Position indicator */}
         {position && pnl !== null && (
