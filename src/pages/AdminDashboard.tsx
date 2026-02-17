@@ -15,6 +15,7 @@ import LoadTestPanel from "@/components/admin/LoadTestPanel";
 import PredictionsOverviewPanel from "@/components/admin/PredictionsOverviewPanel";
 import PollResolutionPanel from "@/components/admin/PollResolutionPanel";
 import ContestManagementPanel from "@/components/admin/ContestManagementPanel";
+import MarketCreationForm from "@/components/creator/MarketCreationForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,6 +98,9 @@ const AdminDashboard = () => {
                 <TabsTrigger value="generator" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Generate
                 </TabsTrigger>
+                <TabsTrigger value="create" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Create
+                </TabsTrigger>
                 <TabsTrigger value="liquidity" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Liquidity
                 </TabsTrigger>
@@ -144,6 +148,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="liquidity">
               <LiquiditySeedingPanel />
+            </TabsContent>
+
+            <TabsContent value="create">
+              <MarketCreationForm onMarketCreated={() => {}} />
             </TabsContent>
 
             <TabsContent value="resolution">
