@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
@@ -6,6 +6,7 @@ import { TrendingUp, Clock, BookOpen, Zap, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface UserPosition {
   side: string;
@@ -17,6 +18,126 @@ interface MarketCardProps {
   market: Market & { prediction_count?: number; price_history?: any[] };
   position?: UserPosition | null;
 }
+
+interface MiniOrderLevel {
+  price: number;
+  quantity: number;
+}
+
+const MiniOrderBook = ({ marketId }: { marketId: string }) => {
+  const [yesOrders, setYesOrders] = useState<MiniOrderLevel[]>([]);
+  const [noOrders, setNoOrders] = useState<MiniOrderLevel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = useCallback(async () => {
+    const { data } = await supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] });
+    
+    const yesLevels: MiniOrderLevel[] = [];
+    const noLevels: MiniOrderLevel[] = [];
+
+    for (const row of data || []) {
+      const price = Number(row.price);
+      const quantity = Number(row.total_quantity);
+      if (quantity <= 0) continue;
+      if (row.side === 'yes') {
+        noLevels.push({ price: 1 - price, quantity });
+      } else {
+        yesLevels.push({ price: 1 - price, quantity });
+      }
+    }
+
+    // Aggregate by price
+    const agg = (levels: MiniOrderLevel[]) => {
+      const map = new Map<number, number>();
+      for (const l of levels) {
+        const p = Math.round(l.price * 100) / 100;
+        map.set(p, (map.get(p) || 0) + l.quantity);
+      }
+      return Array.from(map.entries())
+        .map(([price, quantity]) => ({ price, quantity }))
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 3);
+    };
+
+    setYesOrders(agg(yesLevels));
+    setNoOrders(agg(noLevels));
+    setLoading(false);
+  }, [marketId]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  if (loading) {
+    return <div className="py-3 text-center text-[10px] text-muted-foreground animate-pulse">Loading order book...</div>;
+  }
+
+  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0);
+  const total = totalYes + totalNo;
+  const bestYes = yesOrders[0];
+  const bestNo = noOrders[0];
+
+  if (total === 0) {
+    return <div className="py-3 text-center text-[10px] text-muted-foreground">No orders yet</div>;
+  }
+
+  return (
+    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+      {/* Liquidity bar */}
+      <div className="flex items-center justify-center gap-3 py-1.5 px-2 bg-muted/40 rounded-md text-[10px]">
+        <span className="text-muted-foreground">Liquidity: <span className="font-semibold text-foreground">{total}</span></span>
+        <span className="h-2.5 w-px bg-border" />
+        <span className="text-success font-medium">YES: {totalYes}</span>
+        <span className="text-destructive font-medium">NO: {totalNo}</span>
+      </div>
+
+      {/* Best prices */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-success/5 border border-success/20 rounded-md p-2">
+          <p className="text-[9px] text-muted-foreground mb-0.5">Best YES Price</p>
+          {bestYes ? (
+            <>
+              <p className="text-sm font-bold text-success">{(bestYes.price * 100).toFixed(0)}¢</p>
+              <p className="text-[9px] text-muted-foreground">{bestYes.quantity} shares</p>
+            </>
+          ) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+        <div className="bg-destructive/5 border border-destructive/20 rounded-md p-2">
+          <p className="text-[9px] text-muted-foreground mb-0.5">Best NO Price</p>
+          {bestNo ? (
+            <>
+              <p className="text-sm font-bold text-destructive">{(bestNo.price * 100).toFixed(0)}¢</p>
+              <p className="text-[9px] text-muted-foreground">{bestNo.quantity} shares</p>
+            </>
+          ) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+      </div>
+
+      {/* Order levels */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* YES */}
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1">YES Orders</p>
+          {yesOrders.length > 0 ? yesOrders.map((o, i) => (
+            <div key={i} className="flex justify-between text-[10px] py-0.5">
+              <span className="text-success font-medium">{(o.price * 100).toFixed(0)}¢</span>
+              <span className="text-muted-foreground">{o.quantity} shares</span>
+            </div>
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+        {/* NO */}
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1">NO Orders</p>
+          {noOrders.length > 0 ? noOrders.map((o, i) => (
+            <div key={i} className="flex justify-between text-[10px] py-0.5">
+              <span className="text-destructive font-medium">{(o.price * 100).toFixed(0)}¢</span>
+              <span className="text-muted-foreground">{o.quantity} shares</span>
+            </div>
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
@@ -108,7 +229,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           </div>
         </div>
 
-        {/* Collapsible Order Book Table */}
+        {/* Collapsible Order Book */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowBook(!showBook); }}
           className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full"
@@ -118,37 +239,7 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
           <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", showBook && "rotate-180")} />
         </button>
 
-        {showBook && (
-          <div className="rounded-md border border-border/40 overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground font-medium px-3 py-1.5 bg-muted/30">
-              <span>Market</span>
-              <span className="text-center">Pays out</span>
-              <span className="text-center">Odds</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 items-center px-3 py-2 border-t border-border/20">
-              <span className="text-xs font-medium text-foreground">Yes</span>
-              <span className="text-xs text-muted-foreground text-center">{yesMultiplier}x</span>
-              <div className="flex justify-center">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-accent/40 text-accent">
-                  {yesPercent}%
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 items-center px-3 py-2 border-t border-border/20">
-              <span className="text-xs font-medium text-foreground">No</span>
-              <span className="text-xs text-muted-foreground text-center">{noMultiplier}x</span>
-              <div className="flex justify-center">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-muted-foreground/30 text-muted-foreground">
-                  {noPercent}%
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-3 py-1.5 border-t border-border/20 text-[10px] text-muted-foreground bg-muted/20">
-              <span className="font-medium">${Number(market.volume || 0).toLocaleString()} vol</span>
-              <span>{market.category}</span>
-            </div>
-          </div>
-        )}
+        {showBook && <MiniOrderBook marketId={market.id} />}
 
         {/* Position indicator */}
         {position && pnl !== null && (
