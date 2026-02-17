@@ -1,17 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, BarChart3, BookOpen, Zap, User, Flame, Users } from "lucide-react";
+import { TrendingUp, Clock, BookOpen, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
-import { Sparkline } from "@/components/ui/sparkline";
 
 export interface UserPosition {
   side: string;
@@ -26,180 +19,123 @@ interface MarketCardProps {
 
 const MarketCard = ({ market, position }: MarketCardProps) => {
   const navigate = useNavigate();
-  
-  const expiryDate = new Date(market.expiryTime);
-  const timeToExpiry = expiryDate.getTime() - Date.now();
-  const isExpiringSoon = timeToExpiry < 24 * 60 * 60 * 1000;
-  const isHot = market.volume > 10000;
+
+  const yesPrice = Number(market.yesPrice) || 0.5;
+  const noPrice = Number(market.noPrice) || 0.5;
+  const yesPercent = Math.round(yesPrice * 100);
+  const noPercent = 100 - yesPercent;
+  const yesMultiplier = (1 / yesPrice).toFixed(2);
+  const noMultiplier = (1 / noPrice).toFixed(2);
 
   const handleClick = () => {
     navigate(`/market/${market.id}`);
   };
 
   // Calculate P&L if position exists
-  const calculatePnL = () => {
-    if (!position) return null;
-    const currentPrice = position.side === 'yes' ? market.yesPrice : market.noPrice;
-    const pnl = (currentPrice - position.entryPrice) * position.size;
-    return pnl;
-  };
-
-  const pnl = calculatePnL();
-
-  // Calculate potential return at 10 token stake (guard against null/zero division)
-  const yesPrice = Number(market.yesPrice) || 0.5;
-  const noPrice = Number(market.noPrice) || 0.5;
-  const yesPayout = (10 / yesPrice).toFixed(2);
-  const noPayout = (10 / noPrice).toFixed(2);
-
-  // Ensure displayed cents always sum to 100
-  const yesCents = Math.round(yesPrice * 100);
-  const noCents = 100 - yesCents;
-
-  // Extract price history for sparkline
-  const priceData = market.price_history?.map((p: any) => p.y) || [];
-  const predictionCount = market.prediction_count || 0;
+  const pnl = position
+    ? ((position.side === "yes" ? yesPrice : noPrice) - position.entryPrice) * position.size
+    : null;
 
   return (
-    <Card 
+    <Card
       className={cn(
-        "group relative overflow-hidden cursor-pointer transition-all duration-300",
-        "bg-card hover:bg-card/95 border-border/50",
-        "hover:border-primary/30 hover:-translate-y-1",
+        "group relative overflow-hidden cursor-pointer transition-all duration-200",
+        "bg-card border-border/40 hover:border-primary/40 hover:shadow-lg",
         "active:scale-[0.98]",
-        position && "ring-2 ring-accent/30"
+        position && "ring-1 ring-accent/40"
       )}
-      style={{
-        boxShadow: 'var(--shadow-md)',
-      }}
       onClick={handleClick}
     >
-      {/* Gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      
-      {/* Top accent line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-      <div className="relative p-4 sm:p-5 space-y-4">
-        {/* Header with badges */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            {/* Status badges */}
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              {position && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge className="bg-accent/10 text-accent border-accent/30 text-xs cursor-help animate-in">
-                        <User className="h-3 w-3 mr-1" />
-                        Your Position
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent className="space-y-1">
-                      <p className="font-medium">
-                        {position.size} contracts on <span className={position.side === 'yes' ? 'text-success' : 'text-destructive'}>{position.side.toUpperCase()}</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Entry: {((position.entryPrice ?? 0) * 100).toFixed(0)}¢
-                      </p>
-                      {pnl !== null && (
-                        <p className={cn("text-xs font-medium", pnl >= 0 ? "text-success" : "text-destructive")}>
-                          P&L: {pnl >= 0 ? '+' : ''}{pnl.toFixed(2)} tokens
-                        </p>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-              
-              {isHot && (
-                <Badge className="bg-gradient-to-r from-accent to-destructive text-accent-foreground border-0 text-xs animate-pulse">
-                  <Flame className="h-3 w-3 mr-1" />
-                  Hot
-                </Badge>
-              )}
-            </div>
-            
-            {/* Question */}
-            <h3 className="text-base font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">
-              {market.question}
-            </h3>
-          </div>
-          
-          {/* Category badge */}
-          <Badge 
-            variant="secondary" 
-            className="shrink-0 text-xs bg-secondary/80 backdrop-blur-sm"
+      <div className="p-4 space-y-3">
+        {/* Top: Question + Category */}
+        <div className="flex items-start gap-3">
+          <h3 className="flex-1 text-sm font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+            {market.question}
+          </h3>
+          <Badge
+            variant="secondary"
+            className="shrink-0 text-[10px] font-medium px-2 py-0.5 bg-muted/60"
           >
             {market.category}
           </Badge>
         </div>
 
-        {/* Stats row with sparkline */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <CountdownTimer 
-            expiryTime={market.expiryTime} 
-            compact 
-          />
-          
-          {market.type === "orderbook" ? (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
-              <BookOpen className="h-3.5 w-3.5" />
-              <span>Order Book</span>
+        {/* Odds Rows */}
+        <div className="space-y-2">
+          {/* YES Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-muted-foreground w-7">Yes</span>
+            <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-success/70 transition-all duration-500"
+                style={{ width: `${yesPercent}%` }}
+              />
             </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
-              <Zap className="h-3.5 w-3.5 text-accent" />
-              <span>Instant</span>
-            </div>
-          )}
-          
-
-          {/* Price sparkline */}
-          {priceData.length > 1 && (
-            <div className="flex items-center gap-1.5 ml-auto">
-              <Sparkline data={priceData} width={50} height={16} />
-            </div>
-          )}
-        </div>
-
-        {/* Price Cards with Odds */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* YES Card */}
-          <div className="price-yes group/price">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-muted-foreground">Yes</span>
-              <span className="text-xs font-bold text-success">{yesCents}¢</span>
-            </div>
-            <p className="text-2xl font-bold text-success">
-              {yesCents}¢
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              10 → <span className="font-semibold text-success">{yesPayout} tokens</span>
-            </p>
+            <span className="text-xs text-muted-foreground font-mono w-10 text-right">
+              {yesMultiplier}x
+            </span>
+            <span
+              className={cn(
+                "text-xs font-bold px-3 py-1 rounded-full border min-w-[52px] text-center",
+                "border-success/40 text-success bg-success/5"
+              )}
+            >
+              {yesPercent}%
+            </span>
           </div>
-          
-          {/* NO Card */}
-          <div className="price-no group/price">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-muted-foreground">No</span>
-              <span className="text-xs font-bold text-destructive">{noCents}¢</span>
+
+          {/* NO Row */}
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-muted-foreground w-7">No</span>
+            <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-destructive/70 transition-all duration-500"
+                style={{ width: `${noPercent}%` }}
+              />
             </div>
-            <p className="text-2xl font-bold text-destructive">
-              {noCents}¢
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              10 → <span className="font-semibold text-destructive">{noPayout} tokens</span>
-            </p>
+            <span className="text-xs text-muted-foreground font-mono w-10 text-right">
+              {noMultiplier}x
+            </span>
+            <span
+              className={cn(
+                "text-xs font-bold px-3 py-1 rounded-full border min-w-[52px] text-center",
+                "border-destructive/40 text-destructive bg-destructive/5"
+              )}
+            >
+              {noPercent}%
+            </span>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end pt-3 border-t border-border/50">
-          {/* CTA */}
-          <div className="flex items-center gap-2 text-primary font-medium text-sm group-hover:gap-3 transition-all">
-            <span>Trade</span>
-            <TrendingUp className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+        {/* Position indicator */}
+        {position && pnl !== null && (
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-accent/5 border border-accent/20 text-xs">
+            <span className="text-muted-foreground">
+              {position.size} on <span className={position.side === "yes" ? "text-success font-medium" : "text-destructive font-medium"}>{position.side.toUpperCase()}</span>
+            </span>
+            <span className="ml-auto font-semibold font-mono" style={{ color: pnl >= 0 ? "hsl(var(--success))" : "hsl(var(--destructive))" }}>
+              {pnl >= 0 ? "+" : ""}{pnl.toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        {/* Footer: meta */}
+        <div className="flex items-center justify-between pt-1 border-t border-border/30">
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <CountdownTimer expiryTime={market.expiryTime} compact />
+            {market.type === "orderbook" ? (
+              <span className="flex items-center gap-1">
+                <BookOpen className="h-3 w-3" /> Book
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <Zap className="h-3 w-3 text-accent" /> Instant
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+            <span>Predict</span>
+            <TrendingUp className="h-3.5 w-3.5" />
           </div>
         </div>
       </div>
