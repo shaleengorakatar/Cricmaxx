@@ -1,30 +1,36 @@
 import Navigation from "@/components/Navigation";
-import Hero from "@/components/Hero";
 import Footer from "@/components/Footer";
-import LiveMarketsWidget from "@/components/LiveMarketsWidget";
-import { FeaturedMarket } from "@/components/markets/FeaturedMarket";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
-import { RecentMarketsSection } from "@/components/RecentMarketsSection";
+import { FeaturedMarketHero } from "@/components/home/FeaturedMarketHero";
+import { TrendingSidebar } from "@/components/home/TrendingSidebar";
+import { TopMarketsSection } from "@/components/home/TopMarketsSection";
 import { RecentPollsSection } from "@/components/RecentPollsSection";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       <OnboardingModal />
-      <main className="flex-1">
-        <Hero />
-
-        {/* Content grid — featured + recent side by side on desktop */}
-        <section className="py-6 bg-gradient-to-b from-secondary/30 to-background">
-          <div className="container mx-auto px-4">
-            <FeaturedMarket />
+      <main className="flex-1 pt-24">
+        {/* Hero: Featured Market + Trending Sidebar (Kalshi-style) */}
+        <section className="container mx-auto px-4 pb-8">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Main featured market carousel */}
+            <div className="flex-1 min-w-0">
+              <FeaturedMarketHero />
+            </div>
+            {/* Sidebar: Trending + Top Movers */}
+            <div className="lg:w-80 shrink-0">
+              <TrendingSidebar />
+            </div>
           </div>
         </section>
 
-        <RecentMarketsSection />
+        {/* Top Markets Grid */}
+        <TopMarketsSection />
+
+        {/* Recent Polls */}
         <RecentPollsSection />
-        <LiveMarketsWidget />
       </main>
       <Footer />
     </div>
