@@ -26,9 +26,9 @@ const SocialShareButtons = ({ market }: SocialShareButtonsProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const marketUrl = `${window.location.origin}/market/${market.id}`;
+  const marketUrl = `https://cricmaxx.com/market/${market.id}`;
   
-  const shareText = `🎯 ${market.question}\n\n📊 YES: $${market.yesPrice.toFixed(2)} | NO: $${market.noPrice.toFixed(2)}\n💰 Volume: $${market.volume.toLocaleString()}\n\nMake your prediction now!`;
+  const shareText = `🎯 ${market.question}\n\n📊 YES: $${market.yesPrice.toFixed(2)} | NO: $${market.noPrice.toFixed(2)}\n💰 Volume: $${market.volume.toLocaleString()}\n\nMake your prediction now on CricMaxx!\n\n🔑 Use invite code WC26 to join`;
 
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(marketUrl)}`;
 
