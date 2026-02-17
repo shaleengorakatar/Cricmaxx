@@ -10,7 +10,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       <OnboardingModal />
-      <main className="flex-1 pt-20">
+      <main className="flex-1 pt-24 lg:pt-20">
         {/* Hero: Featured Market + Trending/Polls/Contests Sidebar */}
         <section className="container mx-auto px-4 pb-4">
           <div className="flex flex-col lg:flex-row lg:items-start gap-4">
