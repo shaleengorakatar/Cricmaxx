@@ -20,11 +20,11 @@ const Hero = () => {
           {/* Left: Logo + tagline + buttons */}
           <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
             {/* Logo */}
-            <div className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
+            <div className="shrink-0 w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center -ml-3 -my-4">
               <img
                 src={cricmaxxLogo}
                 alt="CricMaxx"
-                className="w-full h-full object-contain drop-shadow-xl"
+                className="w-40 h-40 sm:w-48 sm:h-48 object-contain drop-shadow-xl"
               />
             </div>
 
