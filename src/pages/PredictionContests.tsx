@@ -396,8 +396,8 @@ const PredictionContests = () => {
       <main className="flex-1 pt-20 pb-12">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back button */}
-          <Button variant="ghost" size="sm" className="mb-4 gap-1" onClick={() => { setSelectedContestId(null); setAnswers({}); }}>
-            <ArrowLeft className="h-4 w-4" /> All Contests
+          <Button variant="outline" size="sm" className="mb-4 gap-1.5 -ml-1" onClick={() => { setSelectedContestId(null); setAnswers({}); }}>
+            <ArrowLeft className="h-4 w-4" /> Back to Contests
           </Button>
 
           {selectedContest && (
