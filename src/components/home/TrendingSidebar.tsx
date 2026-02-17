@@ -22,7 +22,7 @@ export function TrendingSidebar() {
         .in("status", ["approved", "open"])
         .gte("expiry_time", new Date().toISOString())
         .order("volume", { ascending: false })
-        .limit(5);
+        .limit(3);
       if (error) throw error;
       return (data || []).map((m) => ({
         id: m.id,
@@ -46,7 +46,7 @@ export function TrendingSidebar() {
         .in("status", ["approved", "open"])
         .gte("expiry_time", new Date().toISOString())
         .order("updated_at", { ascending: false })
-        .limit(5);
+        .limit(3);
       if (error) throw error;
       return (data || []).map((m) => {
         const history = Array.isArray(m.price_history) ? m.price_history : [];
