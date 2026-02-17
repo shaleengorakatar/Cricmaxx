@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -99,11 +99,7 @@ const MarketDetail = () => {
     }
   }, [realtimePrices]);
 
-  useEffect(() => {
-    fetchMarket();
-  }, [id, indicativePrices]);
-
-  const fetchMarket = async () => {
+  const fetchMarket = useCallback(async (currentIndicativePrices: Map<string, any>) => {
     if (!id) return;
 
     const { data, error } = await supabase
@@ -119,7 +115,7 @@ const MarketDetail = () => {
     }
 
     // Get indicative price from order book if available
-    const indicative = indicativePrices.get(data.id);
+    const indicative = currentIndicativePrices.get(data.id);
     const yesPrice = indicative && indicative.source !== "default" 
       ? indicative.yesPrice 
       : Number(data.yes_price);
@@ -149,7 +145,11 @@ const MarketDetail = () => {
     });
     setPriceHistory(generatePriceHistory(formattedMarket.yesPrice));
     setLoading(false);
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchMarket(indicativePrices);
+  }, [id, indicativePrices, fetchMarket]);
 
   if (loading) {
     return (
