@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Loader2, Coins, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { WALLET_TERMS, TOKEN_PRESETS, MIN_TOKEN_PURCHASE } from "@/lib/walletTerminology";
 
@@ -21,6 +22,7 @@ const BuyTokensDialog = ({ isOpen, onClose, onSuccess }: BuyTokensDialogProps) =
   const [agreed, setAgreed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+  const { refetchProfile } = useAuth();
 
   const handlePresetSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -56,6 +58,8 @@ const BuyTokensDialog = ({ isOpen, onClose, onSuccess }: BuyTokensDialogProps) =
       if (error) throw error;
 
       if (data?.success) {
+        // Immediately refresh profile to update balance everywhere
+        await refetchProfile();
         toast({
           title: "Tokens added",
           description: `${finalAmount} tokens added to your wallet`,
