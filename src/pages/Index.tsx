@@ -13,18 +13,16 @@ const Index = () => {
       <main className="flex-1 pt-20">
         {/* Hero: Featured Market + Trending/Polls/Contests Sidebar */}
         <section className="container mx-auto px-4 pb-4">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 min-w-0">
+          <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+            <div className="flex-1 min-w-0 space-y-4">
               <FeaturedMarketHero />
+              <TopMarketsSection />
             </div>
-            <div className="lg:w-72 shrink-0">
+            <div className="lg:w-72 shrink-0 lg:sticky lg:top-20 lg:self-start">
               <TrendingSidebar />
             </div>
           </div>
         </section>
-
-        {/* Top Markets Grid */}
-        <TopMarketsSection />
       </main>
       <Footer />
     </div>

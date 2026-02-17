@@ -38,22 +38,20 @@ export function TopMarketsSection() {
   }));
 
   return (
-    <section className="py-4">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">Top Markets</h2>
-          <Link to="/markets">
-            <Button variant="ghost" size="sm" className="text-muted-foreground gap-1">
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {formatted.map((market) => (
-            <MarketCard key={market.id} market={market} />
-          ))}
-        </div>
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">Top Markets</h2>
+        <Link to="/markets">
+          <Button variant="ghost" size="sm" className="text-muted-foreground gap-1">
+            View All <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
       </div>
-    </section>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {formatted.map((market) => (
+          <MarketCard key={market.id} market={market} />
+        ))}
+      </div>
+    </div>
   );
 }
