@@ -99,7 +99,7 @@ export function TrendingSidebar() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Trending */}
       {trending && trending.length > 0 && (
         <SidebarSection title="Trending" onViewAll={() => navigate("/markets")}>
@@ -193,8 +193,8 @@ function SidebarSection({
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-lg font-bold text-foreground flex items-center gap-1.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide">
           {icon}
           {title}
         </h3>
@@ -230,20 +230,20 @@ function SidebarItem({
   return (
     <button
       onClick={onClick}
-      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors group"
+      className="w-full text-left px-2 py-1.5 rounded-md hover:bg-muted/60 transition-colors group"
     >
-      <div className="flex items-start gap-3">
-        <span className="text-sm font-medium text-muted-foreground mt-0.5 w-4 shrink-0">
+      <div className="flex items-start gap-2">
+        <span className="text-xs font-medium text-muted-foreground mt-0.5 w-3 shrink-0">
           {index}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          <p className="text-xs font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
             {label}
           </p>
-          <p className="text-xs text-muted-foreground mt-0.5">{sublabel}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{sublabel}</p>
         </div>
         <div className="shrink-0 text-right">
-          <span className="text-sm font-bold text-foreground">
+          <span className="text-xs font-bold text-foreground">
             {value}
             {valueSuffix && (
               <span className="text-xs font-normal text-muted-foreground">{valueSuffix}</span>
