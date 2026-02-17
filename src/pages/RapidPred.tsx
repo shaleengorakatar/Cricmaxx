@@ -285,7 +285,7 @@ const RapidPred = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 pt-24 pb-16 flex items-center justify-center">
+        <main className="flex-1 pt-28 lg:pt-24 pb-16 flex items-center justify-center">
           <div className="text-center space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-accent mx-auto" />
             <p className="text-muted-foreground">Loading markets...</p>
@@ -300,7 +300,7 @@ const RapidPred = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 pt-24 pb-16 flex items-center justify-center px-4">
+        <main className="flex-1 pt-28 lg:pt-24 pb-16 flex items-center justify-center px-4">
           <Card className="max-w-md w-full p-8 text-center space-y-4">
             <div className="w-16 h-16 mx-auto rounded-full bg-muted flex items-center justify-center">
               <CheckCircle className="h-8 w-8 text-muted-foreground" />
@@ -330,7 +330,7 @@ const RapidPred = () => {
       <Navigation />
       <WinLossAnimation type={winLossType} onComplete={() => setWinLossType(null)} />
 
-      <main className="flex-1 pt-20 pb-8 px-4">
+      <main className="flex-1 pt-28 lg:pt-20 pb-8 px-4">
         <div className="max-w-lg mx-auto space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">

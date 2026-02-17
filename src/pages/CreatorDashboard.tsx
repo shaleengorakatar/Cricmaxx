@@ -147,7 +147,7 @@ const CreatorDashboard = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 pt-20 pb-12">
+        <main className="flex-1 pt-28 lg:pt-20 pb-12">
           <div className="container mx-auto px-4 max-w-2xl">
             <div className="mb-6">
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Creator Dashboard</h1>
@@ -246,7 +246,7 @@ const CreatorDashboard = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-20 pb-12">
+      <main className="flex-1 pt-28 lg:pt-20 pb-12">
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-6 md:mb-8">
