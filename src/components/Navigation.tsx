@@ -3,7 +3,7 @@ import { useState } from "react";
 import { NavLink } from "./NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "./ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
+import { cn } from "@/lib/utils";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "./ui/dropdown-menu";
-import { User, Settings, LogOut, Menu, Coins, PlusCircle } from "lucide-react";
+import { User, Settings, LogOut, Coins, PlusCircle } from "lucide-react";
 import { NotificationsBell } from "./notifications/NotificationsBell";
 import PaymentMethodsDialog from "./wallet/PaymentMethodsDialog";
 const cricmaxxLogo = "/assets/cricmaxx-logo.png";
@@ -20,7 +20,7 @@ const Navigation = () => {
   const { isAuthenticated, signOut, profile, isCreator, isAdmin, loading, profileLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const goToLogin = () => navigate(`/auth?mode=login&redirect=${encodeURIComponent(location.pathname + location.search)}`);
   const goToSignup = () => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(location.pathname + location.search)}`);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
@@ -33,7 +33,7 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="container mx-auto px-4 py-3">
+      <div className="container mx-auto px-4 py-2">
         <div className="flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center shrink-0">
             <img 
@@ -41,87 +41,33 @@ const Navigation = () => {
               alt="CricMaxx" 
               width={96}
               height={64}
-              className="h-16 w-auto"
+              className="h-10 lg:h-16 w-auto"
             />
           </Link>
           
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-5 flex-1">
-            <NavLink 
-              to="/" 
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              Home
-            </NavLink>
-            <NavLink 
-              to="/polls"
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              Polls
-            </NavLink>
-            <NavLink 
-              to="/contests"
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              Contests
-            </NavLink>
-            <NavLink 
-              to="/markets"
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              Markets
-            </NavLink>
-            <NavLink 
-              to="/rapidpred"
-              className="text-sm text-foreground hover:text-primary transition-colors"
-              activeClassName="text-primary font-semibold"
-            >
-              RapidPred
-            </NavLink>
+            <NavLink to="/" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Home</NavLink>
+            <NavLink to="/polls" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Polls</NavLink>
+            <NavLink to="/contests" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Contests</NavLink>
+            <NavLink to="/markets" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Markets</NavLink>
+            <NavLink to="/rapidpred" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">RapidPred</NavLink>
             {showAuthenticatedLinks && (
               <>
-                <NavLink 
-                  to="/dashboard"
-                  className="text-sm text-foreground hover:text-primary transition-colors"
-                  activeClassName="text-primary font-semibold"
-                >
-                  Dashboard
-                </NavLink>
-                <NavLink 
-                  to="/friends"
-                  className="text-sm text-foreground hover:text-primary transition-colors"
-                  activeClassName="text-primary font-semibold"
-                >
-                  Friends
-                </NavLink>
+                <NavLink to="/dashboard" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Dashboard</NavLink>
+                <NavLink to="/friends" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Friends</NavLink>
               </>
             )}
             {showAuthenticatedLinks && isCreator && (
-              <NavLink 
-                to="/creator"
-                className="text-sm text-foreground hover:text-primary transition-colors"
-                activeClassName="text-primary font-semibold"
-              >
-                Creator
-              </NavLink>
+              <NavLink to="/creator" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Creator</NavLink>
             )}
             {showAuthenticatedLinks && isAdmin && (
-              <NavLink 
-                to="/admin"
-                className="text-sm text-foreground hover:text-primary transition-colors"
-                activeClassName="text-primary font-semibold"
-              >
-                Admin
-              </NavLink>
+              <NavLink to="/admin" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Admin</NavLink>
             )}
           </nav>
 
           <div className="flex items-center gap-2 lg:gap-3">
-            {/* Balance Display - Mobile (authenticated) */}
+            {/* Mobile: Balance chip */}
             {showAuthenticatedLinks && profile && (
               <Link 
                 to="/dashboard#wallet" 
@@ -134,219 +80,66 @@ const Navigation = () => {
               </Link>
             )}
 
-            {/* Mobile Sign In Button (unauthenticated) */}
+            {/* Mobile: Auth buttons always visible */}
             {showUnauthenticatedButtons && (
-              <Button 
-                variant="default"
-                size="sm"
-                className="lg:hidden bg-accent text-accent-foreground hover:bg-accent/90"
-                onClick={goToLogin}
-              >
-                Sign In
-              </Button>
+              <div className="flex lg:hidden items-center gap-1.5">
+                <Button variant="outline" size="sm" className="h-8 text-xs px-3" onClick={goToLogin}>
+                  Log in
+                </Button>
+                <Button size="sm" className="h-8 text-xs px-3 bg-accent text-accent-foreground hover:bg-accent/90" onClick={goToSignup}>
+                  Sign up
+                </Button>
+              </div>
             )}
 
-            {/* Mobile Menu Toggle */}
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon" className="lg:hidden">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px] sm:w-[350px] overflow-y-auto">
-                <div className="flex flex-col gap-4 mt-8 pb-8">
-                  {/* Prominent Auth Section at Top for Guests */}
-                  {showUnauthenticatedButtons && (
-                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-2">
-                      <p className="text-sm font-medium text-foreground mb-3">
-                        Join CricMaxx to start predicting!
-                      </p>
-                      <div className="flex gap-2">
+            {/* Mobile: Notifications + Profile for authenticated */}
+            {showAuthenticatedLinks && (
+              <div className="flex lg:hidden items-center gap-1">
+                <NotificationsBell />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <User className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {profile && (
+                      <div className="px-2 py-1.5">
+                        <p className="text-sm font-medium">{profile.name}</p>
+                        <p className="text-xs text-muted-foreground">{profile.email}</p>
+                        <p className="text-xs font-semibold text-primary mt-1">
+                          Balance: {(profile.balance ?? 0).toFixed(2)} tokens
+                        </p>
                         <Button 
-                          className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90"
-                          onClick={() => {
-                            goToSignup();
-                            setMobileMenuOpen(false);
-                          }}
+                          size="sm"
+                          className="w-full mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
+                          onClick={() => setShowBuyTokensDialog(true)}
                         >
-                          Sign Up
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => {
-                            goToLogin();
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          Sign In
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <NavLink 
-                    to="/"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                    activeClassName="text-primary font-semibold"
-                  >
-                    Home
-                  </NavLink>
-                  <NavLink 
-                    to="/polls"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                    activeClassName="text-primary font-semibold"
-                  >
-                    Polls
-                  </NavLink>
-                  <NavLink 
-                    to="/contests"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                    activeClassName="text-primary font-semibold"
-                  >
-                    Contests
-                  </NavLink>
-                  <NavLink 
-                    to="/markets"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                    activeClassName="text-primary font-semibold"
-                  >
-                    Markets
-                  </NavLink>
-                  <NavLink 
-                    to="/rapidpred"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                    activeClassName="text-primary font-semibold"
-                  >
-                    RapidPred
-                  </NavLink>
-                  {showAuthenticatedLinks && (
-                    <>
-                      <NavLink 
-                        to="/dashboard"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                        activeClassName="text-primary font-semibold"
-                      >
-                        Dashboard
-                      </NavLink>
-                      <NavLink 
-                        to="/friends"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                        activeClassName="text-primary font-semibold"
-                      >
-                        Friends
-                      </NavLink>
-                    </>
-                  )}
-                  {showAuthenticatedLinks && isCreator && (
-                    <NavLink 
-                      to="/creator"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                      activeClassName="text-primary font-semibold"
-                    >
-                      Creator
-                    </NavLink>
-                  )}
-                  {showAuthenticatedLinks && isAdmin && (
-                    <NavLink 
-                      to="/admin"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="text-lg font-medium text-foreground hover:text-primary transition-colors py-2"
-                      activeClassName="text-primary font-semibold"
-                    >
-                      Admin
-                    </NavLink>
-                  )}
-                  
-                  <div className="border-t border-border pt-6 mt-4">
-                    {showAuthenticatedLinks && profile ? (
-                      <div className="space-y-4">
-                        <div className="px-2 py-2 bg-muted rounded-lg">
-                          <p className="text-sm font-medium">{profile.name}</p>
-                          <p className="text-xs text-muted-foreground">{profile.email}</p>
-                          <p className="text-sm font-semibold text-primary mt-1">
-                            Balance: {(profile.balance ?? 0).toFixed(2)} tokens
-                          </p>
-                          <Button 
-                            size="sm"
-                            className="w-full mt-2 gap-1.5 bg-accent text-accent-foreground hover:bg-accent/90"
-                            onClick={() => {
-                              setMobileMenuOpen(false);
-                              setShowBuyTokensDialog(true);
-                            }}
-                          >
-                            <PlusCircle className="h-3.5 w-3.5" />
-                            Buy Tokens
-                          </Button>
-                        </div>
-                        {/* KYC button hidden per compliance/kyc-visibility-status */}
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => {
-                            navigate('/settings');
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Account Settings
-                        </Button>
-                        <Button 
-                          variant="destructive" 
-                          className="w-full"
-                          onClick={() => {
-                            signOut();
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          <LogOut className="w-4 h-4 mr-2" />
-                          Sign Out
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Button 
-                          variant="outline" 
-                          className="w-full"
-                          onClick={() => {
-                            goToLogin();
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          Sign In
-                        </Button>
-                        <Button 
-                          className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-                          onClick={() => {
-                            goToSignup();
-                            setMobileMenuOpen(false);
-                          }}
-                        >
-                          Sign Up
+                          <PlusCircle className="h-3.5 w-3.5" />
+                          Buy Tokens
                         </Button>
                       </div>
                     )}
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Account Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
 
             {/* Desktop User Menu/Auth Buttons */}
             <div className="hidden lg:flex items-center gap-3">
             {showAuthenticatedLinks && profile ? (
               <>
-                {/* Notifications Bell */}
                 <NotificationsBell />
-
-                {/* Balance Display - Desktop */}
                 <Link 
                   to="/dashboard#wallet" 
                   className="flex items-center gap-2 px-3 py-1.5 bg-accent/10 rounded-lg hover:bg-accent/20 transition-colors cursor-pointer"
@@ -356,8 +149,6 @@ const Navigation = () => {
                     {Math.floor(profile.balance ?? 0).toLocaleString()}
                   </span>
                 </Link>
-
-                {/* User Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="gap-2 max-w-[140px]">
@@ -386,7 +177,6 @@ const Navigation = () => {
                       <Settings className="w-4 h-4 mr-2" />
                       Account Settings
                     </DropdownMenuItem>
-                    {/* KYC menu item hidden per compliance/kyc-visibility-status */}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={signOut}>
                       <LogOut className="w-4 h-4 mr-2" />
@@ -397,24 +187,47 @@ const Navigation = () => {
               </>
             ) : showUnauthenticatedButtons ? (
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={goToLogin}
-                >
-                  Sign In
-                </Button>
-                <Button 
-                  size="sm"
-                  className="bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={goToSignup}
-                >
-                  Sign Up
-                </Button>
+                <Button variant="outline" size="sm" onClick={goToLogin}>Sign In</Button>
+                <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={goToSignup}>Sign Up</Button>
               </div>
             ) : null}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile: Horizontal scrolling category tabs */}
+      <div className="lg:hidden overflow-x-auto scrollbar-hide border-t border-border/40">
+        <div className="flex items-center gap-1 px-4 py-1.5 min-w-max">
+          {[
+            { label: "Trending", to: "/" },
+            { label: "Markets", to: "/markets" },
+            { label: "Polls", to: "/polls" },
+            { label: "Contests", to: "/contests" },
+            { label: "RapidPred", to: "/rapidpred" },
+            ...(showAuthenticatedLinks ? [
+              { label: "Dashboard", to: "/dashboard" },
+              { label: "Friends", to: "/friends" },
+            ] : []),
+            ...(showAuthenticatedLinks && isCreator ? [{ label: "Creator", to: "/creator" }] : []),
+            ...(showAuthenticatedLinks && isAdmin ? [{ label: "Admin", to: "/admin" }] : []),
+          ].map((tab) => {
+            const isActive = location.pathname === tab.to || (tab.to === "/" && location.pathname === "/");
+            return (
+              <button
+                key={tab.to}
+                onClick={() => navigate(tab.to)}
+                className={cn(
+                  "px-3 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-colors",
+                  isActive
+                    ? "text-foreground font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
