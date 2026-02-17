@@ -13,7 +13,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Pencil, ChevronDown, Info, Share2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Trophy, Users, Clock, Coins, ChevronRight, ArrowLeft, Medal, Star, CheckCircle, XCircle, HelpCircle, Pencil, ChevronDown, Info, Share2, AlertTriangle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format, isPast } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -277,6 +278,15 @@ const PredictionContests = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Closed Beta Alert — matches Polls style */}
+            <Alert className="border-amber-500/30 bg-amber-500/10 mb-4">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground block mb-0.5">Closed Beta — Gentleman's Agreement</span>
+                1 CricMaxx Token = $1 USD. All balances are settled directly between participants after the tournament. This is a trust-based system.
+              </AlertDescription>
+            </Alert>
 
             <ContestHowItWorks />
 
