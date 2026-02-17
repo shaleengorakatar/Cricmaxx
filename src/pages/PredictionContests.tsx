@@ -256,7 +256,7 @@ const PredictionContests = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 pt-20 pb-12">
+        <main className="flex-1 pt-28 lg:pt-20 pb-12">
           <div className="container mx-auto px-4 max-w-4xl">
             <div className="mb-6">
               <div className="flex items-center justify-between gap-2 mb-2">
@@ -393,7 +393,7 @@ const PredictionContests = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
-      <main className="flex-1 pt-20 pb-12">
+      <main className="flex-1 pt-28 lg:pt-20 pb-12">
         <div className="container mx-auto px-4 max-w-4xl">
           {/* Back button */}
           <Button variant="outline" size="sm" className="mb-4 gap-1.5 -ml-1" onClick={() => { setSelectedContestId(null); setAnswers({}); }}>

@@ -100,7 +100,7 @@ const FriendInvite = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navigation />
-        <main className="flex-1 flex items-center justify-center pt-20 pb-12 px-4">
+        <main className="flex-1 flex items-center justify-center pt-28 lg:pt-20 pb-12 px-4">
           <Card className="max-w-md w-full">
             <CardHeader>
               <CardTitle>Sign In Required</CardTitle>
@@ -127,7 +127,7 @@ const FriendInvite = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 flex items-center justify-center pt-20 pb-12 px-4">
+      <main className="flex-1 flex items-center justify-center pt-28 lg:pt-20 pb-12 px-4">
         <Card className="max-w-md w-full">
           <CardHeader className="text-center">
             {loading ? (

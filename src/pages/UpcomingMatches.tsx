@@ -94,7 +94,7 @@ const UpcomingMatches = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       
-      <main className="flex-1 pt-24 pb-16">
+      <main className="flex-1 pt-28 lg:pt-24 pb-16">
         <div className="container mx-auto px-4">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">
