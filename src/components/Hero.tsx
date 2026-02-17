@@ -15,27 +15,27 @@ const Hero = () => {
         <div className="absolute bottom-5 right-5 w-56 h-56 bg-accent rounded-full blur-3xl" />
       </div>
 
-      <div className="container mx-auto px-4 py-5 sm:py-6 relative z-10">
-        {/* Top line: Logo + Tagline + How It Works */}
-        <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-8">
+      <div className="container mx-auto px-4 pt-20 pb-6 sm:pt-22 sm:pb-8 relative z-10">
+        <div className="flex flex-col lg:flex-row items-start gap-6 lg:gap-8">
           {/* Left: Logo + tagline + buttons */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            {/* Logo — cropped tight, no extra whitespace */}
-            <div className="shrink-0 w-20 h-20 sm:w-24 sm:h-24 overflow-hidden flex items-center justify-center">
+          <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
+            {/* Logo */}
+            <div className="shrink-0 w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center">
               <img
                 src={cricmaxxLogo}
                 alt="CricMaxx"
-                className="w-28 h-28 sm:w-32 sm:h-32 object-contain drop-shadow-xl"
+                className="w-full h-full object-contain drop-shadow-xl"
               />
             </div>
 
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">
+            <div className="flex-1 min-w-0 pt-1">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight mb-2">
                 Fast. Live. <span className="text-accent">Fun.</span>
               </h1>
-              <p className="text-xs sm:text-sm text-primary-foreground/75 mt-1 line-clamp-2">
-                The ultimate cricket prediction playground — make live predictions with real-time trading.
-                <span className="text-accent font-medium ml-1">🚀 Closed Beta</span>
+              <p className="text-xs sm:text-sm text-primary-foreground/75 leading-relaxed">
+                The ultimate cricket prediction playground. Make fast, live predictions on your favorite matches
+                with real-time order book trading.
+                <span className="block text-accent font-medium mt-1">🚀 Closed Beta — World Cup 2026</span>
               </p>
 
               {/* CTA buttons */}
@@ -74,7 +74,7 @@ const Hero = () => {
           </div>
 
           {/* Right: How It Works — compact */}
-          <div className="shrink-0 w-full lg:w-64 bg-primary-foreground/10 backdrop-blur-sm rounded-lg p-3 border border-primary-foreground/10">
+          <div className="shrink-0 w-full lg:w-72 bg-primary-foreground/10 backdrop-blur-sm rounded-lg p-4 border border-primary-foreground/10">
             <h3 className="text-xs font-bold mb-2 text-center text-primary-foreground/80">How It Works</h3>
             <div className="space-y-2">
               {[
