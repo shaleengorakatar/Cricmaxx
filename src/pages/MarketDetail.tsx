@@ -188,19 +188,20 @@ const MarketDetail = () => {
           </div>
 
           {/* ── Mobile: one seamless surface. Desktop: card. ── */}
-          <div className="bg-card lg:rounded-lg lg:border lg:border-border lg:shadow-sm lg:mb-6">
+          <div className="bg-card lg:rounded-xl lg:border lg:border-border lg:shadow-md lg:mb-6 overflow-hidden">
 
             {/* Title section */}
-            <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-4">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div className="px-4 lg:px-7 pt-5 lg:pt-7 pb-5">
+              {/* Meta row */}
+              <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">{market.category}</Badge>
+                  <Badge variant="secondary" className="text-[11px] font-medium tracking-wide uppercase">{market.category}</Badge>
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     Expires {new Date(market.expiryTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </span>
                 </div>
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                <span className={`text-[11px] font-semibold px-3 py-1 rounded-full border tracking-wide ${
                   isExpired
                     ? "border-destructive/40 text-destructive bg-destructive/10"
                     : "border-primary/40 text-primary bg-primary/10"
@@ -209,50 +210,47 @@ const MarketDetail = () => {
                 </span>
               </div>
 
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-4">
+              {/* Question */}
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-5">
                 {market.question}
               </h1>
 
-              {/* YES / NO table */}
-              <div className="border-t border-border pt-4">
-                <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
-                  <div className="px-3 text-left"><p className="text-xs text-muted-foreground">Market</p></div>
-                  <div className="px-3"><p className="text-xs text-muted-foreground">Pays out</p></div>
-                  <div className="px-3"><p className="text-xs text-muted-foreground">Odds</p></div>
-                </div>
-                <div className="grid grid-cols-3 gap-0 divide-x divide-border">
-                  <div className="px-3 py-2 flex items-center gap-1.5">
+              {/* YES / NO outcome panels */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {/* YES */}
+                <div className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent pointer-events-none" />
+                  <div className="flex items-center gap-1.5 mb-3">
                     <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="font-semibold text-foreground">Yes</span>
+                    <span className="text-sm font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Yes</span>
                   </div>
-                  <div className="px-3 py-2 flex items-center justify-center">
-                    <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
-                  </div>
-                  <div className="px-3 py-2 flex items-center justify-center">
-                    <span className="px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">{yesCents}%</span>
-                  </div>
+                  <p className="text-3xl font-bold text-foreground mb-0.5">{yesCents}<span className="text-lg text-muted-foreground">%</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    Pays <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
+                  </p>
                 </div>
-                <div className="grid grid-cols-3 gap-0 divide-x divide-border">
-                  <div className="px-3 py-2 flex items-center gap-1.5">
-                    <TrendingDown className="h-4 w-4 text-red-500" />
-                    <span className="font-semibold text-foreground">No</span>
+                {/* NO */}
+                <div className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                  <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent pointer-events-none" />
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <TrendingDown className="h-4 w-4 text-destructive" />
+                    <span className="text-sm font-semibold text-destructive uppercase tracking-wider">No</span>
                   </div>
-                  <div className="px-3 py-2 flex items-center justify-center">
-                    <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
-                  </div>
-                  <div className="px-3 py-2 flex items-center justify-center">
-                    <span className="px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">{noCents}%</span>
-                  </div>
+                  <p className="text-3xl font-bold text-foreground mb-0.5">{noCents}<span className="text-lg text-muted-foreground">%</span></p>
+                  <p className="text-xs text-muted-foreground">
+                    Pays <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                <span>{market.volume.toLocaleString()} vol</span>
-                <span>{market.category}</span>
+              {/* Volume strip */}
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                <span className="font-medium text-foreground">{market.volume.toLocaleString()}</span> total volume
               </div>
 
               {market.description && (
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{market.description}</p>
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">{market.description}</p>
               )}
             </div>
 
