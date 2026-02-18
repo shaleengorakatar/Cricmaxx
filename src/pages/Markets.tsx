@@ -120,40 +120,30 @@ const Markets = () => {
 
       <main className="flex-1 pt-28 lg:pt-20 pb-12">
         <div className="container mx-auto px-4">
-          {/* Header */}
-          <div className="mb-6 sm:mb-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-                    Browse Markets
-                  </h1>
-                </div>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Discover and trade on prediction markets across various categories
-                </p>
-              </div>
-
-              {isAuthenticated && (
-                <div className="flex flex-col items-end gap-2 shrink-0">
-                  <UserRatingBadge />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setLeaderboardOpen(true)}
-                    className="gap-1.5"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    <span className="hidden sm:inline">Leaderboard</span>
-                  </Button>
-                </div>
-              )}
+          {/* Header — compact single row */}
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-accent shrink-0" />
+              <h1 className="text-lg font-bold text-foreground">Browse Markets</h1>
             </div>
+            {isAuthenticated && (
+              <div className="flex items-center gap-2 shrink-0">
+                <UserRatingBadge />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLeaderboardOpen(true)}
+                  className="gap-1.5 h-8 px-2"
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-xs">Leaderboard</span>
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Filters */}
-          <div className="mb-6 sm:mb-8">
+          <div className="mb-3">
             <MarketFilters
               selectedCategory={selectedCategory}
               searchQuery={searchQuery}
@@ -162,10 +152,10 @@ const Markets = () => {
             />
           </div>
 
-          {/* Results Count - only show when not loading */}
+          {/* Results Count */}
           {!loading && (
-            <div className="mb-4 sm:mb-6">
-              <p className="text-sm text-muted-foreground">
+            <div className="mb-3">
+              <p className="text-xs text-muted-foreground">
                 Showing {filteredMarkets.length}{" "}
                 {filteredMarkets.length === 1 ? "market" : "markets"}
               </p>
