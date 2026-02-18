@@ -16,7 +16,7 @@ export function TopMarketsSection() {
         .in("status", ["approved", "open"])
         .gte("expiry_time", new Date().toISOString())
         .order("volume", { ascending: false })
-        .limit(6);
+        .limit(3);
       if (error) throw error;
       return data || [];
     },
