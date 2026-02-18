@@ -322,12 +322,14 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Order Book</h3>
-        <div className="animate-pulse space-y-4">
+      <div className="p-5">
+        <div className="animate-pulse space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="h-20 bg-muted rounded-lg"></div>
-            <div className="h-20 bg-muted rounded-lg"></div>
+            <div className="h-20 bg-muted/60 rounded-xl"></div>
+            <div className="h-20 bg-muted/60 rounded-xl"></div>
+          </div>
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-8 bg-muted/40 rounded-lg" />)}
           </div>
         </div>
       </div>
@@ -335,28 +337,31 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   }
 
   const hasOrders = displayYesOrders.length > 0 || displayNoOrders.length > 0;
+  const totalYesLiq = displayYesOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalNoLiq = displayNoOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalLiq = totalYesLiq + totalNoLiq;
+  const yesPct = totalLiq > 0 ? (totalYesLiq / totalLiq) * 100 : 50;
 
   return (
     <TooltipProvider>
-      <div className="p-4 md:p-6">
-        {/* Header with title and toggle */}
+      <div className="p-4 md:p-5">
+        {/* ── Header ── */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-semibold text-foreground">Order Book</h3>
+            <h3 className="text-sm font-semibold text-foreground tracking-tight">Order Book</h3>
             <FeatureHelpTooltip
               title="Order Book"
-              description="The order book shows all pending buy orders at different price levels. In Buy mode, you see prices where you can purchase shares. In Sell mode, you see buyers you can sell your positions to. More orders = more liquidity = better prices."
+              description="The order book shows all pending buy orders at different price levels. In Buy mode, you see prices where you can purchase shares. In Sell mode, you see buyers you can sell your positions to."
               faqId="order-book"
             />
           </div>
-          
           {/* Buy/Sell Toggle */}
-          <div className="inline-flex items-center gap-0.5 bg-muted rounded-lg p-1">
+          <div className="inline-flex items-center gap-0.5 bg-muted/60 border border-border rounded-lg p-0.5">
             <button
               onClick={() => setViewMode("buy")}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                viewMode === "buy" 
-                  ? "bg-background text-foreground shadow-sm" 
+                viewMode === "buy"
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -365,8 +370,8 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
             <button
               onClick={() => setViewMode("sell")}
               className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                viewMode === "sell" 
-                  ? "bg-background text-foreground shadow-sm" 
+                viewMode === "sell"
+                  ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -374,303 +379,217 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
             </button>
           </div>
         </div>
-        
-        <div className="space-y-4">
-          {/* Liquidity Summary */}
-          {(() => {
-            const totalYesLiquidity = displayYesOrders.reduce((sum, o) => sum + o.quantity, 0);
-            const totalNoLiquidity = displayNoOrders.reduce((sum, o) => sum + o.quantity, 0);
-            const totalLiquidity = totalYesLiquidity + totalNoLiquidity;
-            
-            return (
-              <div className="flex items-center justify-center gap-4 py-2 px-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-muted-foreground">Total Liquidity:</span>
-                  <span className="font-semibold">{totalLiquidity.toFixed(0)} shares</span>
-                </div>
-                <div className="h-3 w-px bg-border" />
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-green-600 dark:text-green-500 font-medium">
-                    YES: {totalYesLiquidity.toFixed(0)}
-                  </span>
-                  <span className="text-red-600 dark:text-red-500 font-medium">
-                    NO: {totalNoLiquidity.toFixed(0)}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
-          
-          {/* Best Prices Summary */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
-              <p className="text-xs text-muted-foreground mb-1">
-                {viewMode === "buy" ? "Best YES Buy Price" : "YES Buyers"}
-              </p>
-              {bestYesBid ? (
-                <>
-                  <p className="text-xl sm:text-lg font-bold text-green-600 dark:text-green-500">
-                    {(bestYesBid.price * 100).toFixed(0)}¢
-                  </p>
-                  <p className="text-xs text-muted-foreground">{bestYesBid.quantity} shares</p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">No orders</p>
-              )}
-            </div>
-            <div className="bg-red-50 dark:bg-red-950/20 rounded-lg p-3 sm:p-4 min-h-[72px]">
-              <p className="text-xs text-muted-foreground mb-1">
-                {viewMode === "buy" ? "Best NO Buy Price" : "NO Buyers"}
-              </p>
-              {bestNoAsk ? (
-                <>
-                  <p className="text-xl sm:text-lg font-bold text-red-600 dark:text-red-500">
-                    {(bestNoAsk.price * 100).toFixed(0)}¢
-                  </p>
-                  <p className="text-xs text-muted-foreground">{bestNoAsk.quantity} shares</p>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">No bids yet</p>
-              )}
-            </div>
+        {/* ── Liquidity depth bar ── */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+            <span className="text-green-600 dark:text-green-400 font-medium">YES {totalYesLiq.toFixed(0)}</span>
+            <span className="text-xs">{totalLiq.toFixed(0)} shares total</span>
+            <span className="text-destructive font-medium">NO {totalNoLiq.toFixed(0)}</span>
           </div>
-
-          {!hasOrders && (
-            <div className="text-center py-6 text-muted-foreground">
-              <p className="text-sm">No orders yet. Be the first to place a limit order!</p>
-            </div>
-          )}
-
-          {/* Detailed Order Book Tables - Desktop only */}
-          {hasOrders && (
-            <div className="hidden md:grid md:grid-cols-2 gap-4">
-              {/* Yes Orders */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-foreground">
-                      {viewMode === "buy" ? "YES Orders" : "YES Buyers"}
-                    </h4>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">
-                          {viewMode === "buy"
-                            ? "Buy YES shares if you think the event will happen. Pay the listed price per share, get $1 back if correct."
-                            : "These are buyers wanting YES shares. You can sell your YES position to them at the listed price."}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  {viewMode === "buy" && displayYesOrders.length > 0 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 h-7 text-xs"
-                          onClick={() => openBuyDialog("yes", bestYesBid.price, bestYesBid.quantity)}
-                        >
-                          Buy
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Buy YES shares at best available price</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {displayYesOrders.length > 0 ? (
-                    displayYesOrders.map((order, idx) => (
-                      <Tooltip key={idx}>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className={`flex justify-between items-center text-xs p-2 bg-green-50 dark:bg-green-950/10 rounded transition-colors ${
-                              viewMode === "buy" && !order.isOwn 
-                                ? "hover:bg-green-100 dark:hover:bg-green-950/20 cursor-pointer" 
-                                : order.isOwn 
-                                  ? "opacity-60 cursor-not-allowed" 
-                                  : ""
-                            }`}
-                            onClick={viewMode === "buy" ? () => openBuyDialog("yes", order.price, order.quantity, order.isOwn) : undefined}
-                          >
-                            <span className="font-medium text-green-600 dark:text-green-500">
-                              {(order.price * 100).toFixed(0)}¢
-                              {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                            </span>
-                            <span className="text-muted-foreground">{order.quantity} shares</span>
-                          </div>
-                        </TooltipTrigger>
-                        {order.isOwn && viewMode === "buy" && (
-                          <TooltipContent>
-                            <p className="text-sm">You can't buy your own order</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <p className="text-xs text-center text-muted-foreground py-2">No orders</p>
-                  )}
-                </div>
-              </div>
-
-              {/* No Orders */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-semibold text-foreground">
-                      {viewMode === "buy" ? "NO Orders" : "NO Buyers"}
-                    </h4>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p className="text-sm">
-                          {viewMode === "buy"
-                            ? "Buy NO shares if you think the event will NOT happen. Pay the listed price per share, get $1 back if correct."
-                            : "These are buyers wanting NO shares. You can sell your NO position to them at the listed price."}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  {viewMode === "buy" && displayNoOrders.length > 0 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="destructive"
-                          className="h-7 text-xs"
-                          onClick={() => openBuyDialog("no", bestNoAsk.price, bestNoAsk.quantity)}
-                        >
-                          Buy
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Buy NO shares at best available price</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {displayNoOrders.length > 0 ? (
-                    displayNoOrders.map((order, idx) => (
-                      <Tooltip key={idx}>
-                        <TooltipTrigger asChild>
-                          <div 
-                            className={`flex justify-between items-center text-xs p-2 bg-red-50 dark:bg-red-950/10 rounded transition-colors ${
-                              viewMode === "buy" && !order.isOwn 
-                                ? "hover:bg-red-100 dark:hover:bg-red-950/20 cursor-pointer" 
-                                : order.isOwn 
-                                  ? "opacity-60 cursor-not-allowed" 
-                                  : ""
-                            }`}
-                            onClick={viewMode === "buy" ? () => openBuyDialog("no", order.price, order.quantity, order.isOwn) : undefined}
-                          >
-                            <span className="font-medium text-red-600 dark:text-red-500">
-                              {(order.price * 100).toFixed(0)}¢
-                              {order.isOwn && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                            </span>
-                            <span className="text-muted-foreground">{order.quantity} shares</span>
-                          </div>
-                        </TooltipTrigger>
-                        {order.isOwn && viewMode === "buy" && (
-                          <TooltipContent>
-                            <p className="text-sm">You can't buy your own order</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    ))
-                  ) : (
-                    <p className="text-xs text-center text-muted-foreground py-2">No orders</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Mobile hint */}
-          {hasOrders && (
-            <p className="text-xs text-center text-muted-foreground md:hidden">
-              Full order book available on larger screens
-            </p>
-          )}
+          <div className="h-1.5 rounded-full overflow-hidden bg-destructive/30 flex">
+            <div
+              className="h-full bg-green-500 transition-all duration-500"
+              style={{ width: `${yesPct}%` }}
+            />
+          </div>
         </div>
 
-        {/* Buy Dialog */}
+        {/* ── Best prices ── */}
+        <div className="grid grid-cols-2 gap-2.5 mb-4">
+          <div className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/8 to-transparent pointer-events-none" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              {viewMode === "buy" ? "Best YES Price" : "YES Buyers"}
+            </p>
+            {bestYesBid ? (
+              <>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 leading-none">
+                  {(bestYesBid.price * 100).toFixed(0)}<span className="text-sm font-normal ml-0.5">¢</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">{bestYesBid.quantity} shares</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-1">—</p>
+            )}
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+            <div className="absolute inset-0 bg-gradient-to-br from-destructive/8 to-transparent pointer-events-none" />
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              {viewMode === "buy" ? "Best NO Price" : "NO Buyers"}
+            </p>
+            {bestNoAsk ? (
+              <>
+                <p className="text-2xl font-bold text-destructive leading-none">
+                  {(bestNoAsk.price * 100).toFixed(0)}<span className="text-sm font-normal ml-0.5">¢</span>
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">{bestNoAsk.quantity} shares</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground mt-1">—</p>
+            )}
+          </div>
+        </div>
+
+        {!hasOrders && (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No orders yet — be the first to add liquidity!</p>
+          </div>
+        )}
+
+        {/* ── Detailed order levels — desktop only ── */}
+        {hasOrders && (
+          <div className="hidden md:grid md:grid-cols-2 gap-3">
+            {/* YES column */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                <span className="text-xs font-semibold text-foreground">
+                  {viewMode === "buy" ? "YES Buy Orders" : "YES Buyers"}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <div className="grid grid-cols-3 text-[10px] uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                  <span>Price</span><span className="text-center">Qty</span><span className="text-right">Action</span>
+                </div>
+                {displayYesOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">No orders</p>
+                ) : displayYesOrders.map((order, i) => {
+                  const maxQty = displayYesOrders[0]?.quantity || 1;
+                  const barWidth = Math.max(8, (order.quantity / maxQty) * 100);
+                  return (
+                    <div
+                      key={i}
+                      className={`relative grid grid-cols-3 items-center px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                        order.isOwn ? "opacity-60" : "hover:bg-muted/50 cursor-pointer"
+                      }`}
+                      onClick={viewMode === "buy" ? () => openBuyDialog("yes", order.price, order.quantity, order.isOwn) : undefined}
+                    >
+                      <div
+                        className="absolute inset-0 bg-green-500/8 rounded-lg"
+                        style={{ width: `${barWidth}%` }}
+                      />
+                      <span className="relative font-semibold text-green-600 dark:text-green-400">
+                        {(order.price * 100).toFixed(0)}¢
+                        {order.isOwn && <span className="ml-1 text-[9px] text-muted-foreground">(you)</span>}
+                      </span>
+                      <span className="relative text-center text-muted-foreground">{order.quantity}</span>
+                      <div className="relative flex justify-end">
+                        {viewMode === "buy" && (
+                          <button
+                            className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                              order.isOwn
+                                ? "border-border text-muted-foreground cursor-not-allowed"
+                                : "border-green-400/50 text-green-600 dark:text-green-400 hover:bg-green-500/10"
+                            }`}
+                            disabled={order.isOwn}
+                            onClick={e => { e.stopPropagation(); openBuyDialog("yes", order.price, order.quantity, order.isOwn); }}
+                          >
+                            {order.isOwn ? "Own" : "Buy"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* NO column */}
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive inline-block" />
+                <span className="text-xs font-semibold text-foreground">
+                  {viewMode === "buy" ? "NO Buy Orders" : "NO Buyers"}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <div className="grid grid-cols-3 text-[10px] uppercase tracking-wider text-muted-foreground px-2 mb-1">
+                  <span>Price</span><span className="text-center">Qty</span><span className="text-right">Action</span>
+                </div>
+                {displayNoOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">No orders</p>
+                ) : displayNoOrders.map((order, i) => {
+                  const maxQty = displayNoOrders[0]?.quantity || 1;
+                  const barWidth = Math.max(8, (order.quantity / maxQty) * 100);
+                  return (
+                    <div
+                      key={i}
+                      className={`relative grid grid-cols-3 items-center px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                        order.isOwn ? "opacity-60" : "hover:bg-muted/50 cursor-pointer"
+                      }`}
+                      onClick={viewMode === "buy" ? () => openBuyDialog("no", order.price, order.quantity, order.isOwn) : undefined}
+                    >
+                      <div
+                        className="absolute inset-0 bg-destructive/8 rounded-lg"
+                        style={{ width: `${barWidth}%` }}
+                      />
+                      <span className="relative font-semibold text-destructive">
+                        {(order.price * 100).toFixed(0)}¢
+                        {order.isOwn && <span className="ml-1 text-[9px] text-muted-foreground">(you)</span>}
+                      </span>
+                      <span className="relative text-center text-muted-foreground">{order.quantity}</span>
+                      <div className="relative flex justify-end">
+                        {viewMode === "buy" && (
+                          <button
+                            className={`text-[10px] font-medium px-2 py-0.5 rounded-md border transition-colors ${
+                              order.isOwn
+                                ? "border-border text-muted-foreground cursor-not-allowed"
+                                : "border-destructive/40 text-destructive hover:bg-destructive/10"
+                            }`}
+                            disabled={order.isOwn}
+                            onClick={e => { e.stopPropagation(); openBuyDialog("no", order.price, order.quantity, order.isOwn); }}
+                          >
+                            {order.isOwn ? "Own" : "Buy"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Buy Dialog ── */}
         <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                Buy {selectedSide.toUpperCase()} Shares
-                <span className={selectedSide === "yes" ? "text-green-600" : "text-red-600"}>
-                  @ {(selectedPrice * 100).toFixed(0)}¢
-                </span>
+                Buy {selectedSide.toUpperCase()}
+                <span className="text-base font-normal text-muted-foreground">@ {(selectedPrice * 100).toFixed(0)}¢</span>
               </DialogTitle>
               <DialogDescription>
-                {selectedSide === "yes" 
-                  ? "You're betting this event WILL happen. If correct, each share pays $1."
-                  : "You're betting this event will NOT happen. If correct, each share pays $1."}
+                Each share pays $1 if the market resolves in your favour.
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Number of Shares</Label>
+            <div className="space-y-4 py-2">
+              <div>
+                <Label htmlFor="qty" className="text-sm font-medium">Quantity (shares)</Label>
                 <Input
-                  id="quantity"
+                  id="qty"
                   type="number"
                   min={1}
                   value={buyQuantity}
-                  onChange={(e) => setBuyQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={e => setBuyQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="mt-1.5"
                 />
               </div>
-
-              <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Price per share:</span>
-                  <span className="font-medium">{(selectedPrice * 100).toFixed(0)}¢</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total cost:</span>
-                  <span className="font-medium">${cost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm border-t pt-2">
-                  <span className="text-muted-foreground">If correct, you get:</span>
-                  <span className="font-medium text-green-600">${payout.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Potential profit:</span>
-                  <span className="font-bold text-green-600">+${profit.toFixed(2)}</span>
-                </div>
+              <div className="rounded-xl bg-muted/50 border border-border p-3 space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Cost</span><span className="font-semibold">${(buyQuantity * selectedPrice).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Payout if correct</span><span className="font-semibold">${buyQuantity.toFixed(2)}</span></div>
+                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Potential profit</span><span className={`font-bold ${(buyQuantity - buyQuantity * selectedPrice) >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>${(buyQuantity - buyQuantity * selectedPrice).toFixed(2)}</span></div>
               </div>
-
-              {isAuthenticated && profile && (
-                <p className="text-xs text-muted-foreground text-center">
-                  Your balance: {profile.balance.toFixed(2)} tokens
-                </p>
-              )}
+              {profile && <p className="text-xs text-muted-foreground">Balance: <span className="font-semibold">${profile.balance?.toFixed(2)}</span></p>}
             </div>
-
             <DialogFooter>
-              <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>
-                Cancel
-              </Button>
+              <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>Cancel</Button>
               <Button
                 onClick={handleBuyOrder}
-                disabled={isPlacingOrder || !isAuthenticated}
-                className={selectedSide === "yes" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+                disabled={isPlacingOrder || !profile || (profile.balance || 0) < buyQuantity * selectedPrice}
+                className={selectedSide === "yes" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
               >
-                {isPlacingOrder ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Buying...
-                  </>
-                ) : (
-                  `Buy ${buyQuantity} ${selectedSide.toUpperCase()} for $${cost.toFixed(2)}`
-                )}
+                {isPlacingOrder ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Placing…</> : `Buy ${selectedSide.toUpperCase()}`}
               </Button>
             </DialogFooter>
           </DialogContent>
