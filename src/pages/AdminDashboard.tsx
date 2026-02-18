@@ -10,7 +10,7 @@ import MonitoringPanel from "@/components/admin/MonitoringPanel";
 import CricketMarketGenerator from "@/components/admin/CricketMarketGenerator";
 import { CreatorApplicationsPanel } from "@/components/admin/CreatorApplicationsPanel";
 import PlatformFeesPanel from "@/components/admin/PlatformFeesPanel";
-import LiquiditySeedingPanel from "@/components/admin/LiquiditySeedingPanel";
+
 import LoadTestPanel from "@/components/admin/LoadTestPanel";
 import PredictionsOverviewPanel from "@/components/admin/PredictionsOverviewPanel";
 import PollResolutionPanel from "@/components/admin/PollResolutionPanel";
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
           <Tabs defaultValue="predictions" className="space-y-4 md:space-y-6">
             {/* Mobile: Scrollable pill tabs */}
             <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
-              <TabsList className="inline-flex h-auto p-1 gap-1 bg-muted/50 rounded-lg min-w-max md:grid md:grid-cols-5 lg:grid-cols-10 md:w-full">
+              <TabsList className="inline-flex h-auto p-1 gap-1 bg-muted/50 rounded-lg min-w-max md:grid md:grid-cols-5 lg:grid-cols-9 md:w-full">
                 <TabsTrigger value="predictions" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Predictions
                 </TabsTrigger>
@@ -100,9 +100,6 @@ const AdminDashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="create" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Create
-                </TabsTrigger>
-                <TabsTrigger value="liquidity" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
-                  Liquidity
                 </TabsTrigger>
                 <TabsTrigger value="resolution" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Resolve
@@ -144,10 +141,6 @@ const AdminDashboard = () => {
 
             <TabsContent value="generator">
               <CricketMarketGenerator />
-            </TabsContent>
-
-            <TabsContent value="liquidity">
-              <LiquiditySeedingPanel />
             </TabsContent>
 
             <TabsContent value="create">
