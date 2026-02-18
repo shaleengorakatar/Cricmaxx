@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import MarketHeader from "@/components/market-detail/MarketHeader";
 import PriceChart from "@/components/market-detail/PriceChart";
 import OrderBook from "@/components/market-detail/OrderBook";
 import OrderBookTrading from "@/components/market-detail/OrderBookTrading";
@@ -20,7 +19,6 @@ import { RealtimeStatus } from "@/components/ui/realtime-indicators";
 import { supabase } from "@/integrations/supabase/client";
 import { useBatchIndicativePrices } from "@/hooks/useBatchIndicativePrices";
 
-// Generate price history from current price
 const generatePriceHistory = (yesPrice: number) => {
   const data = [];
   const now = new Date();
@@ -71,19 +69,13 @@ const MarketDetail = () => {
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
 
-  // Orders & positions for the bottom section
-  const [pendingOrders, setPendingOrders] = useState<MarketOrder[]>([]);
   const [completedOrders, setCompletedOrders] = useState<MarketPosition[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
-  // Real-time hooks
   const { prices: realtimePrices, isConnected: pricesConnected } = useRealtimeMarketPrices(id);
   const { isConnected: tradesConnected } = useRealtimeTrades(id);
-
-  // Indicative prices from order book
   const { prices: indicativePrices } = useBatchIndicativePrices(id ? [id] : []);
 
-  // Update market with realtime prices
   useEffect(() => {
     if (realtimePrices && market) {
       setMarket(prev => {
@@ -115,7 +107,7 @@ const MarketDetail = () => {
     const yesPrice = indicative && indicative.source !== "default" ? indicative.yesPrice : Number(data.yes_price);
     const noPrice = indicative && indicative.source !== "default" ? indicative.noPrice : Number(data.no_price);
 
-    const formattedMarket: Market = {
+    setMarket({
       id: data.id,
       question: data.question,
       category: data.category as Market["category"],
@@ -126,16 +118,14 @@ const MarketDetail = () => {
       expiryTime: data.expiry_time,
       description: data.description || "",
       imageUrl: data.image_url || "",
-    };
-
-    setMarket(formattedMarket);
+    });
     setMarketStatus(data.status);
     setMarketOutcome(data.outcome);
     setMarketFees({
       platform: Number(data.platform_fee_percent) || 3,
       creator: Number(data.creator_fee_percent) || 0,
     });
-    setPriceHistory(generatePriceHistory(formattedMarket.yesPrice));
+    setPriceHistory(generatePriceHistory(yesPrice));
     setLoading(false);
   }, [id]);
 
@@ -143,28 +133,17 @@ const MarketDetail = () => {
     fetchMarket(indicativePrices);
   }, [id, indicativePrices, fetchMarket]);
 
-  // Fetch user orders & positions for this market
   const fetchUserActivity = useCallback(async () => {
     if (!user || !id) return;
     setOrdersLoading(true);
-    const [ordersRes, positionsRes] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('id, side, quantity, filled_quantity, price, order_type, status, created_at')
-        .eq('market_id', id)
-        .eq('user_id', user.id)
-        .in('status', ['pending', 'partial'])
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('positions')
-        .select('id, side, size, entry_price, pnl, status, opened_at, closed_at')
-        .eq('market_id', id)
-        .eq('user_id', user.id)
-        .order('opened_at', { ascending: false })
-        .limit(20),
-    ]);
-    setPendingOrders(ordersRes.data || []);
-    setCompletedOrders(positionsRes.data || []);
+    const { data } = await supabase
+      .from('positions')
+      .select('id, side, size, entry_price, pnl, status, opened_at, closed_at')
+      .eq('market_id', id)
+      .eq('user_id', user.id)
+      .order('opened_at', { ascending: false })
+      .limit(20);
+    setCompletedOrders(data || []);
     setOrdersLoading(false);
   }, [user, id]);
 
@@ -173,17 +152,11 @@ const MarketDetail = () => {
       fetchUserActivity();
       const channel = supabase
         .channel(`market-activity-${id}-${user.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `market_id=eq.${id}` }, fetchUserActivity)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'positions', filter: `market_id=eq.${id}` }, fetchUserActivity)
         .subscribe();
       return () => { supabase.removeChannel(channel); };
     }
   }, [isAuthenticated, user, id, fetchUserActivity]);
-
-  const cancelOrder = async (orderId: string) => {
-    await supabase.functions.invoke('order-book', { body: { action: 'cancel', orderId } });
-    fetchUserActivity();
-  };
 
   if (loading) {
     return (
@@ -208,6 +181,7 @@ const MarketDetail = () => {
 
   const yesCents = Math.round(market.yesPrice * 100);
   const noCents = 100 - yesCents;
+  const isExpired = new Date(market.expiryTime) < new Date();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -224,13 +198,25 @@ const MarketDetail = () => {
             <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
           </div>
 
-          {/* Kalshi-style 2-column layout */}
+          {/* 2-column layout: trading panel first on mobile */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
 
-            {/* ── LEFT COLUMN ── */}
-            <div className="space-y-4">
+            {/* ── RIGHT COLUMN — Trading Panel — comes first on mobile ── */}
+            <div className="space-y-4 order-1 lg:order-2">
+              <OrderBookTrading
+                marketId={market.id}
+                yesPrice={market.yesPrice}
+                noPrice={market.noPrice}
+                userBalance={profile?.balance || 0}
+                platformFeePercent={marketFees.platform}
+                creatorFeePercent={marketFees.creator}
+              />
+            </div>
 
-              {/* Market Header — clean card, no gradient */}
+            {/* ── LEFT COLUMN — Market info + tabs + orders ── */}
+            <div className="space-y-4 order-2 lg:order-1">
+
+              {/* Market Header — clean card */}
               <Card className="p-5 sm:p-6 border border-border">
                 {/* Category + expiry + status */}
                 <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -242,11 +228,11 @@ const MarketDetail = () => {
                     </span>
                   </div>
                   <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                    new Date(market.expiryTime) < new Date()
+                    isExpired
                       ? "border-destructive/40 text-destructive bg-destructive/10"
                       : "border-primary/40 text-primary bg-primary/10"
                   }`}>
-                    {new Date(market.expiryTime) < new Date() ? "Closed" : "● Live"}
+                    {isExpired ? "Closed" : "● Live"}
                   </span>
                 </div>
 
@@ -255,34 +241,34 @@ const MarketDetail = () => {
                   {market.question}
                 </h1>
 
-                {/* YES / NO / Volume row */}
+                {/* YES / NO table */}
                 <div className="border-t border-border pt-4">
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center">
-                    <div className="px-4">
-                      <p className="text-xs text-muted-foreground mb-0.5">Market</p>
+                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
+                    <div className="px-3 text-left">
+                      <p className="text-xs text-muted-foreground">Market</p>
                     </div>
-                    <div className="px-4">
-                      <p className="text-xs text-muted-foreground mb-0.5">Pays out</p>
+                    <div className="px-3">
+                      <p className="text-xs text-muted-foreground">Pays out</p>
                     </div>
-                    <div className="px-4">
-                      <p className="text-xs text-muted-foreground mb-0.5">Odds</p>
+                    <div className="px-3">
+                      <p className="text-xs text-muted-foreground">Odds</p>
                     </div>
                   </div>
 
                   {/* YES row */}
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mt-2">
-                    <div className="px-4 py-2 text-left">
+                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center">
+                    <div className="px-3 py-2 text-left">
                       <div className="flex items-center gap-1.5">
                         <TrendingUp className="h-4 w-4 text-green-500" />
                         <span className="font-semibold text-foreground">Yes</span>
                       </div>
                     </div>
-                    <div className="px-4 py-2 text-center">
+                    <div className="px-3 py-2 flex items-center justify-center">
                       <span className="font-semibold text-foreground">
                         {yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x
                       </span>
                     </div>
-                    <div className="px-4 py-2 flex justify-center">
+                    <div className="px-3 py-2 flex items-center justify-center">
                       <span className="inline-block px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">
                         {yesCents}%
                       </span>
@@ -291,18 +277,18 @@ const MarketDetail = () => {
 
                   {/* NO row */}
                   <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center">
-                    <div className="px-4 py-2 text-left">
+                    <div className="px-3 py-2 text-left">
                       <div className="flex items-center gap-1.5">
                         <TrendingDown className="h-4 w-4 text-red-500" />
                         <span className="font-semibold text-foreground">No</span>
                       </div>
                     </div>
-                    <div className="px-4 py-2 text-center">
+                    <div className="px-3 py-2 flex items-center justify-center">
                       <span className="font-semibold text-foreground">
                         {noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x
                       </span>
                     </div>
-                    <div className="px-4 py-2 flex justify-center">
+                    <div className="px-3 py-2 flex items-center justify-center">
                       <span className="inline-block px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">
                         {noCents}%
                       </span>
@@ -310,13 +296,12 @@ const MarketDetail = () => {
                   </div>
                 </div>
 
-                {/* Volume + category footer */}
+                {/* Footer */}
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
                   <span>{market.volume.toLocaleString()} vol</span>
                   <span>{market.category}</span>
                 </div>
 
-                {/* Description */}
                 {market.description && (
                   <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
                     {market.description}
@@ -358,115 +343,59 @@ const MarketDetail = () => {
                 </Tabs>
               </Card>
 
-              {/* My Orders — only for authenticated users */}
+              {/* My Orders — completed positions only */}
               {isAuthenticated && (
                 <Card className="border border-border overflow-hidden">
-                  <Tabs defaultValue="pending" className="w-full">
-                    <div className="flex items-center justify-between px-4 pt-4 pb-0">
-                      <div className="flex items-center gap-2">
-                        <History className="h-4 w-4 text-muted-foreground" />
-                        <h3 className="text-sm font-semibold text-foreground">My Orders</h3>
-                      </div>
-                      <TabsList className="h-7 bg-muted/50">
-                        <TabsTrigger value="pending" className="text-xs h-6 px-3">Pending</TabsTrigger>
-                        <TabsTrigger value="completed" className="text-xs h-6 px-3">Completed</TabsTrigger>
-                      </TabsList>
-                    </div>
-
-                    {/* Pending Orders */}
-                    <TabsContent value="pending" className="m-0 p-4 pt-3">
-                      {ordersLoading ? (
-                        <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
-                      ) : pendingOrders.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-6">No pending orders</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {pendingOrders.map((order) => {
-                            const remaining = order.quantity - order.filled_quantity;
-                            return (
-                              <div key={order.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className={order.side === 'yes'
-                                    ? 'text-green-600 border-green-400 text-xs'
-                                    : 'text-red-500 border-red-400 text-xs'
-                                  }>
-                                    {order.side.toUpperCase()}
-                                  </Badge>
-                                  <div>
-                                    <p className="text-xs font-medium">{remaining} contracts @ {(order.price * 100).toFixed(0)}¢</p>
-                                    <p className="text-[10px] text-muted-foreground">{order.status === 'partial' ? `${order.filled_quantity}/${order.quantity} filled` : 'Limit order'}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs text-muted-foreground">${(remaining * order.price).toFixed(2)}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 text-xs text-destructive hover:text-destructive px-2"
-                                    onClick={() => cancelOrder(order.id)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </div>
+                  <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-border">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold text-foreground">My Orders</h3>
+                  </div>
+                  <div className="p-4">
+                    {ordersLoading ? (
+                      <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
+                    ) : completedOrders.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-6">No orders yet</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {completedOrders.map((pos) => (
+                          <div key={pos.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className={pos.side === 'yes'
+                                ? 'text-green-600 border-green-400 text-xs'
+                                : 'text-red-500 border-red-400 text-xs'
+                              }>
+                                {pos.side.toUpperCase()}
+                              </Badge>
+                              <div>
+                                <p className="text-xs font-medium">{pos.size} contracts @ {(pos.entry_price * 100).toFixed(0)}¢</p>
+                                <p className="text-[10px] text-muted-foreground capitalize">
+                                  {pos.status} · {new Date(pos.opened_at).toLocaleDateString()}
+                                </p>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    {/* Completed / Positions */}
-                    <TabsContent value="completed" className="m-0 p-4 pt-3">
-                      {ordersLoading ? (
-                        <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
-                      ) : completedOrders.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-6">No completed orders</p>
-                      ) : (
-                        <div className="space-y-2">
-                          {completedOrders.map((pos) => (
-                            <div key={pos.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={pos.side === 'yes'
-                                  ? 'text-green-600 border-green-400 text-xs'
-                                  : 'text-red-500 border-red-400 text-xs'
-                                }>
-                                  {pos.side.toUpperCase()}
-                                </Badge>
-                                <div>
-                                  <p className="text-xs font-medium">{pos.size} contracts @ {(pos.entry_price * 100).toFixed(0)}¢</p>
-                                  <p className="text-[10px] text-muted-foreground capitalize">{pos.status} · {new Date(pos.opened_at).toLocaleDateString()}</p>
-                                </div>
-                              </div>
-                              {pos.pnl !== null ? (
-                                <span className={`text-xs font-semibold ${pos.pnl >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                  {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">${(pos.size * pos.entry_price).toFixed(2)}</span>
-                              )}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                            {pos.pnl !== null ? (
+                              <span className={`text-xs font-semibold ${pos.pnl >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                ${(pos.size * pos.entry_price).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Card>
               )}
-            </div>
 
-            {/* ── RIGHT COLUMN — Trading Panel ── */}
-            <div className="space-y-4">
-              <OrderBookTrading
-                marketId={market.id}
-                yesPrice={market.yesPrice}
-                noPrice={market.noPrice}
-                userBalance={profile?.balance || 0}
-                platformFeePercent={marketFees.platform}
-                creatorFeePercent={marketFees.creator}
-              />
             </div>
+            {/* end left column */}
 
           </div>
+          {/* end grid */}
+
         </div>
       </main>
 
