@@ -32,24 +32,24 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
-    const [{ data: aggData }, { data: mktData }] = await Promise.all([
-      supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] }),
-      supabase
-        .from('orders')
-        .select('side, quantity, filled_quantity')
-        .eq('market_id', marketId)
-        .is('price', null)
-        .in('status', ['pending', 'partial']),
-    ]);
+    const { data } = await supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] });
 
     const yesLevels: MiniOrderLevel[] = [];
     const noLevels: MiniOrderLevel[] = [];
+    let mktYes = 0, mktNo = 0;
 
-    for (const row of aggData || []) {
-      if (row.price === null) continue; // market orders handled separately
-      const price = Number(row.price);
+    for (const row of data || []) {
       const quantity = Number(row.total_quantity);
       if (quantity <= 0) continue;
+
+      if (row.price === null) {
+        // Market orders — tally by their actual side for display
+        if (row.side === 'no') mktNo += quantity;
+        else mktYes += quantity;
+        continue;
+      }
+
+      const price = Number(row.price);
       const derived = Math.min(0.99, Math.max(0.01, 1 - price));
       if (row.side === 'yes') {
         noLevels.push({ price: derived, quantity });
@@ -73,18 +73,8 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
 
     setYesOrders(agg(yesLevels));
     setNoOrders(agg(noLevels));
-
-    // Tally remaining market order quantities per side
-    let mktYes = 0, mktNo = 0;
-    for (const o of mktData || []) {
-      const remaining = Number(o.quantity) - Number(o.filled_quantity);
-      if (remaining <= 0) continue;
-      if (o.side === 'yes') mktYes += remaining;
-      else mktNo += remaining;
-    }
     setMarketYesQty(mktYes);
     setMarketNoQty(mktNo);
-
     setLoading(false);
   }, [marketId]);
 
