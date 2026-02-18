@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus, Coins, PlusCircle } from "lucide-react";
+import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus, Coins, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -167,6 +167,7 @@ const OrderBookTrading = ({
   });
   const [userOrders, setUserOrders] = useState<UserOrder[]>([]);
   const [userPosition, setUserPosition] = useState<UserPosition | null>(null);
+  const [pendingOrdersExpanded, setPendingOrdersExpanded] = useState(false);
   
   const handleTradeStatusComplete = () => {
     setTradeStatus('idle');
@@ -1060,8 +1061,14 @@ const OrderBookTrading = ({
       {/* User's Open Orders */}
       {userOrders.length > 0 && (
         <div className="border-t pt-4 mt-4">
-          <h4 className="text-sm font-medium mb-3">Your Pending Orders</h4>
-          <div className="space-y-2">
+          <button
+            onClick={() => setPendingOrdersExpanded(p => !p)}
+            className="flex items-center justify-between w-full text-sm font-medium mb-2 hover:text-foreground/80 transition-colors"
+          >
+            <span>Your Pending Orders ({userOrders.length})</span>
+            {pendingOrdersExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </button>
+          {pendingOrdersExpanded && <div className="space-y-2">
       {userOrders.map((order) => {
               const price = Number(order.price);
               const quantity = order.quantity;
@@ -1104,7 +1111,7 @@ const OrderBookTrading = ({
                 </div>
               );
             })}
-          </div>
+          </div>}
         </div>
       )}
 
