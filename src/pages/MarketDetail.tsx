@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -35,17 +35,6 @@ const generatePriceHistory = (yesPrice: number) => {
   return data;
 };
 
-interface MarketOrder {
-  id: string;
-  side: string;
-  quantity: number;
-  filled_quantity: number;
-  price: number;
-  order_type: string;
-  status: string;
-  created_at: string;
-}
-
 interface MarketPosition {
   id: string;
   side: string;
@@ -68,7 +57,6 @@ const MarketDetail = () => {
   const [marketFees, setMarketFees] = useState<{ platform: number; creator: number }>({ platform: 0, creator: 0 });
   const [loading, setLoading] = useState(true);
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
-
   const [completedOrders, setCompletedOrders] = useState<MarketPosition[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
 
@@ -190,7 +178,7 @@ const MarketDetail = () => {
       <main className="flex-1 pt-28 lg:pt-20 pb-8">
         <div className="container mx-auto px-4 max-w-7xl">
 
-          {/* Back + realtime row */}
+          {/* Back + realtime */}
           <div className="flex items-center justify-between mb-4">
             <Button variant="ghost" size="sm" onClick={() => navigate('/markets')} className="-ml-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
@@ -198,11 +186,80 @@ const MarketDetail = () => {
             <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
           </div>
 
-          {/* 2-column layout: trading panel first on mobile */}
+          {/* ── Title card — full width ── */}
+          <Card className="p-5 sm:p-6 border border-border mb-6">
+            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs">{market.category}</Badge>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Expires {new Date(market.expiryTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                isExpired
+                  ? "border-destructive/40 text-destructive bg-destructive/10"
+                  : "border-primary/40 text-primary bg-primary/10"
+              }`}>
+                {isExpired ? "Closed" : "● Live"}
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-4">
+              {market.question}
+            </h1>
+
+            {/* YES / NO table */}
+            <div className="border-t border-border pt-4">
+              <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
+                <div className="px-3 text-left"><p className="text-xs text-muted-foreground">Market</p></div>
+                <div className="px-3"><p className="text-xs text-muted-foreground">Pays out</p></div>
+                <div className="px-3"><p className="text-xs text-muted-foreground">Odds</p></div>
+              </div>
+              {/* YES */}
+              <div className="grid grid-cols-3 gap-0 divide-x divide-border">
+                <div className="px-3 py-2 flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span className="font-semibold text-foreground">Yes</span>
+                </div>
+                <div className="px-3 py-2 flex items-center justify-center">
+                  <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
+                </div>
+                <div className="px-3 py-2 flex items-center justify-center">
+                  <span className="px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">{yesCents}%</span>
+                </div>
+              </div>
+              {/* NO */}
+              <div className="grid grid-cols-3 gap-0 divide-x divide-border">
+                <div className="px-3 py-2 flex items-center gap-1.5">
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <span className="font-semibold text-foreground">No</span>
+                </div>
+                <div className="px-3 py-2 flex items-center justify-center">
+                  <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
+                </div>
+                <div className="px-3 py-2 flex items-center justify-center">
+                  <span className="px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">{noCents}%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+              <span>{market.volume.toLocaleString()} vol</span>
+              <span>{market.category}</span>
+            </div>
+
+            {market.description && (
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{market.description}</p>
+            )}
+          </Card>
+
+          {/* ── 2-column grid: left = tabs+orders, right = trading ── */}
+          {/* On mobile: trading panel (order-1) appears first, then left col (order-2) */}
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
 
-            {/* ── RIGHT COLUMN — Trading Panel — comes first on mobile ── */}
-            <div className="space-y-4 order-1 lg:order-2">
+            {/* Trading panel — order-1 on mobile so it sits right under the title card */}
+            <div className="order-1 lg:order-2">
               <OrderBookTrading
                 marketId={market.id}
                 yesPrice={market.yesPrice}
@@ -213,103 +270,10 @@ const MarketDetail = () => {
               />
             </div>
 
-            {/* ── LEFT COLUMN — Market info + tabs + orders ── */}
+            {/* Tabs + My Orders — order-2 on mobile */}
             <div className="space-y-4 order-2 lg:order-1">
 
-              {/* Market Header — clean card */}
-              <Card className="p-5 sm:p-6 border border-border">
-                {/* Category + expiry + status */}
-                <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">{market.category}</Badge>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Expires {new Date(market.expiryTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
-                  </div>
-                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                    isExpired
-                      ? "border-destructive/40 text-destructive bg-destructive/10"
-                      : "border-primary/40 text-primary bg-primary/10"
-                  }`}>
-                    {isExpired ? "Closed" : "● Live"}
-                  </span>
-                </div>
-
-                {/* Question */}
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-4">
-                  {market.question}
-                </h1>
-
-                {/* YES / NO table */}
-                <div className="border-t border-border pt-4">
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
-                    <div className="px-3 text-left">
-                      <p className="text-xs text-muted-foreground">Market</p>
-                    </div>
-                    <div className="px-3">
-                      <p className="text-xs text-muted-foreground">Pays out</p>
-                    </div>
-                    <div className="px-3">
-                      <p className="text-xs text-muted-foreground">Odds</p>
-                    </div>
-                  </div>
-
-                  {/* YES row */}
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center">
-                    <div className="px-3 py-2 text-left">
-                      <div className="flex items-center gap-1.5">
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                        <span className="font-semibold text-foreground">Yes</span>
-                      </div>
-                    </div>
-                    <div className="px-3 py-2 flex items-center justify-center">
-                      <span className="font-semibold text-foreground">
-                        {yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x
-                      </span>
-                    </div>
-                    <div className="px-3 py-2 flex items-center justify-center">
-                      <span className="inline-block px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">
-                        {yesCents}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* NO row */}
-                  <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center">
-                    <div className="px-3 py-2 text-left">
-                      <div className="flex items-center gap-1.5">
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                        <span className="font-semibold text-foreground">No</span>
-                      </div>
-                    </div>
-                    <div className="px-3 py-2 flex items-center justify-center">
-                      <span className="font-semibold text-foreground">
-                        {noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x
-                      </span>
-                    </div>
-                    <div className="px-3 py-2 flex items-center justify-center">
-                      <span className="inline-block px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">
-                        {noCents}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-                  <span>{market.volume.toLocaleString()} vol</span>
-                  <span>{market.category}</span>
-                </div>
-
-                {market.description && (
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                    {market.description}
-                  </p>
-                )}
-              </Card>
-
-              {/* Order Book / Chart / Rules tabs */}
+              {/* Order Book / Chart / Rules */}
               <Card className="border border-border overflow-hidden">
                 <Tabs defaultValue="orderbook" className="w-full">
                   <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-muted/40 h-10">
@@ -391,10 +355,7 @@ const MarketDetail = () => {
               )}
 
             </div>
-            {/* end left column */}
-
           </div>
-          {/* end grid */}
 
         </div>
       </main>
