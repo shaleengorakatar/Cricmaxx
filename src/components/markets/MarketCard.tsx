@@ -27,16 +27,26 @@ interface MiniOrderLevel {
 const MiniOrderBook = ({ marketId }: { marketId: string }) => {
   const [yesOrders, setYesOrders] = useState<MiniOrderLevel[]>([]);
   const [noOrders, setNoOrders] = useState<MiniOrderLevel[]>([]);
+  const [marketYesQty, setMarketYesQty] = useState(0);
+  const [marketNoQty, setMarketNoQty] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
-    const { data } = await supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] });
-    
+    const [{ data: aggData }, { data: mktData }] = await Promise.all([
+      supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] }),
+      supabase
+        .from('orders')
+        .select('side, quantity, filled_quantity')
+        .eq('market_id', marketId)
+        .is('price', null)
+        .in('status', ['pending', 'partial']),
+    ]);
+
     const yesLevels: MiniOrderLevel[] = [];
     const noLevels: MiniOrderLevel[] = [];
 
-    for (const row of data || []) {
-      if (row.price === null) continue; // skip market orders (no limit price)
+    for (const row of aggData || []) {
+      if (row.price === null) continue; // market orders handled separately
       const price = Number(row.price);
       const quantity = Number(row.total_quantity);
       if (quantity <= 0) continue;
@@ -48,7 +58,7 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
       }
     }
 
-    // Aggregate by price
+    // Aggregate limit orders by price
     const agg = (levels: MiniOrderLevel[]) => {
       const map = new Map<number, number>();
       for (const l of levels) {
@@ -63,6 +73,18 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
 
     setYesOrders(agg(yesLevels));
     setNoOrders(agg(noLevels));
+
+    // Tally remaining market order quantities per side
+    let mktYes = 0, mktNo = 0;
+    for (const o of mktData || []) {
+      const remaining = Number(o.quantity) - Number(o.filled_quantity);
+      if (remaining <= 0) continue;
+      if (o.side === 'yes') mktYes += remaining;
+      else mktNo += remaining;
+    }
+    setMarketYesQty(mktYes);
+    setMarketNoQty(mktNo);
+
     setLoading(false);
   }, [marketId]);
 
@@ -72,8 +94,8 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
     return <div className="py-3 text-center text-[10px] text-muted-foreground animate-pulse">Loading order book...</div>;
   }
 
-  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0);
-  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0) + marketYesQty;
+  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0) + marketNoQty;
   const total = totalYes + totalNo;
   const bestYes = yesOrders[0];
   const bestNo = noOrders[0];
@@ -101,6 +123,11 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <p className="text-sm font-bold text-success">{(bestYes.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestYes.quantity} shares</p>
             </>
+          ) : marketYesQty > 0 ? (
+            <>
+              <p className="text-sm font-bold text-success">MKT</p>
+              <p className="text-[9px] text-muted-foreground">{marketYesQty} shares</p>
+            </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
         <div className="bg-destructive/5 border border-destructive/20 rounded-md p-2">
@@ -109,6 +136,11 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
             <>
               <p className="text-sm font-bold text-destructive">{(bestNo.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestNo.quantity} shares</p>
+            </>
+          ) : marketNoQty > 0 ? (
+            <>
+              <p className="text-sm font-bold text-destructive">MKT</p>
+              <p className="text-[9px] text-muted-foreground">{marketNoQty} shares</p>
             </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
@@ -119,22 +151,34 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
         {/* YES */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">YES Orders</p>
+          {marketYesQty > 0 && (
+            <div className="flex justify-between text-[10px] py-0.5">
+              <span className="text-success font-medium">MKT</span>
+              <span className="text-muted-foreground">{marketYesQty} shares</span>
+            </div>
+          )}
           {yesOrders.length > 0 ? yesOrders.map((o, i) => (
             <div key={i} className="flex justify-between text-[10px] py-0.5">
               <span className="text-success font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : marketYesQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
         {/* NO */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">NO Orders</p>
+          {marketNoQty > 0 && (
+            <div className="flex justify-between text-[10px] py-0.5">
+              <span className="text-destructive font-medium">MKT</span>
+              <span className="text-muted-foreground">{marketNoQty} shares</span>
+            </div>
+          )}
           {noOrders.length > 0 ? noOrders.map((o, i) => (
             <div key={i} className="flex justify-between text-[10px] py-0.5">
               <span className="text-destructive font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : marketNoQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
       </div>
     </div>
