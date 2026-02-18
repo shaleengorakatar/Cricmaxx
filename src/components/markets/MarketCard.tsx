@@ -36,6 +36,7 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
     const noLevels: MiniOrderLevel[] = [];
 
     for (const row of data || []) {
+      if (row.price === null) continue; // skip market orders (no limit price)
       const price = Number(row.price);
       const quantity = Number(row.total_quantity);
       if (quantity <= 0) continue;
