@@ -39,10 +39,11 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
       const price = Number(row.price);
       const quantity = Number(row.total_quantity);
       if (quantity <= 0) continue;
+      const derived = Math.min(0.99, Math.max(0.01, 1 - price));
       if (row.side === 'yes') {
-        noLevels.push({ price: 1 - price, quantity });
+        noLevels.push({ price: derived, quantity });
       } else {
-        yesLevels.push({ price: 1 - price, quantity });
+        yesLevels.push({ price: derived, quantity });
       }
     }
 
