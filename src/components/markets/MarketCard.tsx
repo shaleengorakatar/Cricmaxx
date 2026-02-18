@@ -27,8 +27,6 @@ interface MiniOrderLevel {
 const MiniOrderBook = ({ marketId }: { marketId: string }) => {
   const [yesOrders, setYesOrders] = useState<MiniOrderLevel[]>([]);
   const [noOrders, setNoOrders] = useState<MiniOrderLevel[]>([]);
-  const [marketYesQty, setMarketYesQty] = useState(0);
-  const [marketNoQty, setMarketNoQty] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
@@ -36,18 +34,12 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
 
     const yesLevels: MiniOrderLevel[] = [];
     const noLevels: MiniOrderLevel[] = [];
-    let mktYes = 0, mktNo = 0;
 
     for (const row of data || []) {
       const quantity = Number(row.total_quantity);
       if (quantity <= 0) continue;
-
-      if (row.price === null) {
-        // Market orders — tally by their actual side for display
-        if (row.side === 'no') mktNo += quantity;
-        else mktYes += quantity;
-        continue;
-      }
+      // Skip null-price liquidity pool seed orders — not real user orders
+      if (row.price === null) continue;
 
       const price = Number(row.price);
       const derived = Math.min(0.99, Math.max(0.01, 1 - price));
@@ -58,7 +50,6 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
       }
     }
 
-    // Aggregate limit orders by price
     const agg = (levels: MiniOrderLevel[]) => {
       const map = new Map<number, number>();
       for (const l of levels) {
@@ -73,8 +64,6 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
 
     setYesOrders(agg(yesLevels));
     setNoOrders(agg(noLevels));
-    setMarketYesQty(mktYes);
-    setMarketNoQty(mktNo);
     setLoading(false);
   }, [marketId]);
 
@@ -84,16 +73,14 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
     return <div className="py-3 text-center text-[10px] text-muted-foreground animate-pulse">Loading order book...</div>;
   }
 
-  // NO market orders = available YES liquidity (next YES buyer matches against them)
-  // YES market orders = available NO liquidity (next NO buyer matches against them)
-  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0) + marketNoQty;
-  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0) + marketYesQty;
+  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0);
   const total = totalYes + totalNo;
   const bestYes = yesOrders[0];
   const bestNo = noOrders[0];
 
   if (total === 0) {
-    return <div className="py-3 text-center text-[10px] text-muted-foreground">No orders yet</div>;
+    return <div className="py-3 text-center text-[10px] text-muted-foreground">No user orders yet</div>;
   }
 
   return (
@@ -115,11 +102,6 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <p className="text-sm font-bold text-success">{(bestYes.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestYes.quantity} shares</p>
             </>
-          ) : marketNoQty > 0 ? (
-            <>
-              <p className="text-sm font-bold text-success">MKT</p>
-              <p className="text-[9px] text-muted-foreground">{marketNoQty} shares</p>
-            </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
         <div className="bg-destructive/5 border border-destructive/20 rounded-md p-2">
@@ -129,48 +111,29 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <p className="text-sm font-bold text-destructive">{(bestNo.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestNo.quantity} shares</p>
             </>
-          ) : marketYesQty > 0 ? (
-            <>
-              <p className="text-sm font-bold text-destructive">MKT</p>
-              <p className="text-[9px] text-muted-foreground">{marketYesQty} shares</p>
-            </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
       </div>
 
       {/* Order levels */}
       <div className="grid grid-cols-2 gap-2">
-        {/* YES column: limit NO orders + market NO orders (both provide YES liquidity) */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">YES Orders</p>
-          {marketNoQty > 0 && (
-            <div className="flex justify-between text-[10px] py-0.5">
-              <span className="text-success font-medium">MKT</span>
-              <span className="text-muted-foreground">{marketNoQty} shares</span>
-            </div>
-          )}
           {yesOrders.length > 0 ? yesOrders.map((o, i) => (
             <div key={i} className="flex justify-between text-[10px] py-0.5">
               <span className="text-success font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : marketNoQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
-        {/* NO column: limit YES orders + market YES orders (both provide NO liquidity) */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">NO Orders</p>
-          {marketYesQty > 0 && (
-            <div className="flex justify-between text-[10px] py-0.5">
-              <span className="text-destructive font-medium">MKT</span>
-              <span className="text-muted-foreground">{marketYesQty} shares</span>
-            </div>
-          )}
           {noOrders.length > 0 ? noOrders.map((o, i) => (
             <div key={i} className="flex justify-between text-[10px] py-0.5">
               <span className="text-destructive font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : marketYesQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
       </div>
     </div>
