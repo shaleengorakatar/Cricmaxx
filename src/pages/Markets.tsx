@@ -121,10 +121,13 @@ const Markets = () => {
       <main className="flex-1 pt-28 lg:pt-20 pb-12">
         <div className="container mx-auto px-4">
           {/* Header — compact single row */}
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-accent shrink-0" />
-              <h1 className="text-lg font-bold text-foreground">Browse Markets</h1>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <TrendingUp className="h-5 w-5 text-accent shrink-0" />
+                <h1 className="text-lg font-bold text-foreground">Browse Markets</h1>
+              </div>
+              <p className="text-xs text-muted-foreground pl-7">Predict outcomes, trade shares, and win big on cricket &amp; more.</p>
             </div>
             {isAuthenticated && (
               <div className="flex items-center gap-2 shrink-0">
