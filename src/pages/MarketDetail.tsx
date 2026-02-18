@@ -176,90 +176,88 @@ const MarketDetail = () => {
       <Navigation />
 
       <main className="flex-1 pt-28 lg:pt-20 pb-8">
-        <div className="container mx-auto px-4 max-w-7xl">
+        {/* ── Mobile: full-bleed continuous surface. Desktop: contained. ── */}
+        <div className="lg:container lg:mx-auto lg:px-4 lg:max-w-7xl">
 
-          {/* Back + realtime */}
-          <div className="flex items-center justify-between mb-4">
+          {/* Back + realtime — padded on mobile */}
+          <div className="flex items-center justify-between mb-0 lg:mb-4 px-4 lg:px-0 py-2 lg:py-0">
             <Button variant="ghost" size="sm" onClick={() => navigate('/markets')} className="-ml-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
             <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
           </div>
 
-          {/* ── Title card — full width ── */}
-          <Card className="p-5 sm:p-6 border border-border mb-6">
-            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-xs">{market.category}</Badge>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Expires {new Date(market.expiryTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {/* ── Mobile: one seamless surface. Desktop: card. ── */}
+          <div className="bg-card lg:rounded-lg lg:border lg:border-border lg:shadow-sm lg:mb-6">
+
+            {/* Title section */}
+            <div className="px-4 lg:px-6 pt-4 lg:pt-6 pb-4">
+              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">{market.category}</Badge>
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Expires {new Date(market.expiryTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                  isExpired
+                    ? "border-destructive/40 text-destructive bg-destructive/10"
+                    : "border-primary/40 text-primary bg-primary/10"
+                }`}>
+                  {isExpired ? "Closed" : "● Live"}
                 </span>
               </div>
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                isExpired
-                  ? "border-destructive/40 text-destructive bg-destructive/10"
-                  : "border-primary/40 text-primary bg-primary/10"
-              }`}>
-                {isExpired ? "Closed" : "● Live"}
-              </span>
-            </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-4">
-              {market.question}
-            </h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground leading-snug mb-4">
+                {market.question}
+              </h1>
 
-            {/* YES / NO table */}
-            <div className="border-t border-border pt-4">
-              <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
-                <div className="px-3 text-left"><p className="text-xs text-muted-foreground">Market</p></div>
-                <div className="px-3"><p className="text-xs text-muted-foreground">Pays out</p></div>
-                <div className="px-3"><p className="text-xs text-muted-foreground">Odds</p></div>
-              </div>
-              {/* YES */}
-              <div className="grid grid-cols-3 gap-0 divide-x divide-border">
-                <div className="px-3 py-2 flex items-center gap-1.5">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <span className="font-semibold text-foreground">Yes</span>
+              {/* YES / NO table */}
+              <div className="border-t border-border pt-4">
+                <div className="grid grid-cols-3 gap-0 divide-x divide-border text-center mb-1">
+                  <div className="px-3 text-left"><p className="text-xs text-muted-foreground">Market</p></div>
+                  <div className="px-3"><p className="text-xs text-muted-foreground">Pays out</p></div>
+                  <div className="px-3"><p className="text-xs text-muted-foreground">Odds</p></div>
                 </div>
-                <div className="px-3 py-2 flex items-center justify-center">
-                  <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
+                <div className="grid grid-cols-3 gap-0 divide-x divide-border">
+                  <div className="px-3 py-2 flex items-center gap-1.5">
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                    <span className="font-semibold text-foreground">Yes</span>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-center">
+                    <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-center">
+                    <span className="px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">{yesCents}%</span>
+                  </div>
                 </div>
-                <div className="px-3 py-2 flex items-center justify-center">
-                  <span className="px-3 py-0.5 rounded-full border border-green-400 text-green-600 dark:text-green-400 font-bold text-sm">{yesCents}%</span>
-                </div>
-              </div>
-              {/* NO */}
-              <div className="grid grid-cols-3 gap-0 divide-x divide-border">
-                <div className="px-3 py-2 flex items-center gap-1.5">
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                  <span className="font-semibold text-foreground">No</span>
-                </div>
-                <div className="px-3 py-2 flex items-center justify-center">
-                  <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
-                </div>
-                <div className="px-3 py-2 flex items-center justify-center">
-                  <span className="px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">{noCents}%</span>
+                <div className="grid grid-cols-3 gap-0 divide-x divide-border">
+                  <div className="px-3 py-2 flex items-center gap-1.5">
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                    <span className="font-semibold text-foreground">No</span>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-center">
+                    <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-center">
+                    <span className="px-3 py-0.5 rounded-full border border-border text-muted-foreground font-bold text-sm">{noCents}%</span>
+                  </div>
                 </div>
               </div>
+
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
+                <span>{market.volume.toLocaleString()} vol</span>
+                <span>{market.category}</span>
+              </div>
+
+              {market.description && (
+                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{market.description}</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
-              <span>{market.volume.toLocaleString()} vol</span>
-              <span>{market.category}</span>
-            </div>
-
-            {market.description && (
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{market.description}</p>
-            )}
-          </Card>
-
-          {/* ── 2-column grid: left = tabs+orders, right = trading ── */}
-          {/* On mobile: trading panel (order-1) appears first, then left col (order-2) */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-
-            {/* Trading panel — order-1 on mobile so it sits right under the title card */}
-            <div className="order-1 lg:order-2">
+            {/* ── Trading panel — directly below title on mobile, no gap ── */}
+            <div className="border-t border-border lg:hidden">
               <OrderBookTrading
                 marketId={market.id}
                 yesPrice={market.yesPrice}
@@ -270,10 +268,94 @@ const MarketDetail = () => {
               />
             </div>
 
-            {/* Tabs + My Orders — order-2 on mobile */}
-            <div className="space-y-4 order-2 lg:order-1">
+            {/* ── Tabs section — continues below trading on mobile ── */}
+            <div className="border-t border-border lg:hidden">
+              <Tabs defaultValue="orderbook" className="w-full">
+                <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-muted/40 h-10">
+                  <TabsTrigger value="orderbook" className="flex items-center gap-1 text-xs">
+                    Order Book
+                    <FeatureHelpTooltip title="Order Book" description="View all pending buy orders at different price levels." faqId="order-book" />
+                  </TabsTrigger>
+                  <TabsTrigger value="chart" className="flex items-center gap-1 text-xs">
+                    Price Chart
+                    <FeatureHelpTooltip title="Price Chart" description="Track how the market's probability has changed over time." faqId="price-meaning" />
+                  </TabsTrigger>
+                  <TabsTrigger value="rules" className="flex items-center gap-1 text-xs">
+                    Rules
+                    <FeatureHelpTooltip title="Resolution Rules" description="Understand exactly how this market will be resolved." faqId="market-resolves" />
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="orderbook" className="m-0">
+                  <OrderBook marketId={market.id} />
+                </TabsContent>
+                <TabsContent value="chart" className="m-0">
+                  <PriceChart data={priceHistory} />
+                </TabsContent>
+                <TabsContent value="rules" className="m-0 p-4">
+                  <ResolutionRules
+                    marketId={market.id}
+                    expiryTime={market.expiryTime}
+                    status={marketStatus}
+                    outcome={marketOutcome}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
 
-              {/* Order Book / Chart / Rules */}
+            {/* ── My Orders — continues below on mobile ── */}
+            {isAuthenticated && (
+              <div className="border-t border-border lg:hidden">
+                <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-border">
+                  <History className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold text-foreground">My Orders</h3>
+                </div>
+                <div className="p-4">
+                  {ordersLoading ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
+                  ) : completedOrders.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">No orders yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {completedOrders.map((pos) => (
+                        <div key={pos.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 border border-border">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={pos.side === 'yes'
+                              ? 'text-green-600 border-green-400 text-xs'
+                              : 'text-red-500 border-red-400 text-xs'
+                            }>
+                              {pos.side.toUpperCase()}
+                            </Badge>
+                            <div>
+                              <p className="text-xs font-medium">{pos.size} contracts @ {(pos.entry_price * 100).toFixed(0)}¢</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">
+                                {pos.status} · {new Date(pos.opened_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          {pos.pnl !== null ? (
+                            <span className={`text-xs font-semibold ${pos.pnl >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                              {pos.pnl >= 0 ? '+' : ''}${pos.pnl.toFixed(2)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              ${(pos.size * pos.entry_price).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>{/* end mobile surface */}
+
+          {/* ── Desktop 2-column grid (hidden on mobile, already rendered above) ── */}
+          <div className="hidden lg:grid lg:grid-cols-[1fr_340px] gap-6">
+
+            {/* Left: Tabs + My Orders */}
+            <div className="space-y-4">
               <Card className="border border-border overflow-hidden">
                 <Tabs defaultValue="orderbook" className="w-full">
                   <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border bg-muted/40 h-10">
@@ -307,7 +389,6 @@ const MarketDetail = () => {
                 </Tabs>
               </Card>
 
-              {/* My Orders — completed positions only */}
               {isAuthenticated && (
                 <Card className="border border-border overflow-hidden">
                   <div className="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-border">
@@ -353,8 +434,20 @@ const MarketDetail = () => {
                   </div>
                 </Card>
               )}
-
             </div>
+
+            {/* Right: Trading panel */}
+            <div>
+              <OrderBookTrading
+                marketId={market.id}
+                yesPrice={market.yesPrice}
+                noPrice={market.noPrice}
+                userBalance={profile?.balance || 0}
+                platformFeePercent={marketFees.platform}
+                creatorFeePercent={marketFees.creator}
+              />
+            </div>
+
           </div>
 
         </div>
