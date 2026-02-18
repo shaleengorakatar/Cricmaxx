@@ -84,8 +84,10 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
     return <div className="py-3 text-center text-[10px] text-muted-foreground animate-pulse">Loading order book...</div>;
   }
 
-  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0) + marketYesQty;
-  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0) + marketNoQty;
+  // NO market orders = available YES liquidity (next YES buyer matches against them)
+  // YES market orders = available NO liquidity (next NO buyer matches against them)
+  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0) + marketNoQty;
+  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0) + marketYesQty;
   const total = totalYes + totalNo;
   const bestYes = yesOrders[0];
   const bestNo = noOrders[0];
@@ -113,10 +115,10 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <p className="text-sm font-bold text-success">{(bestYes.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestYes.quantity} shares</p>
             </>
-          ) : marketYesQty > 0 ? (
+          ) : marketNoQty > 0 ? (
             <>
               <p className="text-sm font-bold text-success">MKT</p>
-              <p className="text-[9px] text-muted-foreground">{marketYesQty} shares</p>
+              <p className="text-[9px] text-muted-foreground">{marketNoQty} shares</p>
             </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
@@ -127,10 +129,10 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <p className="text-sm font-bold text-destructive">{(bestNo.price * 100).toFixed(0)}¢</p>
               <p className="text-[9px] text-muted-foreground">{bestNo.quantity} shares</p>
             </>
-          ) : marketNoQty > 0 ? (
+          ) : marketYesQty > 0 ? (
             <>
               <p className="text-sm font-bold text-destructive">MKT</p>
-              <p className="text-[9px] text-muted-foreground">{marketNoQty} shares</p>
+              <p className="text-[9px] text-muted-foreground">{marketYesQty} shares</p>
             </>
           ) : <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
@@ -138,13 +140,13 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
 
       {/* Order levels */}
       <div className="grid grid-cols-2 gap-2">
-        {/* YES */}
+        {/* YES column: limit NO orders + market NO orders (both provide YES liquidity) */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">YES Orders</p>
-          {marketYesQty > 0 && (
+          {marketNoQty > 0 && (
             <div className="flex justify-between text-[10px] py-0.5">
               <span className="text-success font-medium">MKT</span>
-              <span className="text-muted-foreground">{marketYesQty} shares</span>
+              <span className="text-muted-foreground">{marketNoQty} shares</span>
             </div>
           )}
           {yesOrders.length > 0 ? yesOrders.map((o, i) => (
@@ -152,15 +154,15 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <span className="text-success font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : marketYesQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : marketNoQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
-        {/* NO */}
+        {/* NO column: limit YES orders + market YES orders (both provide NO liquidity) */}
         <div>
           <p className="text-[10px] font-semibold text-foreground mb-1">NO Orders</p>
-          {marketNoQty > 0 && (
+          {marketYesQty > 0 && (
             <div className="flex justify-between text-[10px] py-0.5">
               <span className="text-destructive font-medium">MKT</span>
-              <span className="text-muted-foreground">{marketNoQty} shares</span>
+              <span className="text-muted-foreground">{marketYesQty} shares</span>
             </div>
           )}
           {noOrders.length > 0 ? noOrders.map((o, i) => (
@@ -168,7 +170,7 @@ const MiniOrderBook = ({ marketId }: { marketId: string }) => {
               <span className="text-destructive font-medium">{(o.price * 100).toFixed(0)}¢</span>
               <span className="text-muted-foreground">{o.quantity} shares</span>
             </div>
-          )) : marketNoQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
+          )) : marketYesQty === 0 && <p className="text-[10px] text-muted-foreground">—</p>}
         </div>
       </div>
     </div>
