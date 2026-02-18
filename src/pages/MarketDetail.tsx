@@ -19,7 +19,7 @@ import { Market } from "@/types/market";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRealtimeMarketPrices, useRealtimeTrades } from "@/hooks/useRealtimeMarket";
 import { RealtimeStatus, LivePrice } from "@/components/ui/realtime-indicators";
@@ -176,16 +176,16 @@ const MarketDetail = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
-      
+
       <main className="flex-1 pt-28 lg:pt-20 pb-8">
         <div className="container mx-auto px-4">
-          {/* Back button row */}
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="ghost" 
+          {/* Back + realtime row */}
+          <div className="flex items-center justify-between mb-3">
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/markets')}
-              className="-ml-2"
+              className="-ml-2 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back
@@ -193,25 +193,31 @@ const MarketDetail = () => {
             <RealtimeStatus isConnected={pricesConnected && tradesConnected} />
           </div>
 
-          {/* Market Header - Compact */}
-          <MarketHeader market={market} />
+          {/* Hero-style Market Header */}
+          <MarketHeader
+            market={market}
+            volume={market.volume}
+            yesPrice={market.yesPrice}
+            noPrice={market.noPrice}
+          />
 
-          {/* User Position Card - Show at top when user has a position */}
+          {/* User Position Card */}
           {isAuthenticated && (
-            <UserPositionCard 
-              marketId={market.id}
-              currentYesPrice={market.yesPrice}
-              currentNoPrice={market.noPrice}
-              platformFeePercent={marketFees.platform}
-              creatorFeePercent={marketFees.creator}
-            />
+            <div className="mt-4">
+              <UserPositionCard
+                marketId={market.id}
+                currentYesPrice={market.yesPrice}
+                currentNoPrice={market.noPrice}
+                platformFeePercent={marketFees.platform}
+                creatorFeePercent={marketFees.creator}
+              />
+            </div>
           )}
 
           {/* Main 2-column layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
             {/* Left column - Trading */}
             <div className="lg:col-span-2 space-y-4">
-              {/* Trading Card */}
               <OrderBookTrading
                 marketId={market.id}
                 yesPrice={market.yesPrice}
@@ -220,8 +226,8 @@ const MarketDetail = () => {
                 platformFeePercent={marketFees.platform}
                 creatorFeePercent={marketFees.creator}
               />
-              
-              {/* Order Book & Chart in tabs for space efficiency */}
+
+              {/* Order Book / Chart / Rules tabs */}
               <Card>
                 <Tabs defaultValue="orderbook" className="w-full">
                   <TabsList className="w-full grid grid-cols-3 rounded-b-none">
@@ -237,7 +243,7 @@ const MarketDetail = () => {
                       Price Chart
                       <FeatureHelpTooltip
                         title="Price Chart"
-                        description="Track how the market's probability has changed over time. Price movements reflect changing opinions about the event's likelihood."
+                        description="Track how the market's probability has changed over time."
                         faqId="price-meaning"
                       />
                     </TabsTrigger>
@@ -245,7 +251,7 @@ const MarketDetail = () => {
                       Rules
                       <FeatureHelpTooltip
                         title="Resolution Rules"
-                        description="Understand exactly how this market will be resolved—what data sources are used and what conditions determine YES vs NO outcomes."
+                        description="Understand exactly how this market will be resolved."
                         faqId="market-resolves"
                       />
                     </TabsTrigger>
@@ -257,7 +263,7 @@ const MarketDetail = () => {
                     <PriceChart data={priceHistory} />
                   </TabsContent>
                   <TabsContent value="rules" className="m-0 p-4">
-                    <ResolutionRules 
+                    <ResolutionRules
                       marketId={market.id}
                       expiryTime={market.expiryTime}
                       status={marketStatus}
@@ -268,15 +274,14 @@ const MarketDetail = () => {
               </Card>
             </div>
 
-            {/* Right column - Stats */}
+            {/* Right column */}
             <div className="space-y-4">
-              {/* Quick Stats Card */}
               <Card className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <h3 className="text-sm font-semibold">Market Stats</h3>
                   <FeatureHelpTooltip
                     title="Market Stats"
-                    description="Current market prices reflect the crowd's estimated probability. YES price of 65¢ means ~65% chance. Volume shows total trading activity."
+                    description="Current market prices reflect the crowd's estimated probability. YES price of 65¢ means ~65% chance."
                     faqId="price-meaning"
                   />
                 </div>
@@ -288,8 +293,8 @@ const MarketDetail = () => {
                       <>
                         <div>
                           <span className="text-muted-foreground block text-xs">Yes Price</span>
-                          <LivePrice 
-                            price={market.yesPrice} 
+                          <LivePrice
+                            price={market.yesPrice}
                             previousPrice={previousPricesRef.current?.yes}
                             displayCents={yesCents}
                             className="font-semibold text-lg text-primary"
@@ -297,8 +302,8 @@ const MarketDetail = () => {
                         </div>
                         <div>
                           <span className="text-muted-foreground block text-xs">No Price</span>
-                          <LivePrice 
-                            price={market.noPrice} 
+                          <LivePrice
+                            price={market.noPrice}
                             previousPrice={previousPricesRef.current?.no}
                             displayCents={noCents}
                             className="font-semibold text-lg text-destructive"
