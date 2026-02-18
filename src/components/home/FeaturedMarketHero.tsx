@@ -1,13 +1,125 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, BookOpen, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Market } from "@/types/market";
 import { useNavigate } from "react-router-dom";
 import { Sparkline } from "@/components/ui/sparkline";
 import { getMarketDateRange, ACTIVE_MARKET_STATUSES } from "@/lib/marketFilters";
 import { cn } from "@/lib/utils";
+
+interface MiniOrderLevel {
+  price: number;
+  quantity: number;
+}
+
+const MiniOrderBook = ({ marketId }: { marketId: string }) => {
+  const [yesOrders, setYesOrders] = useState<MiniOrderLevel[]>([]);
+  const [noOrders, setNoOrders] = useState<MiniOrderLevel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchOrders = useCallback(async () => {
+    const { data } = await supabase.rpc('get_order_book_aggregated', { market_ids: [marketId] });
+
+    const yesLevels: MiniOrderLevel[] = [];
+    const noLevels: MiniOrderLevel[] = [];
+
+    for (const row of data || []) {
+      const price = Number(row.price);
+      const quantity = Number(row.total_quantity);
+      if (quantity <= 0) continue;
+      if (row.side === 'yes') {
+        noLevels.push({ price: 1 - price, quantity });
+      } else {
+        yesLevels.push({ price: 1 - price, quantity });
+      }
+    }
+
+    const agg = (levels: MiniOrderLevel[]) => {
+      const map = new Map<number, number>();
+      for (const l of levels) {
+        const p = Math.round(l.price * 100) / 100;
+        map.set(p, (map.get(p) || 0) + l.quantity);
+      }
+      return Array.from(map.entries())
+        .map(([price, quantity]) => ({ price, quantity }))
+        .sort((a, b) => b.price - a.price)
+        .slice(0, 3);
+    };
+
+    setYesOrders(agg(yesLevels));
+    setNoOrders(agg(noLevels));
+    setLoading(false);
+  }, [marketId]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  if (loading) {
+    return <div className="py-3 text-center text-[10px] text-muted-foreground animate-pulse">Loading order book...</div>;
+  }
+
+  const totalYes = yesOrders.reduce((s, o) => s + o.quantity, 0);
+  const totalNo = noOrders.reduce((s, o) => s + o.quantity, 0);
+  const total = totalYes + totalNo;
+  const bestYes = yesOrders[0];
+  const bestNo = noOrders[0];
+
+  if (total === 0) {
+    return <div className="py-3 text-center text-[10px] text-muted-foreground">No orders yet</div>;
+  }
+
+  return (
+    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-center gap-3 py-1.5 px-2 bg-muted/40 rounded-md text-[10px]">
+        <span className="text-muted-foreground">Liquidity: <span className="font-semibold text-foreground">{total}</span></span>
+        <span className="h-2.5 w-px bg-border" />
+        <span className="text-success font-medium">YES: {totalYes}</span>
+        <span className="text-destructive font-medium">NO: {totalNo}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-success/5 border border-success/20 rounded-md p-2">
+          <p className="text-[9px] text-muted-foreground mb-0.5">Best YES Price</p>
+          {bestYes ? (
+            <>
+              <p className="text-sm font-bold text-success">{(bestYes.price * 100).toFixed(0)}¢</p>
+              <p className="text-[9px] text-muted-foreground">{bestYes.quantity} shares</p>
+            </>
+          ) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+        <div className="bg-destructive/5 border border-destructive/20 rounded-md p-2">
+          <p className="text-[9px] text-muted-foreground mb-0.5">Best NO Price</p>
+          {bestNo ? (
+            <>
+              <p className="text-sm font-bold text-destructive">{(bestNo.price * 100).toFixed(0)}¢</p>
+              <p className="text-[9px] text-muted-foreground">{bestNo.quantity} shares</p>
+            </>
+          ) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1">YES Orders</p>
+          {yesOrders.length > 0 ? yesOrders.map((o, i) => (
+            <div key={i} className="flex justify-between text-[10px] py-0.5">
+              <span className="text-success font-medium">{(o.price * 100).toFixed(0)}¢</span>
+              <span className="text-muted-foreground">{o.quantity} shares</span>
+            </div>
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold text-foreground mb-1">NO Orders</p>
+          {noOrders.length > 0 ? noOrders.map((o, i) => (
+            <div key={i} className="flex justify-between text-[10px] py-0.5">
+              <span className="text-destructive font-medium">{(o.price * 100).toFixed(0)}¢</span>
+              <span className="text-muted-foreground">{o.quantity} shares</span>
+            </div>
+          )) : <p className="text-[10px] text-muted-foreground">—</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface FeaturedData extends Market {
   prediction_count?: number;
@@ -20,6 +132,7 @@ export function FeaturedMarketHero() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [showBook, setShowBook] = useState(false);
   const navigate = useNavigate();
   const hasFetchedRef = useRef(false);
 
@@ -70,8 +183,8 @@ export function FeaturedMarketHero() {
 
   useEffect(() => { fetchMarkets(); }, [fetchMarkets]);
 
-  const goNext = () => setCurrentIndex((i) => (i + 1) % markets.length);
-  const goPrev = () => setCurrentIndex((i) => (i - 1 + markets.length) % markets.length);
+  const goNext = () => { setCurrentIndex((i) => (i + 1) % markets.length); setShowBook(false); };
+  const goPrev = () => { setCurrentIndex((i) => (i - 1 + markets.length) % markets.length); setShowBook(false); };
 
   if (loading) {
     return <Card className="p-4 animate-pulse"><div className="h-32 bg-muted rounded" /></Card>;
@@ -166,6 +279,22 @@ export function FeaturedMarketHero() {
               <p className="text-xs text-muted-foreground line-clamp-2 mt-2 pt-2 border-t border-border/20">
                 {market.description}
               </p>
+            )}
+
+            {/* Collapsible Order Book */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowBook(!showBook); }}
+              className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors w-full mt-3 pt-2 border-t border-border/20"
+            >
+              <BookOpen className="h-3 w-3" />
+              <span className="font-medium">Order Book</span>
+              <ChevronDown className={cn("h-3 w-3 ml-auto transition-transform", showBook && "rotate-180")} />
+            </button>
+
+            {showBook && (
+              <div className="mt-2">
+                <MiniOrderBook marketId={market.id} />
+              </div>
             )}
           </div>
 
