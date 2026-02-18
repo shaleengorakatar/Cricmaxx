@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Market } from "@/types/market";
-import { TrendingUp, Clock, BookOpen, Zap, ChevronDown } from "lucide-react";
+import { TrendingUp, BookOpen, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { CountdownTimer } from "@/components/ui/countdown-timer";
@@ -295,15 +295,6 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
         <div className="flex items-center justify-between pt-1 border-t border-border/30">
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
             <CountdownTimer expiryTime={market.expiryTime} compact />
-            {market.type === "orderbook" ? (
-              <span className="flex items-center gap-1">
-                <BookOpen className="h-3 w-3" /> Book
-              </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Zap className="h-3 w-3 text-accent" /> Instant
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
             <span>Predict</span>
