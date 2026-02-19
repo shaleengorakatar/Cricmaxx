@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown, Loader2, Info, X, AlertTriangle, BookOpen, Sparkles, LogIn, UserPlus, Coins, PlusCircle, ChevronDown, ChevronUp } from "lucide-react";
+import MarketHowItWorks from "@/components/markets/MarketHowItWorks";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -591,6 +592,11 @@ const OrderBookTrading = ({
       />
       
       <Card ref={cardRef} className="p-4 sm:p-6">
+      {/* How It Works */}
+      <div className="px-4 pt-3">
+        <MarketHowItWorks compact />
+      </div>
+
       {/* Side Selection */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center justify-between">
