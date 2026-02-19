@@ -3,6 +3,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import MarketCard from "@/components/markets/MarketCard";
 import MarketFilters from "@/components/markets/MarketFilters";
+import MarketHowItWorks from "@/components/markets/MarketHowItWorks";
 import UserRatingBadge from "@/components/market-detail/UserRatingBadge";
 import LeaderboardModal from "@/components/leaderboard/LeaderboardModal";
 import { MarketCategory } from "@/types/market";
@@ -154,6 +155,9 @@ const Markets = () => {
               onSearchChange={setSearchQuery}
             />
           </div>
+
+          {/* How It Works */}
+          <MarketHowItWorks />
 
           {/* Results Count */}
           {!loading && (
