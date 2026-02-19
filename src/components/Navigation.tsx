@@ -41,7 +41,7 @@ const Navigation = () => {
               alt="CricMaxx" 
               width={160}
               height={100}
-              className="h-14 lg:h-20 w-auto"
+              className="h-10 lg:h-20 w-auto"
             />
           </Link>
           
