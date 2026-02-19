@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -59,6 +59,8 @@ const MarketDetail = () => {
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [completedOrders, setCompletedOrders] = useState<MarketPosition[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [selectedSide, setSelectedSide] = useState<"yes" | "no">("yes");
+  const tradingPanelRef = useRef<HTMLDivElement>(null);
 
   const { prices: realtimePrices, isConnected: pricesConnected } = useRealtimeMarketPrices(id);
   const { isConnected: tradesConnected } = useRealtimeTrades(id);
@@ -146,6 +148,11 @@ const MarketDetail = () => {
     }
   }, [isAuthenticated, user, id, fetchUserActivity]);
 
+  const handleSideSelect = (side: "yes" | "no") => {
+    setSelectedSide(side);
+    tradingPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -218,7 +225,10 @@ const MarketDetail = () => {
               {/* YES / NO outcome panels */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 {/* YES */}
-                <div className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-4">
+                <button
+                  onClick={() => handleSideSelect("yes")}
+                  className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-left transition-all duration-150 hover:border-green-500/50 hover:bg-green-500/10 hover:shadow-sm active:scale-[0.98] cursor-pointer group"
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent pointer-events-none" />
                   <div className="flex items-center gap-1.5 mb-3">
                     <TrendingUp className="h-4 w-4 text-green-500" />
@@ -228,9 +238,13 @@ const MarketDetail = () => {
                   <p className="text-xs text-muted-foreground">
                     Pays <span className="font-semibold text-foreground">{yesCents > 0 ? (100 / yesCents).toFixed(2) : '—'}x</span>
                   </p>
-                </div>
+                  <span className="absolute bottom-2 right-3 text-[10px] text-green-600/60 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Tap to buy →</span>
+                </button>
                 {/* NO */}
-                <div className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                <button
+                  onClick={() => handleSideSelect("no")}
+                  className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-left transition-all duration-150 hover:border-destructive/50 hover:bg-destructive/10 hover:shadow-sm active:scale-[0.98] cursor-pointer group"
+                >
                   <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent pointer-events-none" />
                   <div className="flex items-center gap-1.5 mb-3">
                     <TrendingDown className="h-4 w-4 text-destructive" />
@@ -240,7 +254,8 @@ const MarketDetail = () => {
                   <p className="text-xs text-muted-foreground">
                     Pays <span className="font-semibold text-foreground">{noCents > 0 ? (100 / noCents).toFixed(2) : '—'}x</span>
                   </p>
-                </div>
+                  <span className="absolute bottom-2 right-3 text-[10px] text-destructive/60 font-medium opacity-0 group-hover:opacity-100 transition-opacity">Tap to buy →</span>
+                </button>
               </div>
 
               {/* Volume strip */}
@@ -255,7 +270,7 @@ const MarketDetail = () => {
             </div>
 
             {/* ── Trading panel — directly below title on mobile, no gap ── */}
-            <div className="border-t border-border lg:hidden">
+            <div className="border-t border-border lg:hidden" ref={tradingPanelRef}>
               <OrderBookTrading
                 marketId={market.id}
                 yesPrice={market.yesPrice}
@@ -263,6 +278,7 @@ const MarketDetail = () => {
                 userBalance={profile?.balance || 0}
                 platformFeePercent={marketFees.platform}
                 creatorFeePercent={marketFees.creator}
+                defaultSide={selectedSide}
               />
             </div>
 
@@ -435,7 +451,7 @@ const MarketDetail = () => {
             </div>
 
             {/* Right: Trading panel */}
-            <div>
+            <div ref={tradingPanelRef}>
               <OrderBookTrading
                 marketId={market.id}
                 yesPrice={market.yesPrice}
@@ -443,6 +459,7 @@ const MarketDetail = () => {
                 userBalance={profile?.balance || 0}
                 platformFeePercent={marketFees.platform}
                 creatorFeePercent={marketFees.creator}
+                defaultSide={selectedSide}
               />
             </div>
 
