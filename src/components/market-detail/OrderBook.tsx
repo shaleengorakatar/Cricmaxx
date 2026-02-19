@@ -317,8 +317,10 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   const bestNoAsk = displayNoOrders[0];
 
   const cost = buyQuantity * selectedPrice;
-  const payout = buyQuantity;
+  const payout = buyQuantity; // $1 per contract if correct
   const profit = payout - cost;
+  const multiplier = selectedPrice > 0 ? (1 / selectedPrice) : 0;
+  const maxAffordable = profile?.balance ? Math.floor(profile.balance / selectedPrice) : 0;
 
   if (loading) {
     return (
@@ -396,7 +398,11 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
 
         {/* ── Best prices ── */}
         <div className="grid grid-cols-2 gap-2.5 mb-4">
-          <div className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+          <button
+            disabled={!bestYesBid || bestYesBid.isOwn}
+            onClick={() => bestYesBid && openBuyDialog("yes", bestYesBid.price, bestYesBid.quantity, bestYesBid.isOwn)}
+            className="relative overflow-hidden rounded-xl border border-green-500/20 bg-green-500/5 p-3 text-left transition-all duration-150 hover:border-green-500/50 hover:bg-green-500/10 hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
             <div className="absolute inset-0 bg-gradient-to-br from-green-500/8 to-transparent pointer-events-none" />
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
               {viewMode === "buy" ? "Best YES Price" : "YES Buyers"}
@@ -407,12 +413,17 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                   {(bestYesBid.price * 100).toFixed(0)}<span className="text-sm font-normal ml-0.5">¢</span>
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">{bestYesBid.quantity} shares</p>
+                {viewMode === "buy" && <p className="text-[9px] text-green-600/60 font-medium mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Click to buy →</p>}
               </>
             ) : (
               <p className="text-sm text-muted-foreground mt-1">—</p>
             )}
-          </div>
-          <div className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+          </button>
+          <button
+            disabled={!bestNoAsk || bestNoAsk.isOwn}
+            onClick={() => bestNoAsk && openBuyDialog("no", bestNoAsk.price, bestNoAsk.quantity, bestNoAsk.isOwn)}
+            className="relative overflow-hidden rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-left transition-all duration-150 hover:border-destructive/50 hover:bg-destructive/10 hover:shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group"
+          >
             <div className="absolute inset-0 bg-gradient-to-br from-destructive/8 to-transparent pointer-events-none" />
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
               {viewMode === "buy" ? "Best NO Price" : "NO Buyers"}
@@ -423,11 +434,12 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
                   {(bestNoAsk.price * 100).toFixed(0)}<span className="text-sm font-normal ml-0.5">¢</span>
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-1">{bestNoAsk.quantity} shares</p>
+                {viewMode === "buy" && <p className="text-[9px] text-destructive/60 font-medium mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Click to buy →</p>}
               </>
             ) : (
               <p className="text-sm text-muted-foreground mt-1">—</p>
             )}
-          </div>
+          </button>
         </div>
 
         {!hasOrders && (
@@ -556,40 +568,111 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
           <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                Buy {selectedSide.toUpperCase()}
-                <span className="text-base font-normal text-muted-foreground">@ {(selectedPrice * 100).toFixed(0)}¢</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-sm font-bold ${
+                  selectedSide === "yes"
+                    ? "bg-green-500/15 text-green-600 dark:text-green-400"
+                    : "bg-destructive/15 text-destructive"
+                }`}>
+                  {selectedSide.toUpperCase()}
+                </span>
+                <span className="text-base font-normal text-muted-foreground">
+                  @ {(selectedPrice * 100).toFixed(0)}¢ per share
+                </span>
               </DialogTitle>
-              <DialogDescription>
-                Each share pays $1 if the market resolves in your favour.
-              </DialogDescription>
+              <DialogDescription className="sr-only">Place a buy order</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+
+            <div className="space-y-4">
+              {/* Quantity input */}
               <div>
-                <Label htmlFor="qty" className="text-sm font-medium">Quantity (shares)</Label>
+                <Label className="text-xs text-muted-foreground mb-2 block">Number of shares</Label>
+                {/* Quick-pick buttons */}
+                <div className="grid grid-cols-4 gap-1.5 mb-2">
+                  {[5, 10, 25, 50].map(q => (
+                    <button
+                      key={q}
+                      onClick={() => setBuyQuantity(q)}
+                      className={`py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        buyQuantity === q
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-muted/50 text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
                 <Input
-                  id="qty"
                   type="number"
                   min={1}
+                  max={maxAffordable || undefined}
                   value={buyQuantity}
                   onChange={e => setBuyQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="mt-1.5"
                 />
+                {profile && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Max you can afford: <button className="font-semibold text-foreground underline-offset-2 hover:underline" onClick={() => setBuyQuantity(Math.min(maxAffordable, displayYesOrders.concat(displayNoOrders).find(o => o.price === selectedPrice)?.quantity ?? maxAffordable))}>{maxAffordable} shares</button>
+                  </p>
+                )}
               </div>
-              <div className="rounded-xl bg-muted/50 border border-border p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Cost</span><span className="font-semibold">${(buyQuantity * selectedPrice).toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Payout if correct</span><span className="font-semibold">${buyQuantity.toFixed(2)}</span></div>
-                <div className="flex justify-between border-t border-border pt-1.5"><span className="text-muted-foreground">Potential profit</span><span className={`font-bold ${(buyQuantity - buyQuantity * selectedPrice) >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>${(buyQuantity - buyQuantity * selectedPrice).toFixed(2)}</span></div>
+
+              {/* Trade breakdown */}
+              <div className={`rounded-xl border p-4 space-y-2.5 text-sm ${
+                selectedSide === "yes"
+                  ? "bg-green-500/5 border-green-500/20"
+                  : "bg-destructive/5 border-destructive/20"
+              }`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Price per share</span>
+                  <span className="font-semibold">{(selectedPrice * 100).toFixed(0)}¢</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Shares</span>
+                  <span className="font-semibold">{buyQuantity}</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-border/60 pt-2">
+                  <span className="text-muted-foreground">You pay now</span>
+                  <span className="font-bold text-foreground">${(buyQuantity * selectedPrice).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">If you win, you get</span>
+                  <span className="font-bold text-foreground">${buyQuantity.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Potential profit</span>
+                  <span className={`font-bold text-base ${profit >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                    +${profit.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Return multiplier</span>
+                  <span className="font-semibold text-foreground">{multiplier.toFixed(2)}x</span>
+                </div>
               </div>
-              {profile && <p className="text-xs text-muted-foreground">Balance: <span className="font-semibold">${profile.balance?.toFixed(2)}</span></p>}
+
+              {/* If you lose */}
+              <p className="text-[11px] text-muted-foreground text-center">
+                If {selectedSide === "yes" ? "NO" : "YES"} wins, you lose <span className="font-semibold text-foreground">${(buyQuantity * selectedPrice).toFixed(2)}</span>
+              </p>
+
+              {profile && (
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Wallet balance: <span className="font-semibold text-foreground">${profile.balance?.toFixed(2)}</span>
+                  {cost > (profile.balance ?? 0) && <span className="text-destructive ml-1">· Insufficient funds</span>}
+                </p>
+              )}
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>Cancel</Button>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setBuyDialogOpen(false)} className="flex-1">Cancel</Button>
               <Button
                 onClick={handleBuyOrder}
-                disabled={isPlacingOrder || !profile || (profile.balance || 0) < buyQuantity * selectedPrice}
-                className={selectedSide === "yes" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-destructive hover:bg-destructive/90 text-destructive-foreground"}
+                disabled={isPlacingOrder || cost > (profile?.balance ?? 0)}
+                className={`flex-1 font-bold ${selectedSide === "yes" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-destructive hover:bg-destructive/90 text-white"}`}
               >
-                {isPlacingOrder ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Placing…</> : `Buy ${selectedSide.toUpperCase()}`}
+                {isPlacingOrder
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Placing…</>
+                  : `Buy ${selectedSide.toUpperCase()} · $${cost.toFixed(2)}`}
               </Button>
             </DialogFooter>
           </DialogContent>
