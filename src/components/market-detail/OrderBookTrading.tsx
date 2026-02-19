@@ -44,6 +44,8 @@ interface OrderBookTradingProps {
   userBalance: number;
   platformFeePercent?: number;
   creatorFeePercent?: number;
+  defaultSide?: "yes" | "no";
+  onSideChange?: (side: "yes" | "no") => void;
 }
 
 interface OrderBookLevel {
@@ -75,7 +77,8 @@ const OrderBookTrading = ({
   noPrice: fallbackNoPrice, 
   userBalance,
   platformFeePercent = 0,
-  creatorFeePercent = 0
+  creatorFeePercent = 0,
+  defaultSide,
 }: OrderBookTradingProps) => {
   const { user, refetchProfile } = useAuth();
   const navigate = useNavigate();
@@ -100,7 +103,12 @@ const OrderBookTrading = ({
   const yesPrice = priceLoading ? fallbackYesPrice : indicativeYesPrice;
   const noPrice = priceLoading ? fallbackNoPrice : indicativeNoPrice;
   const [tradingMode, setTradingMode] = useState<"simple" | "advanced">("simple");
-  const [side, setSide] = useState<"yes" | "no">("yes");
+  const [side, setSide] = useState<"yes" | "no">(defaultSide ?? "yes");
+  
+  // Sync side when defaultSide prop changes (e.g. clicking YES/NO cards)
+  useEffect(() => {
+    if (defaultSide) setSide(defaultSide);
+  }, [defaultSide]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNoLiquidityDialog, setShowNoLiquidityDialog] = useState(false);
   const [noLiquiditySide, setNoLiquiditySide] = useState<"yes" | "no">("yes");
