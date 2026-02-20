@@ -19,6 +19,7 @@ interface ResolutionNotification {
   id: string;
   market_id: string | null;
   contest_id: string | null;
+  poll_id: string | null;
   notification_type: string;
   title: string;
   message: string;
@@ -27,6 +28,9 @@ interface ResolutionNotification {
   read: boolean;
   created_at: string;
   markets?: {
+    question: string;
+  } | null;
+  prediction_polls?: {
     question: string;
   } | null;
 }
@@ -45,7 +49,7 @@ export function NotificationsBell() {
       
       const { data, error } = await supabase
         .from('resolution_notifications')
-        .select('*, markets(question)')
+        .select('*, markets(question), prediction_polls(question)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -173,12 +177,10 @@ export function NotificationsBell() {
                     if (!notification.read) {
                       markReadMutation.mutate(notification.id);
                     }
-                    // Check if notification message contains contest/poll keywords to route correctly
-                    const msg = (notification.title + notification.message).toLowerCase();
-                    if (msg.includes('contest') || notification.contest_id) {
-                      navigate(`/contests?highlight=${notification.contest_id || notification.market_id}`);
-                    } else if (msg.includes('poll')) {
-                      navigate(`/polls`);
+                    if (notification.contest_id) {
+                      navigate(`/contests?highlight=${notification.contest_id}`);
+                    } else if (notification.poll_id) {
+                      navigate(`/polls?highlight=${notification.poll_id}`);
                     } else if (notification.market_id) {
                       navigate(`/market/${notification.market_id}`);
                     }
@@ -192,10 +194,10 @@ export function NotificationsBell() {
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {notification.message}
                       </p>
-                      {notification.markets?.question && (
+                      {(notification.markets?.question || notification.prediction_polls?.question) && (
                         <p className="text-xs text-primary/80 truncate mt-1 flex items-center gap-1">
                           <ExternalLink className="h-3 w-3" />
-                          {notification.markets.question}
+                          {notification.markets?.question || notification.prediction_polls?.question}
                         </p>
                       )}
                       <p className="text-[10px] text-muted-foreground/60 mt-1">
