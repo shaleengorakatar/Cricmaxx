@@ -15,6 +15,7 @@ interface PollLeaderboardUser {
   total_votes: number;
   total_staked: number;
   polls_won: number;
+  total_won: number;
 }
 
 interface PollLeaderboardModalProps {
@@ -28,38 +29,56 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
   const { data: leaderboard, isLoading } = useQuery({
     queryKey: ['poll-leaderboard'],
     queryFn: async () => {
-      // Get all poll votes with user info
+      // Get only resolved polls with winning options
+      const { data: resolvedPolls, error: pollsError } = await supabase
+        .from('prediction_polls')
+        .select('id, winning_option_id, total_pool')
+        .eq('status', 'resolved')
+        .not('winning_option_id', 'is', null);
+
+      if (pollsError) throw pollsError;
+      if (!resolvedPolls?.length) return [];
+
+      const resolvedPollIds = resolvedPolls.map(p => p.id);
+      const winningOptions = new Map<string, { optionId: string; totalPool: number }>();
+      resolvedPolls.forEach((p: any) => {
+        if (p.winning_option_id) winningOptions.set(p.id, { optionId: p.winning_option_id, totalPool: Number(p.total_pool) });
+      });
+
+      // Get votes only for resolved polls
       const { data: votes, error: votesError } = await supabase
         .from('poll_votes')
-        .select('user_id, option_id, amount, poll_id');
+        .select('user_id, option_id, amount, poll_id')
+        .in('poll_id', resolvedPollIds);
 
       if (votesError) throw votesError;
       if (!votes?.length) return [];
 
-      // Get resolved polls with winning options
-      const { data: resolvedPolls } = await supabase
-        .from('prediction_polls')
-        .select('id, winning_option_id')
-        .eq('status', 'resolved')
-        .not('winning_option_id', 'is', null);
-
-      const winningOptions = new Map<string, string>();
-      (resolvedPolls || []).forEach((p: any) => {
-        if (p.winning_option_id) winningOptions.set(p.id, p.winning_option_id);
-      });
+      // Calculate total winning stakes per poll for payout calculation
+      const winningStakesPerPoll = new Map<string, number>();
+      for (const vote of votes) {
+        const winning = winningOptions.get(vote.poll_id);
+        if (winning && vote.option_id === winning.optionId) {
+          winningStakesPerPoll.set(vote.poll_id, (winningStakesPerPoll.get(vote.poll_id) || 0) + Number(vote.amount));
+        }
+      }
 
       // Aggregate per user
-      const userMap = new Map<string, { total_votes: number; total_staked: number; polls_won: number; won_polls_set: Set<string> }>();
+      const userMap = new Map<string, { total_votes: number; total_staked: number; polls_won: number; total_won: number; won_polls_set: Set<string> }>();
 
       for (const vote of votes) {
-        const existing = userMap.get(vote.user_id) || { total_votes: 0, total_staked: 0, polls_won: 0, won_polls_set: new Set<string>() };
+        const existing = userMap.get(vote.user_id) || { total_votes: 0, total_staked: 0, polls_won: 0, total_won: 0, won_polls_set: new Set<string>() };
         existing.total_votes++;
         existing.total_staked += Number(vote.amount);
 
-        const winningOption = winningOptions.get(vote.poll_id);
-        if (winningOption && vote.option_id === winningOption && !existing.won_polls_set.has(vote.poll_id)) {
+        const winning = winningOptions.get(vote.poll_id);
+        if (winning && vote.option_id === winning.optionId && !existing.won_polls_set.has(vote.poll_id)) {
           existing.polls_won++;
           existing.won_polls_set.add(vote.poll_id);
+          // Calculate payout: (user stake / total winning stakes) * total pool
+          const totalWinningStakes = winningStakesPerPoll.get(vote.poll_id) || 1;
+          const payout = (Number(vote.amount) / totalWinningStakes) * winning.totalPool;
+          existing.total_won += payout;
         }
 
         userMap.set(vote.user_id, existing);
@@ -87,11 +106,12 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
           total_votes: stats.total_votes,
           total_staked: stats.total_staked,
           polls_won: stats.polls_won,
+          total_won: Math.round(stats.total_won),
         };
       });
 
-      // Sort by polls won, then total staked
-      result.sort((a, b) => b.polls_won - a.polls_won || b.total_staked - a.total_staked);
+      // Sort by polls won, then total won
+      result.sort((a, b) => b.polls_won - a.polls_won || b.total_won - a.total_won);
 
       return result.slice(0, 50);
     },
@@ -163,11 +183,18 @@ const PollLeaderboardModal = ({ isOpen, onClose }: PollLeaderboardModalProps) =>
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Trophy className="w-3.5 h-3.5 text-accent" />
-                    <span className="font-bold text-accent text-sm">
-                      {entry.polls_won} won
-                    </span>
+                  <div className="flex items-center gap-1.5 shrink-0 text-right">
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <Trophy className="w-3.5 h-3.5 text-accent" />
+                        <span className="font-bold text-accent text-sm">
+                          {entry.polls_won} won
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        +{entry.total_won} tokens
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
