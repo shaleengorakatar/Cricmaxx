@@ -1496,6 +1496,7 @@ export type Database = {
           notification_type: string
           outcome: string | null
           payout_amount: number | null
+          poll_id: string | null
           push_sent: boolean | null
           read: boolean | null
           title: string
@@ -1511,6 +1512,7 @@ export type Database = {
           notification_type: string
           outcome?: string | null
           payout_amount?: number | null
+          poll_id?: string | null
           push_sent?: boolean | null
           read?: boolean | null
           title: string
@@ -1526,6 +1528,7 @@ export type Database = {
           notification_type?: string
           outcome?: string | null
           payout_amount?: number | null
+          poll_id?: string | null
           push_sent?: boolean | null
           read?: boolean | null
           title?: string
@@ -1552,6 +1555,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "mv_market_stats"
             referencedColumns: ["market_id"]
+          },
+          {
+            foreignKeyName: "resolution_notifications_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "prediction_polls"
+            referencedColumns: ["id"]
           },
         ]
       }
