@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, ArrowUpDown, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -32,6 +33,26 @@ interface AdminUser {
   totalVolume: number;
 }
 
+interface PollHistory {
+  poll_question: string;
+  option_text: string;
+  amount: number;
+  poll_status: string;
+  won: boolean;
+  payout: number;
+  created_at: string;
+}
+
+interface ContestHistory {
+  contest_title: string;
+  buy_in: number;
+  score: number;
+  rank: number | null;
+  payout: number | null;
+  status: string;
+  created_at: string;
+}
+
 interface UserTradeStats {
   pendingOrders: number;
   completedTrades: number;
@@ -54,6 +75,8 @@ interface UserTradeStats {
     balance_after: number;
     created_at: string;
   }>;
+  pollHistory: PollHistory[];
+  contestHistory: ContestHistory[];
 }
 
 const UserManagementPanel = () => {
@@ -115,7 +138,7 @@ const UserManagementPanel = () => {
     queryFn: async (): Promise<UserTradeStats> => {
       if (!selectedUserId) throw new Error("No user selected");
 
-      const [ordersRes, tradesRes, positionsRes, transactionsRes] = await Promise.all([
+      const [ordersRes, tradesRes, positionsRes, transactionsRes, pollVotesRes, contestEntriesRes] = await Promise.all([
         supabase
           .from('orders')
           .select('id, status')
@@ -136,6 +159,20 @@ const UserManagementPanel = () => {
           .eq('user_id', selectedUserId)
           .order('created_at', { ascending: false })
           .limit(100),
+        // Poll votes with poll & option details
+        supabase
+          .from('poll_votes')
+          .select('id, amount, created_at, option_id, poll_id, poll_options(option_text), prediction_polls(question, status, winning_option_id, total_pool)')
+          .eq('user_id', selectedUserId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        // Contest entries
+        supabase
+          .from('contest_entries')
+          .select('id, score, total_points, rank, payout, created_at, contest_id, prediction_contests(title, status, buy_in_amount)')
+          .eq('user_id', selectedUserId)
+          .order('created_at', { ascending: false })
+          .limit(50),
       ]);
 
       // Fetch market questions for positions
@@ -154,7 +191,7 @@ const UserManagementPanel = () => {
       const marketTokensWon = closedPositions.filter(p => (p.pnl || 0) > 0).reduce((sum, p) => sum + (p.pnl || 0), 0);
       const marketTokensLost = Math.abs(closedPositions.filter(p => (p.pnl || 0) < 0).reduce((sum, p) => sum + (p.pnl || 0), 0));
 
-      // Include poll winnings in tokens won
+      // Poll winnings/losses from transactions
       const allTransactions = transactionsRes.data || [];
       const pollWinnings = allTransactions
         .filter(t => {
@@ -163,22 +200,74 @@ const UserManagementPanel = () => {
         })
         .reduce((sum, t) => sum + Number(t.amount), 0);
 
-      // Poll stakes (lost polls) — user staked but didn't win, so tokens were deducted
-      // We track this by looking at poll_refund (voided) vs the vote deductions
-      // The simplest approach: poll winnings are deposits with source poll_winnings
-      // Poll losses are the stakes that were NOT returned (no corresponding poll_winnings/poll_refund)
-      // For now, count withdrawal-type transactions or just use the vote amounts
-      const pollRefunds = allTransactions
-        .filter(t => {
-          const meta = t.metadata as any;
-          return meta?.source === 'poll_refund';
-        })
-        .reduce((sum, t) => sum + Number(t.amount), 0);
+      // Poll losses: stakes on polls that resolved where user didn't win
+      let pollLosses = 0;
+      const pollVotes = pollVotesRes.data || [];
+      pollVotes.forEach((vote: any) => {
+        const poll = vote.prediction_polls;
+        if (poll?.status === 'resolved' && poll?.winning_option_id && vote.option_id !== poll.winning_option_id) {
+          pollLosses += Number(vote.amount);
+        }
+      });
 
-      const tokensWon = marketTokensWon + pollWinnings;
-      const tokensLost = marketTokensLost;
+      // Contest winnings/losses
+      let contestWinnings = 0;
+      let contestLosses = 0;
+      const contestEntries = contestEntriesRes.data || [];
+      contestEntries.forEach((entry: any) => {
+        const contest = entry.prediction_contests;
+        if (contest?.status === 'resolved') {
+          const payout = Number(entry.payout || 0);
+          const buyIn = Number(contest.buy_in_amount || 0);
+          if (payout > 0) {
+            contestWinnings += payout;
+          }
+          // Buy-in is always a loss; payout offsets it
+          if (payout < buyIn) {
+            contestLosses += (buyIn - payout);
+          }
+        }
+      });
+
+      const tokensWon = marketTokensWon + pollWinnings + contestWinnings;
+      const tokensLost = marketTokensLost + pollLosses + contestLosses;
 
       const totalDeposits = allTransactions.filter(t => t.type === 'deposit' && !(t.metadata as any)?.source?.startsWith('poll_')).reduce((sum, t) => sum + t.amount, 0) || 0;
+
+      // Build poll history
+      const pollHistory: PollHistory[] = pollVotes.map((vote: any) => {
+        const poll = vote.prediction_polls;
+        const won = poll?.status === 'resolved' && poll?.winning_option_id === vote.option_id;
+        // Calculate proportional payout if won
+        let payout = 0;
+        if (won && poll?.total_pool) {
+          // Approximate — actual payout comes from transactions
+          payout = Number(vote.amount); // At minimum they get their stake back equivalent
+        }
+        return {
+          poll_question: poll?.question || 'Unknown Poll',
+          option_text: vote.poll_options?.option_text || 'Unknown',
+          amount: Number(vote.amount),
+          poll_status: poll?.status || 'unknown',
+          won,
+          payout,
+          created_at: vote.created_at,
+        };
+      });
+
+      // Build contest history
+      const contestHistoryData: ContestHistory[] = contestEntries.map((entry: any) => {
+        const contest = entry.prediction_contests;
+        return {
+          contest_title: contest?.title || 'Unknown Contest',
+          buy_in: Number(contest?.buy_in_amount || 0),
+          score: entry.score,
+          rank: entry.rank,
+          payout: entry.payout ? Number(entry.payout) : null,
+          status: contest?.status || 'unknown',
+          created_at: entry.created_at,
+        };
+      });
 
       return {
         pendingOrders,
@@ -196,6 +285,8 @@ const UserManagementPanel = () => {
           pnl: p.pnl ?? 0,
         })) || [],
         recentTransactions: transactionsRes.data || [],
+        pollHistory,
+        contestHistory: contestHistoryData,
       };
     },
     enabled: !!selectedUserId,
@@ -318,10 +409,12 @@ const UserManagementPanel = () => {
               <Card className="p-4 text-center">
                 <p className="text-xs text-muted-foreground">Tokens Won</p>
                 <p className="text-xl font-bold text-green-500">+{userStats.tokensWon.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">markets + polls + contests</p>
               </Card>
               <Card className="p-4 text-center">
                 <p className="text-xs text-muted-foreground">Tokens Lost</p>
                 <p className="text-xl font-bold text-red-500">-{userStats.tokensLost.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">markets + polls + contests</p>
               </Card>
             </div>
 
@@ -340,82 +433,196 @@ const UserManagementPanel = () => {
               </Card>
             </div>
 
-            {/* Positions Table */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Positions ({userStats.positions.length})</h3>
-              {userStats.positions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No positions yet</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-2 px-1 text-xs text-muted-foreground">Market</th>
-                        <th className="text-center py-2 px-1 text-xs text-muted-foreground">Side</th>
-                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">Size</th>
-                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">Entry</th>
-                        <th className="text-center py-2 px-1 text-xs text-muted-foreground">Status</th>
-                        <th className="text-right py-2 px-1 text-xs text-muted-foreground">P&L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {userStats.positions.map((pos, i) => (
-                        <tr key={i} className="border-b border-border/50">
-                          <td className="py-2 px-1 text-xs max-w-[200px] truncate">{pos.market_question}</td>
-                          <td className="py-2 px-1 text-center">
-                            <Badge variant="outline" className={`text-[10px] ${pos.side === 'yes' ? 'text-green-500 border-green-500/30' : 'text-red-500 border-red-500/30'}`}>
-                              {pos.side.toUpperCase()}
-                            </Badge>
-                          </td>
-                          <td className="py-2 px-1 text-right text-xs">{pos.size}</td>
-                          <td className="py-2 px-1 text-right text-xs">{pos.entry_price}¢</td>
-                          <td className="py-2 px-1 text-center">
-                            <Badge variant={pos.status === 'open' ? 'default' : 'secondary'} className="text-[10px]">
-                              {pos.status}
-                            </Badge>
-                          </td>
-                          <td className={`py-2 px-1 text-right text-xs font-medium ${(pos.pnl || 0) > 0 ? 'text-green-500' : (pos.pnl || 0) < 0 ? 'text-red-500' : ''}`}>
-                            {pos.pnl !== null ? (pos.pnl > 0 ? '+' : '') + pos.pnl.toFixed(2) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
+            {/* History Tabs */}
+            <Tabs defaultValue="positions" className="w-full">
+              <TabsList className="w-full grid grid-cols-4">
+                <TabsTrigger value="positions">Positions ({userStats.positions.length})</TabsTrigger>
+                <TabsTrigger value="polls">Polls ({userStats.pollHistory.length})</TabsTrigger>
+                <TabsTrigger value="contests">Contests ({userStats.contestHistory.length})</TabsTrigger>
+                <TabsTrigger value="transactions">Transactions</TabsTrigger>
+              </TabsList>
 
-            {/* Recent Transactions */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold text-foreground mb-3">Recent Transactions</h3>
-              {userStats.recentTransactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {userStats.recentTransactions.map(tx => (
-                    <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                      <div className="flex items-center gap-2">
-                        {tx.type === 'deposit' ? (
-                          <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                        ) : (
-                          <TrendingDown className="h-3.5 w-3.5 text-red-500" />
-                        )}
-                        <div>
-                          <p className="text-xs font-medium capitalize">{tx.type}</p>
-                          <p className="text-[10px] text-muted-foreground">{format(new Date(tx.created_at), "MMM d, h:mm a")}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-xs font-medium ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
-                          {tx.type === 'deposit' ? '+' : '-'}{tx.amount}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">Bal: {tx.balance_after}</p>
-                      </div>
+              {/* Positions Tab */}
+              <TabsContent value="positions">
+                <Card className="p-4">
+                  {userStats.positions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No positions yet</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-1 text-xs text-muted-foreground">Market</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Side</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Size</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Entry</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Status</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">P&L</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userStats.positions.map((pos, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-2 px-1 text-xs max-w-[200px] truncate">{pos.market_question}</td>
+                              <td className="py-2 px-1 text-center">
+                                <Badge variant="outline" className={`text-[10px] ${pos.side === 'yes' ? 'text-green-500 border-green-500/30' : 'text-red-500 border-red-500/30'}`}>
+                                  {pos.side.toUpperCase()}
+                                </Badge>
+                              </td>
+                              <td className="py-2 px-1 text-right text-xs">{pos.size}</td>
+                              <td className="py-2 px-1 text-right text-xs">{pos.entry_price}¢</td>
+                              <td className="py-2 px-1 text-center">
+                                <Badge variant={pos.status === 'open' ? 'default' : 'secondary'} className="text-[10px]">
+                                  {pos.status}
+                                </Badge>
+                              </td>
+                              <td className={`py-2 px-1 text-right text-xs font-medium ${(pos.pnl || 0) > 0 ? 'text-green-500' : (pos.pnl || 0) < 0 ? 'text-red-500' : ''}`}>
+                                {pos.pnl !== null ? (pos.pnl > 0 ? '+' : '') + pos.pnl.toFixed(2) : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+                  )}
+                </Card>
+              </TabsContent>
+
+              {/* Polls Tab */}
+              <TabsContent value="polls">
+                <Card className="p-4">
+                  {userStats.pollHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No poll participation yet</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-1 text-xs text-muted-foreground">Poll</th>
+                            <th className="text-left py-2 px-1 text-xs text-muted-foreground">Voted</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Staked</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Status</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Result</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userStats.pollHistory.map((poll, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-2 px-1 text-xs max-w-[200px] truncate">{poll.poll_question}</td>
+                              <td className="py-2 px-1 text-xs max-w-[100px] truncate">{poll.option_text}</td>
+                              <td className="py-2 px-1 text-right text-xs">{poll.amount} tokens</td>
+                              <td className="py-2 px-1 text-center">
+                                <Badge variant={poll.poll_status === 'resolved' ? 'secondary' : 'default'} className="text-[10px]">
+                                  {poll.poll_status}
+                                </Badge>
+                              </td>
+                              <td className="py-2 px-1 text-center">
+                                {poll.poll_status === 'resolved' ? (
+                                  <Badge variant="outline" className={`text-[10px] ${poll.won ? 'text-green-500 border-green-500/30' : 'text-red-500 border-red-500/30'}`}>
+                                    {poll.won ? 'Won' : 'Lost'}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground">—</span>
+                                )}
+                              </td>
+                              <td className="py-2 px-1 text-right text-[10px] text-muted-foreground">
+                                {format(new Date(poll.created_at), "MMM d")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+
+              {/* Contests Tab */}
+              <TabsContent value="contests">
+                <Card className="p-4">
+                  {userStats.contestHistory.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No contest participation yet</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-2 px-1 text-xs text-muted-foreground">Contest</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Buy-in</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Score</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Rank</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Payout</th>
+                            <th className="text-center py-2 px-1 text-xs text-muted-foreground">Status</th>
+                            <th className="text-right py-2 px-1 text-xs text-muted-foreground">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {userStats.contestHistory.map((contest, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-2 px-1 text-xs max-w-[200px] truncate">{contest.contest_title}</td>
+                              <td className="py-2 px-1 text-right text-xs">{contest.buy_in}</td>
+                              <td className="py-2 px-1 text-right text-xs">{contest.score}</td>
+                              <td className="py-2 px-1 text-center text-xs">
+                                {contest.rank ? (
+                                  <Badge variant="outline" className={`text-[10px] ${contest.rank <= 3 ? 'text-amber-500 border-amber-500/30' : ''}`}>
+                                    #{contest.rank}
+                                  </Badge>
+                                ) : '—'}
+                              </td>
+                              <td className={`py-2 px-1 text-right text-xs font-medium ${(contest.payout || 0) > 0 ? 'text-green-500' : ''}`}>
+                                {contest.payout ? `+${contest.payout}` : '—'}
+                              </td>
+                              <td className="py-2 px-1 text-center">
+                                <Badge variant={contest.status === 'resolved' ? 'secondary' : 'default'} className="text-[10px]">
+                                  {contest.status}
+                                </Badge>
+                              </td>
+                              <td className="py-2 px-1 text-right text-[10px] text-muted-foreground">
+                                {format(new Date(contest.created_at), "MMM d")}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+
+              {/* Transactions Tab */}
+              <TabsContent value="transactions">
+                <Card className="p-4">
+                  {userStats.recentTransactions.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No transactions yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {userStats.recentTransactions.map(tx => (
+                        <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                          <div className="flex items-center gap-2">
+                            {tx.type === 'deposit' ? (
+                              <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                            ) : (
+                              <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+                            )}
+                            <div>
+                              <p className="text-xs font-medium capitalize">{tx.type}</p>
+                              <p className="text-[10px] text-muted-foreground">{format(new Date(tx.created_at), "MMM d, h:mm a")}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-xs font-medium ${tx.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>
+                              {tx.type === 'deposit' ? '+' : '-'}{tx.amount}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">Bal: {tx.balance_after}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </TabsContent>
+            </Tabs>
 
             {/* Admin Actions */}
             <Card className="p-4">
