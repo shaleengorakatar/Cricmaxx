@@ -495,6 +495,38 @@ const PredictionContests = () => {
                 <ContestHowItWorks compact />
               </div>
 
+              {/* Join button */}
+              {isAuthenticated && !hasJoined && isOpen && (
+                <Card className="mb-4 border-accent/30 bg-accent/5">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Join this contest</p>
+                      <p className="text-sm text-muted-foreground">Entry fee: {selectedContest.buy_in_amount} tokens</p>
+                    </div>
+                    <Button
+                      className="bg-accent text-accent-foreground hover:bg-accent/90"
+                      onClick={() => joinMutation.mutate()}
+                      disabled={joinMutation.isPending}
+                    >
+                      {joinMutation.isPending ? "Joining..." : `Join for ${selectedContest.buy_in_amount} tokens`}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {isAuthenticated && !hasJoined && isOpen && (profile?.balance ?? 0) < (selectedContest?.buy_in_amount ?? 0) && (
+                <Card className="mb-4 border-destructive/30 bg-destructive/5">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      You need at least {selectedContest.buy_in_amount} tokens to join. Your balance: {profile?.balance ?? 0} tokens.
+                    </p>
+                    <Button variant="outline" onClick={() => setBuyDialogOpen(true)}>
+                      Add Balance
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Question Preview (before joining) */}
               {!hasJoined && questions && questions.length > 0 && (
                 <Card className="mb-4">
@@ -519,38 +551,6 @@ const PredictionContests = () => {
                         );
                       })}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Join button */}
-              {isAuthenticated && !hasJoined && isOpen && (
-                <Card className="mb-6 border-accent/30 bg-accent/5">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Join this contest</p>
-                      <p className="text-sm text-muted-foreground">Entry fee: {selectedContest.buy_in_amount} tokens</p>
-                    </div>
-                    <Button
-                      className="bg-accent text-accent-foreground hover:bg-accent/90"
-                      onClick={() => joinMutation.mutate()}
-                      disabled={joinMutation.isPending}
-                    >
-                      {joinMutation.isPending ? "Joining..." : `Join for ${selectedContest.buy_in_amount} tokens`}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {isAuthenticated && !hasJoined && isOpen && (profile?.balance ?? 0) < (selectedContest?.buy_in_amount ?? 0) && (
-                <Card className="mb-6 border-destructive/30 bg-destructive/5">
-                  <CardContent className="p-4 text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      You need at least {selectedContest.buy_in_amount} tokens to join. Your balance: {profile?.balance ?? 0} tokens.
-                    </p>
-                    <Button variant="outline" onClick={() => setBuyDialogOpen(true)}>
-                      Add Balance
-                    </Button>
                   </CardContent>
                 </Card>
               )}
