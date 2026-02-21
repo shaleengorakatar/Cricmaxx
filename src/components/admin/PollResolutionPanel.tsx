@@ -397,14 +397,38 @@ const PollResolutionPanel = () => {
                         </label>
                       ))}
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleResolve(poll.id)}
-                      disabled={!(selectedWinners[poll.id]?.length) || resolving === poll.id}
-                      className="w-full"
-                    >
-                      {resolving === poll.id ? "Resolving..." : `Resolve (${selectedWinners[poll.id]?.length || 0} winner${(selectedWinners[poll.id]?.length || 0) !== 1 ? 's' : ''})`}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleResolve(poll.id)}
+                        disabled={!(selectedWinners[poll.id]?.length) || resolving === poll.id}
+                        className="flex-1"
+                      >
+                        {resolving === poll.id ? "Resolving..." : `Resolve (${selectedWinners[poll.id]?.length || 0} winner${(selectedWinners[poll.id]?.length || 0) !== 1 ? 's' : ''})`}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-destructive text-destructive hover:bg-destructive/10"
+                        onClick={async () => {
+                          if (!confirm("Void this poll? All stakes will be refunded.")) return;
+                          setResolving(poll.id);
+                          try {
+                            const { data, error } = await supabase.rpc("void_poll", { _poll_id: poll.id, _admin_id: user!.id });
+                            if (error) throw error;
+                            toast({ title: "Poll voided!", description: `${(data as any).refunded} voters refunded ${(data as any).total_refunded} tokens total.` });
+                            fetchPolls();
+                          } catch (err: any) {
+                            toast({ title: "Error", description: err.message, variant: "destructive" });
+                          } finally {
+                            setResolving(null);
+                          }
+                        }}
+                        disabled={resolving === poll.id}
+                      >
+                        Void
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Participants toggle */}

@@ -29,6 +29,7 @@ type Contest = {
   match_name: string | null;
   closes_at: string;
   tiebreaker_question_id: string | null;
+  tiebreaker_question_id_2: string | null;
   min_participants: number;
   created_by: string;
   created_at: string;
@@ -213,14 +214,32 @@ const ContestManagementPanel = () => {
   });
 
   const setTiebreakerMutation = useMutation({
-    mutationFn: async (qId: string) => {
-      const { error } = await supabase.from("prediction_contests").update({ tiebreaker_question_id: qId }).eq("id", selectedContestId!);
+    mutationFn: async ({ qId, slot }: { qId: string; slot: 1 | 2 }) => {
+      const field = slot === 1 ? "tiebreaker_question_id" : "tiebreaker_question_id_2";
+      const { error } = await supabase.from("prediction_contests").update({ [field]: qId }).eq("id", selectedContestId!);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Tiebreaker set!");
+    onSuccess: (_, { slot }) => {
+      toast.success(`Tiebreaker ${slot} set!`);
       queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
     },
+  });
+
+  const voidContestMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc("void_contest", {
+        _contest_id: selectedContestId!,
+        _admin_id: user!.id,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Contest voided! ${data.refunded} participants refunded ${data.amount_each} tokens each.`);
+      queryClient.invalidateQueries({ queryKey: ["admin-contests"] });
+      queryClient.invalidateQueries({ queryKey: ["contests"] });
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const resolveMutation = useMutation({
@@ -419,14 +438,22 @@ const ContestManagementPanel = () => {
                       <Badge variant="secondary" className="text-[10px]">{q.question_type}</Badge>
                       <Badge variant="outline" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
                       {selectedContest.tiebreaker_question_id === q.id && (
-                        <Badge className="text-[10px] bg-yellow-500">Tiebreaker</Badge>
+                        <Badge className="text-[10px] bg-accent text-accent-foreground">TB1</Badge>
+                      )}
+                      {selectedContest.tiebreaker_question_id_2 === q.id && (
+                        <Badge className="text-[10px] bg-accent text-accent-foreground">TB2</Badge>
                       )}
                     </div>
                     {q.options && <p className="text-xs text-muted-foreground mt-1">Options: {(q.options as string[]).join(", ")}</p>}
                   </div>
                   <div className="flex gap-1">
-                    <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate(q.id)} title="Set as tiebreaker">
+                    <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate({ qId: q.id, slot: 1 })} title="Set as Tiebreaker 1">
                       <Star className="h-3.5 w-3.5" />
+                      <span className="text-[10px] ml-0.5">1</span>
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setTiebreakerMutation.mutate({ qId: q.id, slot: 2 })} title="Set as Tiebreaker 2">
+                      <Star className="h-3.5 w-3.5" />
+                      <span className="text-[10px] ml-0.5">2</span>
                     </Button>
                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteQuestionMutation.mutate(q.id)}>
                       <Trash2 className="h-3.5 w-3.5" />
@@ -479,14 +506,28 @@ const ContestManagementPanel = () => {
             {(selectedContest.status === "open" || selectedContest.status === "closed") && (
               <>
                 <Separator />
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={() => resolveMutation.mutate()}
-                  disabled={resolveMutation.isPending || !questions?.every(q => q.correct_answer)}
-                >
-                  {resolveMutation.isPending ? "Resolving..." : "Resolve Contest & Pay Winners"}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    className="flex-1"
+                    onClick={() => resolveMutation.mutate()}
+                    disabled={resolveMutation.isPending || !questions?.every(q => q.correct_answer)}
+                  >
+                    {resolveMutation.isPending ? "Resolving..." : "Resolve & Pay Winners"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      if (confirm("Void this contest? All buy-ins will be refunded.")) {
+                        voidContestMutation.mutate();
+                      }
+                    }}
+                    disabled={voidContestMutation.isPending}
+                  >
+                    {voidContestMutation.isPending ? "Voiding..." : "Void"}
+                  </Button>
+                </div>
                 {questions && !questions.every(q => q.correct_answer) && (
                   <p className="text-xs text-destructive">Set correct answers for all questions before resolving.</p>
                 )}
