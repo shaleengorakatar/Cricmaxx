@@ -368,6 +368,16 @@ const PollResolutionPanel = () => {
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(poll)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
+                      {poll.status === "closed" && (
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={async () => {
+                          const { error } = await supabase.from("prediction_polls").update({ status: "open" }).eq("id", poll.id);
+                          if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+                          toast({ title: "Poll reopened" });
+                          fetchPolls();
+                        }}>
+                          Reopen
+                        </Button>
+                      )}
                       <Badge variant={poll.status === "closed" ? "secondary" : "outline"}>
                         {poll.status}
                       </Badge>
