@@ -367,10 +367,20 @@ const ContestManagementPanel = () => {
                     Open
                   </Button>
                 )}
-                {(c.status === "open" || c.status === "closed") && (
+                {c.status === "open" && (
                   <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ id: c.id, status: "closed" }); }}>
                     Close
                   </Button>
+                )}
+                {c.status === "closed" && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ id: c.id, status: "open" }); }}>
+                      Reopen
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateStatusMutation.mutate({ id: c.id, status: "closed" }); }}>
+                      Close
+                    </Button>
+                  </>
                 )}
               </div>
             </CardContent>
