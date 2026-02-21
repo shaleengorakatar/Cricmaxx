@@ -495,6 +495,34 @@ const PredictionContests = () => {
                 <ContestHowItWorks compact />
               </div>
 
+              {/* Question Preview (before joining) */}
+              {!hasJoined && questions && questions.length > 0 && (
+                <Card className="mb-4">
+                  <CardContent className="p-4">
+                    <p className="text-sm font-semibold mb-3">Preview Questions ({questions.length})</p>
+                    <div className="space-y-2">
+                      {questions.map((q, idx) => {
+                        const isTiebreaker1 = selectedContest.tiebreaker_question_id === q.id;
+                        const isTiebreaker2 = selectedContest.tiebreaker_question_id_2 === q.id;
+                        return (
+                          <div key={q.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                            <span className="text-muted-foreground">
+                              <span className="font-mono text-xs mr-1.5">Q{idx + 1}</span>
+                              {q.question_text}
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                              {isTiebreaker1 && <Badge variant="outline" className="text-[10px] border-yellow-500 text-yellow-600">TB</Badge>}
+                              {isTiebreaker2 && <Badge variant="outline" className="text-[10px] border-yellow-500/70 text-yellow-600">TB2</Badge>}
+                              <Badge variant="secondary" className="text-[10px]">{q.points} pt{q.points > 1 ? "s" : ""}</Badge>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Join button */}
               {isAuthenticated && !hasJoined && isOpen && (
                 <Card className="mb-6 border-accent/30 bg-accent/5">
