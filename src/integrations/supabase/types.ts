@@ -2045,6 +2045,14 @@ export type Database = {
         Returns: Json
       }
       update_creator_tier: { Args: { _user_id: string }; Returns: string }
+      void_contest: {
+        Args: { _admin_id: string; _contest_id: string }
+        Returns: Json
+      }
+      void_poll: {
+        Args: { _admin_id: string; _poll_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "creator" | "trader"
