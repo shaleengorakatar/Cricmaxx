@@ -15,6 +15,7 @@ import LoadTestPanel from "@/components/admin/LoadTestPanel";
 import PredictionsOverviewPanel from "@/components/admin/PredictionsOverviewPanel";
 import PollResolutionPanel from "@/components/admin/PollResolutionPanel";
 import ContestManagementPanel from "@/components/admin/ContestManagementPanel";
+import SimplifiedDebtsPanel from "@/components/admin/SimplifiedDebtsPanel";
 import MarketCreationForm from "@/components/creator/MarketCreationForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
@@ -116,6 +117,9 @@ const AdminDashboard = () => {
                 <TabsTrigger value="loadtest" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
                   Load Test
                 </TabsTrigger>
+                <TabsTrigger value="debts" className="text-xs px-3 py-2 whitespace-nowrap data-[state=active]:bg-background">
+                  Debts
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -168,6 +172,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="loadtest">
               <LoadTestPanel />
+            </TabsContent>
+
+            <TabsContent value="debts">
+              <SimplifiedDebtsPanel />
             </TabsContent>
           </Tabs>
         </div>
