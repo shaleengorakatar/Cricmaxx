@@ -47,12 +47,14 @@ const SimplifiedDebtsPanel = () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [profilesRes, pollStakesRes, pollWinningsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
+      const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
         supabase.from("profiles").select("id, name, display_name"),
         // Poll stakes on RESOLVED polls only
         supabase.from("poll_votes").select("user_id, amount, prediction_polls!inner(status)").eq("prediction_polls.status", "resolved"),
         // Poll winnings from transactions
         supabase.from("transactions").select("user_id, amount").eq("metadata->>source", "poll_winnings"),
+        // Poll refunds (no-winner polls) from transactions
+        supabase.from("transactions").select("user_id, amount").eq("metadata->>source", "poll_refund"),
         // Contest buyins on RESOLVED contests only
         supabase.from("contest_entries").select("user_id, prediction_contests!inner(status, buy_in_amount)").eq("prediction_contests.status", "resolved"),
         // Contest winnings from transactions
@@ -84,6 +86,14 @@ const SimplifiedDebtsPanel = () => {
         }
       }
 
+      // Aggregate poll refunds (subtract from stakes since these polls are a wash)
+      const pollRefundsMap = new Map<string, number>();
+      if (pollRefundsRes.data) {
+        for (const t of pollRefundsRes.data) {
+          pollRefundsMap.set(t.user_id, (pollRefundsMap.get(t.user_id) || 0) + Number(t.amount));
+        }
+      }
+
       // Aggregate contest winnings
       const contestWinningsMap = new Map<string, number>();
       if (contestWinningsRes.data) {
@@ -103,7 +113,7 @@ const SimplifiedDebtsPanel = () => {
       // Build per-user P&L
       const profiles = profilesRes.data || [];
       const allUserIds = new Set<string>();
-      [pollStakesMap, pollWinningsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap].forEach(m => {
+      [pollStakesMap, pollWinningsMap, pollRefundsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap].forEach(m => {
         m.forEach((_, k) => allUserIds.add(k));
       });
 
@@ -112,8 +122,10 @@ const SimplifiedDebtsPanel = () => {
       const users: UserPnL[] = Array.from(allUserIds).map(userId => {
         const profile = profileMap.get(userId);
         const pollStaked = pollStakesMap.get(userId) || 0;
+        const pollRefunded = pollRefundsMap.get(userId) || 0;
+        const effectivePollStaked = pollStaked - pollRefunded; // Remove refunded stakes
         const pollWon = pollWinningsMap.get(userId) || 0;
-        const pollPnl = pollWon - pollStaked;
+        const pollPnl = pollWon - effectivePollStaked;
         const contestStaked = contestBuyinsMap.get(userId) || 0;
         const contestWon = contestWinningsMap.get(userId) || 0;
         const contestPnl = contestWon - contestStaked;
