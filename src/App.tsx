@@ -39,6 +39,7 @@ const MobileAuth = lazy(() => import("./pages/mobile/MobileAuth"));
 const MobileSwipePreds = lazy(() => import("./pages/mobile/MobileSwipePreds"));
 const PredictionPolls = lazy(() => import("./pages/PredictionPolls"));
 const PredictionContests = lazy(() => import("./pages/PredictionContests"));
+const PollDetail = lazy(() => import("./pages/PollDetail"));
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => {
                       <Route path="/creator" element={<CreatorDashboard />} />
                       <Route path="/admin" element={<AdminDashboard />} />
                       <Route path="/polls" element={<PredictionPolls />} />
+                      <Route path="/poll/:id" element={<PollDetail />} />
                       <Route path="/contests" element={<PredictionContests />} />
                       <Route path="/settings" element={<AccountSettings />} />
                       <Route path="/account-settings" element={<AccountSettings />} />

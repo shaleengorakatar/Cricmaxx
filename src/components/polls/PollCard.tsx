@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -41,6 +43,8 @@ const STAKE_OPTIONS = [5, 10, 15, 20];
 export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardProps) => {
   const { user, refetchProfile, isAdmin } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(defaultExpanded);
   const [editing, setEditing] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("");
@@ -144,7 +148,7 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
   const compactCard = (
     <Card
       className="overflow-hidden border-border/50 hover:border-primary/40 transition-all cursor-pointer hover:shadow-md h-full"
-      onClick={() => setOpen(true)}
+      onClick={() => isMobile ? navigate(`/poll/${poll.id}`) : setOpen(true)}
     >
       <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
         {/* Top: badge + status */}
