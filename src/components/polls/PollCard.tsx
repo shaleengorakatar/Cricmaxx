@@ -148,7 +148,7 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
   const compactCard = (
     <Card
       className="overflow-hidden border-border/50 hover:border-primary/40 transition-all cursor-pointer hover:shadow-md h-full"
-      onClick={() => isMobile ? navigate(`/poll/${poll.id}`) : setOpen(true)}
+      onClick={() => navigate(`/poll/${poll.id}`)}
     >
       <CardContent className="p-4 flex flex-col justify-between h-full gap-3">
         {/* Top: badge + status */}
