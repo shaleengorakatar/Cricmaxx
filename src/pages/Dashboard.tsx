@@ -8,7 +8,7 @@ import PLChart from "@/components/dashboard/PLChart";
 import WalletActions from "@/components/dashboard/WalletActions";
 import ActivePositions from "@/components/dashboard/ActivePositions";
 import TransactionHistory from "@/components/dashboard/TransactionHistory";
-import PollActivityPanel from "@/components/dashboard/PollActivityPanel";
+import FullActivityPanel from "@/components/dashboard/FullActivityPanel";
 import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
 import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 import { Button } from "@/components/ui/button";
@@ -247,8 +247,8 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-4 md:space-y-6">
-            <ErrorBoundary fallbackTitle="Failed to load poll activity">
-              <PollActivityPanel />
+            <ErrorBoundary fallbackTitle="Failed to load activity">
+              <FullActivityPanel />
             </ErrorBoundary>
             <ErrorBoundary fallbackTitle="Failed to load trading history">
               <TradingHistoryPanel />
