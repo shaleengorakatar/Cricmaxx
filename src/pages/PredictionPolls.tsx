@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { PollCard } from "@/components/polls/PollCard";
+
 import { CreatePollForm } from "@/components/polls/CreatePollForm";
+import { PollCarousel } from "@/components/polls/PollCarousel";
 import PollLeaderboardModal from "@/components/leaderboard/PollLeaderboardModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -242,7 +243,7 @@ const PredictionPolls = () => {
 
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map(i => <div key={i} className="h-24 bg-muted/50 rounded-xl animate-pulse" />)}
+              {[1, 2, 3].map(i => <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />)}
             </div>
           ) : polls.length === 0 ? (
             <Card className="border-dashed">
@@ -252,13 +253,7 @@ const PredictionPolls = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-3">
-              {polls.map((poll) => (
-                <div key={poll.id} id={`poll-${poll.id}`} className={highlightId === poll.id ? "ring-2 ring-primary rounded-lg" : ""}>
-                  <PollCard poll={poll} onVoted={fetchPolls} defaultExpanded={highlightId === poll.id} />
-                </div>
-              ))}
-            </div>
+            <PollCarousel polls={polls} highlightId={highlightId} onVoted={fetchPolls} />
           )}
         </div>
       </main>
