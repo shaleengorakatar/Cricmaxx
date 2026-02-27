@@ -4,7 +4,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 
 import { CreatePollForm } from "@/components/polls/CreatePollForm";
-import { PollCarousel } from "@/components/polls/PollCarousel";
+import { PollCard } from "@/components/polls/PollCard";
 import PollLeaderboardModal from "@/components/leaderboard/PollLeaderboardModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +169,7 @@ const PredictionPolls = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Navigation />
       <main className="flex-1 pt-32 lg:pt-24 pb-12">
-        <div className="container mx-auto px-4 max-w-4xl">
+        <div className="container mx-auto px-4 max-w-6xl">
           {/* Header — matches Contests style */}
           <div className="mb-6">
             <div className="flex items-center justify-between gap-2 mb-2">
@@ -242,8 +242,8 @@ const PredictionPolls = () => {
           )}
 
           {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-52 bg-muted/50 rounded-xl animate-pulse" />)}
             </div>
           ) : polls.length === 0 ? (
             <Card className="border-dashed">
@@ -253,7 +253,13 @@ const PredictionPolls = () => {
               </CardContent>
             </Card>
           ) : (
-            <PollCarousel polls={polls} highlightId={highlightId} onVoted={fetchPolls} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {polls.map((poll) => (
+                <div key={poll.id} id={`poll-${poll.id}`} className={highlightId === poll.id ? "ring-2 ring-primary rounded-lg" : ""}>
+                  <PollCard poll={poll} onVoted={fetchPolls} />
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </main>
