@@ -24,6 +24,8 @@ interface Poll {
   total_pool: number;
   closes_at: string;
   options: PollOption[];
+  winning_option_id?: string | null;
+  resolved_at?: string | null;
 }
 
 const PollResolutionPanel = () => {
@@ -81,8 +83,8 @@ const PollResolutionPanel = () => {
     const { data: pollsData } = await supabase
       .from("prediction_polls")
       .select("*")
-      .in("status", ["open", "closed"])
-      .order("closes_at", { ascending: true });
+      .in("status", ["open", "closed", "resolved"])
+      .order("closes_at", { ascending: false });
 
     if (!pollsData?.length) { setPolls([]); setLoading(false); return; }
 
@@ -98,6 +100,8 @@ const PollResolutionPanel = () => {
       status: p.status,
       total_pool: Number(p.total_pool),
       closes_at: p.closes_at,
+      winning_option_id: p.winning_option_id || null,
+      resolved_at: p.resolved_at || null,
       options: (optionsData || []).filter((o: any) => o.poll_id === p.id),
     }));
 
@@ -354,20 +358,30 @@ const PollResolutionPanel = () => {
                         <p className="text-xs text-muted-foreground/80 mt-0.5">{poll.description}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Pool: {poll.total_pool} tokens · Closes: {new Date(poll.closes_at).toLocaleString()}
+                        Pool: {poll.total_pool} tokens · {poll.status === "resolved" ? "Resolved" : "Closes"}: {new Date(poll.status === "resolved" && poll.resolved_at ? poll.resolved_at : poll.closes_at).toLocaleString()}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        {poll.options.map((opt) => (
-                          <Badge key={opt.id} variant="outline" className="text-[11px]">
-                            {opt.option_text}
-                          </Badge>
-                        ))}
+                        {poll.options.map((opt) => {
+                          const isWinner = poll.winning_option_id === opt.id;
+                          return (
+                            <Badge
+                              key={opt.id}
+                              variant={isWinner ? "default" : "outline"}
+                              className={`text-[11px] ${isWinner ? "bg-green-600 text-white" : ""}`}
+                            >
+                              {isWinner && <Trophy className="h-3 w-3 mr-0.5" />}
+                              {opt.option_text}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(poll)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      {poll.status !== "resolved" && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(poll)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       {poll.status === "closed" && (
                         <Button variant="outline" size="sm" className="text-xs h-7" onClick={async () => {
                           const { error } = await supabase.from("prediction_polls").update({ status: "open" }).eq("id", poll.id);
@@ -378,58 +392,71 @@ const PollResolutionPanel = () => {
                           Reopen
                         </Button>
                       )}
-                      <Badge variant={poll.status === "closed" ? "secondary" : "outline"}>
-                        {poll.status}
-                      </Badge>
+                      {(() => {
+                        const isExpired = new Date(poll.closes_at) < new Date();
+                        if (poll.status === "resolved") {
+                          return <Badge className="bg-green-600 text-white">resolved</Badge>;
+                        }
+                        if (poll.status === "open" && isExpired) {
+                          return <Badge variant="destructive">expired (open)</Badge>;
+                        }
+                        return (
+                          <Badge variant={poll.status === "closed" ? "secondary" : "outline"}>
+                            {poll.status}
+                          </Badge>
+                        );
+                      })()}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Select winning option(s)</Label>
-                    <div className="space-y-1.5">
-                      {poll.options.map((opt) => (
-                        <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                          <Checkbox
-                            checked={(selectedWinners[poll.id] || []).includes(opt.id)}
-                            onCheckedChange={() => toggleWinner(poll.id, opt.id)}
-                          />
-                          {opt.option_text}
-                        </label>
-                      ))}
+                  {poll.status !== "resolved" && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Select winning option(s)</Label>
+                      <div className="space-y-1.5">
+                        {poll.options.map((opt) => (
+                          <label key={opt.id} className="flex items-center gap-2 cursor-pointer text-sm">
+                            <Checkbox
+                              checked={(selectedWinners[poll.id] || []).includes(opt.id)}
+                              onCheckedChange={() => toggleWinner(poll.id, opt.id)}
+                            />
+                            {opt.option_text}
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleResolve(poll.id)}
+                          disabled={!(selectedWinners[poll.id]?.length) || resolving === poll.id}
+                          className="flex-1"
+                        >
+                          {resolving === poll.id ? "Resolving..." : `Resolve (${selectedWinners[poll.id]?.length || 0} winner${(selectedWinners[poll.id]?.length || 0) !== 1 ? 's' : ''})`}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-destructive text-destructive hover:bg-destructive/10"
+                          onClick={async () => {
+                            if (!confirm("Void this poll? All stakes will be refunded.")) return;
+                            setResolving(poll.id);
+                            try {
+                              const { data, error } = await supabase.rpc("void_poll", { _poll_id: poll.id, _admin_id: user!.id });
+                              if (error) throw error;
+                              toast({ title: "Poll voided!", description: `${(data as any).refunded} voters refunded ${(data as any).total_refunded} tokens total.` });
+                              fetchPolls();
+                            } catch (err: any) {
+                              toast({ title: "Error", description: err.message, variant: "destructive" });
+                            } finally {
+                              setResolving(null);
+                            }
+                          }}
+                          disabled={resolving === poll.id}
+                        >
+                          Void
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleResolve(poll.id)}
-                        disabled={!(selectedWinners[poll.id]?.length) || resolving === poll.id}
-                        className="flex-1"
-                      >
-                        {resolving === poll.id ? "Resolving..." : `Resolve (${selectedWinners[poll.id]?.length || 0} winner${(selectedWinners[poll.id]?.length || 0) !== 1 ? 's' : ''})`}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                        onClick={async () => {
-                          if (!confirm("Void this poll? All stakes will be refunded.")) return;
-                          setResolving(poll.id);
-                          try {
-                            const { data, error } = await supabase.rpc("void_poll", { _poll_id: poll.id, _admin_id: user!.id });
-                            if (error) throw error;
-                            toast({ title: "Poll voided!", description: `${(data as any).refunded} voters refunded ${(data as any).total_refunded} tokens total.` });
-                            fetchPolls();
-                          } catch (err: any) {
-                            toast({ title: "Error", description: err.message, variant: "destructive" });
-                          } finally {
-                            setResolving(null);
-                          }
-                        }}
-                        disabled={resolving === poll.id}
-                      >
-                        Void
-                      </Button>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Participants toggle */}
                   <Button
