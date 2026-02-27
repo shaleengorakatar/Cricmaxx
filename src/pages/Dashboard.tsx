@@ -5,14 +5,14 @@ import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import PortfolioSummary from "@/components/dashboard/PortfolioSummary";
 import PLChart from "@/components/dashboard/PLChart";
-import WalletActions from "@/components/dashboard/WalletActions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActivePositions from "@/components/dashboard/ActivePositions";
 import TransactionHistory from "@/components/dashboard/TransactionHistory";
 import FullActivityPanel from "@/components/dashboard/FullActivityPanel";
 import TradingHistoryPanel from "@/components/dashboard/TradingHistoryPanel";
 import PaymentMethodsDialog from "@/components/wallet/PaymentMethodsDialog";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, Settings, RefreshCw } from "lucide-react";
+import { RefreshCw, Settings } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -190,17 +190,27 @@ const Dashboard = () => {
               <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">Dashboard</h1>
               <p className="text-sm md:text-base text-muted-foreground">Manage your portfolio and trading activity</p>
             </div>
-            {dashboardData.error && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => dashboardData.refetch()}
-                disabled={dashboardData.loading}
+            <div className="flex items-center gap-2">
+              {dashboardData.error && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => dashboardData.refetch()}
+                  disabled={dashboardData.loading}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${dashboardData.loading ? 'animate-spin' : ''}`} />
+                  Retry
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigate('/settings')}
+                className="h-9 w-9"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${dashboardData.loading ? 'animate-spin' : ''}`} />
-                Retry
+                <Settings className="h-4 w-4" />
               </Button>
-            )}
+            </div>
           </div>
 
           {dashboardData.error && (
@@ -209,41 +219,14 @@ const Dashboard = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
-            <div className="lg:col-span-2 space-y-4 md:space-y-6">
-              <PortfolioSummary 
-                balance={displayBalance}
-                profitLoss={dashboardData.tokensInPlay}
-                pendingOrderTokens={dashboardData.pendingOrderTokens}
-                onBuyTokens={() => setShowBuyTokensDialog(true)}
-              />
-              <PLChart data={dashboardData.chartData} />
-            </div>
-            
-            <div id="wallet-section" className="space-y-4 md:space-y-6">
-              <WalletActions 
-                balance={displayBalance}
-                onBalanceUpdate={() => dashboardData.refetch()}
-                userId={user?.id}
-              />
-              <div className="flex flex-col gap-3">
-                <Button 
-                  className="w-full h-12 bg-accent text-accent-foreground hover:bg-accent/90"
-                  onClick={() => navigate('/markets')}
-                >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Browse Markets
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full h-12"
-                  onClick={() => navigate('/settings')}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Account Settings
-                </Button>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
+            <PortfolioSummary 
+              balance={displayBalance}
+              profitLoss={dashboardData.tokensInPlay}
+              pendingOrderTokens={dashboardData.pendingOrderTokens}
+              onBuyTokens={() => setShowBuyTokensDialog(true)}
+            />
+            <PLChart data={dashboardData.chartData} />
           </div>
 
           <div className="space-y-4 md:space-y-6">
