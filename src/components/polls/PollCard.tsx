@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, Pencil } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PollEditForm } from "./PollEditForm";
+import { formatDistanceToNow } from "date-fns";
 
 interface PollOption {
   id: string;
@@ -35,10 +36,9 @@ interface PollCardProps {
 
 const STAKE_OPTIONS = [5, 10, 15, 20];
 
-export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardProps) => {
+export const PollCard = ({ poll, onVoted }: PollCardProps) => {
   const { user, refetchProfile, isAdmin } = useAuth();
   const { toast } = useToast();
-  const [expanded, setExpanded] = useState(defaultExpanded);
   const [editing, setEditing] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [selectedStake, setSelectedStake] = useState<number>(5);
@@ -73,7 +73,6 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
     }
     setVoting(true);
     try {
-      // Re-check poll status server-side
       const { data: pollCheck } = await supabase
         .from("prediction_polls")
         .select("status, closes_at")
@@ -125,145 +124,95 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
     }
   };
 
-  const timeLeft = () => {
+  const closesIn = () => {
     const diff = new Date(poll.closes_at).getTime() - Date.now();
     if (diff <= 0) return "Closed";
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+    return `Closes in ${formatDistanceToNow(new Date(poll.closes_at))}`;
   };
 
-  // Compact collapsed view
-  if (!expanded) {
-    return (
-      <Card
-        className="overflow-hidden cursor-pointer hover:border-primary/40 transition-colors"
-        onClick={() => setExpanded(true)}
-      >
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground line-clamp-2 mb-2">{poll.question}</p>
-              <div className="flex items-center flex-wrap gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Users className="h-3 w-3" />{totalVotes} votes</span>
-                <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{poll.total_pool} tokens</span>
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeLeft()}</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end gap-2 shrink-0">
-              <Badge variant={isResolved ? "default" : isClosed ? "secondary" : "outline"} className="shrink-0">
-                {isResolved ? "Resolved" : isClosed ? "Closed" : "Open"}
-              </Badge>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
+    const copyFallback = async () => {
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+      }
+      toast({ title: "Link copied!", description: "Share this poll with friends." });
+    };
+    try {
+      const optionsList = poll.options.map(o => `• ${o.option_text}`).join('\n');
+      const shareData = { title: poll.question, text: `TOKEN BASED POLL\n\n${poll.question}\n\nOptions:\n${optionsList}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`, url };
+      if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+        return;
+      }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return;
+    }
+    await copyFallback();
+  };
 
-  // Expanded full view
-  return (
-    <Card className={`overflow-hidden ${isResolved ? "border-accent/30" : "border-primary/30"}`}>
-      {editing ? (
-        <CardContent className="pt-5">
+  if (editing) {
+    return (
+      <Card className="overflow-hidden">
+        <CardContent className="pt-6">
           <PollEditForm
             poll={poll}
             onSaved={() => { setEditing(false); onVoted(); }}
             onCancel={() => setEditing(false)}
           />
         </CardContent>
-      ) : (
-      <>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base leading-tight">{poll.question}</CardTitle>
-          <div className="flex items-center gap-1.5 shrink-0">
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden border-border/50 shadow-md">
+      <CardContent className="p-5 sm:p-7">
+        {/* Top row: badge + actions */}
+        <div className="flex items-center justify-between mb-4">
+          <Badge className="bg-accent text-accent-foreground text-xs font-semibold px-2.5 py-0.5">
+            Poll
+          </Badge>
+          <div className="flex items-center gap-1">
             {isAdmin && !isResolved && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={(e) => { e.stopPropagation(); setEditing(true); }}
-              >
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditing(true); }}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpanded(false);
-              }}
-            >
-              <ChevronUp className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={async (e) => {
-                e.stopPropagation();
-                const url = `https://cricmaxx.com/polls?highlight=${poll.id}`;
-                const copyFallback = async () => {
-                  try {
-                    await navigator.clipboard.writeText(url);
-                  } catch {
-                    const input = document.createElement('input');
-                    input.value = url;
-                    document.body.appendChild(input);
-                    input.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(input);
-                  }
-                  toast({ title: "Link copied!", description: "Share this poll with friends." });
-                };
-                try {
-                  const optionsList = poll.options.map(o => `• ${o.option_text}`).join('\n');
-                  const shareData = { title: poll.question, text: `TOKEN BASED POLL\n\n${poll.question}\n\nOptions:\n${optionsList}\n\nHead on over to CricMaxx to predict!\n\nFor new users, use invite code WC26 to enter the website.`, url };
-                  if (typeof navigator.share === 'function' && navigator.canShare?.(shareData)) {
-                    await navigator.share(shareData);
-                    return;
-                  }
-                } catch (e: any) {
-                  if (e?.name === 'AbortError') return;
-                }
-                await copyFallback();
-              }}
-            >
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleShare}>
               <Share2 className="h-3.5 w-3.5" />
             </Button>
-            <Badge variant={isResolved ? "default" : isClosed ? "secondary" : "outline"} className="shrink-0">
-              {isResolved ? "Resolved" : isClosed ? "Closed" : "Open"}
-            </Badge>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
-          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{timeLeft()}</span>
-          <span className="flex items-center gap-1"><Users className="h-3 w-3" />{totalVotes} votes</span>
-          <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{poll.total_pool} tokens pool</span>
-        </div>
-        {poll.description && (
-          <p className="text-xs text-muted-foreground mt-2">{poll.description}</p>
-        )}
-      </CardHeader>
 
-      <CardContent className="space-y-4">
+        {/* Question */}
+        <h3 className="text-lg sm:text-xl font-bold text-foreground leading-snug mb-1">
+          {poll.question}
+        </h3>
+        {poll.description && (
+          <p className="text-xs text-muted-foreground mb-4">{poll.description}</p>
+        )}
+
+        {/* Options — voting or results */}
         {!hasVoted && !isClosed ? (
-          <>
+          <div className="mt-5 space-y-4">
             <div className="space-y-2">
               {poll.options.map((opt) => {
-                const optVotes = opt.vote_count || 0;
-                const optAmount = opt.total_amount || 0;
                 const isSelected = selectedOption === opt.id;
                 return (
-                   <button
+                  <button
                     key={opt.id}
                     type="button"
                     onClick={() => setSelectedOption(opt.id)}
-                    className={`w-full flex items-center gap-2 sm:gap-3 p-3 sm:p-3.5 rounded-xl border-2 transition-all duration-200 text-left ${
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
                       isSelected
                         ? "border-primary bg-primary/10 shadow-sm shadow-primary/20"
                         : "border-border hover:border-primary/40 hover:bg-muted/50"
@@ -274,21 +223,15 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
                     }`}>
                       {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{opt.option_text}</span>
-                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
-                        <span className="flex items-center gap-1"><Users className="h-3 w-3" />{optVotes}</span>
-                        <span className="flex items-center gap-1"><Coins className="h-3 w-3" />{optAmount} tokens</span>
-                      </div>
-                    </div>
+                    <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>{opt.option_text}</span>
                   </button>
                 );
               })}
             </div>
 
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Your vote costs tokens (weighted voting):</p>
-              <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+              <p className="text-xs text-muted-foreground mb-2">Stake tokens (weighted voting):</p>
+              <div className="grid grid-cols-4 gap-1.5">
                 {STAKE_OPTIONS.map((s) => (
                   <Button
                     key={s}
@@ -304,12 +247,12 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
             </div>
 
             {selectedOption && potentialPayout !== null && (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2.5 sm:p-3 rounded-lg bg-accent/10 border border-accent/20">
-                <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="flex items-center gap-1.5 text-xs">
                   <TrendingUp className="h-4 w-4 text-accent shrink-0" />
                   <span className="text-muted-foreground">Potential payout:</span>
                 </div>
-                <span className="text-sm font-bold text-accent ml-5 sm:ml-0">
+                <span className="text-sm font-bold text-accent">
                   {potentialPayout} tokens
                   <span className="text-[11px] font-normal text-muted-foreground ml-1">
                     ({((potentialPayout / selectedStake - 1) * 100).toFixed(0)}% return)
@@ -318,41 +261,37 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
               </div>
             )}
 
-            <Button
-              onClick={handleVote}
-              disabled={!selectedOption || voting || !user}
-              className="w-full"
-            >
+            <Button onClick={handleVote} disabled={!selectedOption || voting || !user} className="w-full">
               {voting ? "Placing vote..." : `Vote with ${selectedStake} tokens`}
             </Button>
-          </>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="mt-5 space-y-3">
             {poll.options.map((opt) => {
               const pct = poll.total_pool > 0 ? ((opt.total_amount || 0) / poll.total_pool) * 100 : 0;
               const isWinner = isResolved && poll.winning_option_id === opt.id;
               const isUserVote = poll.user_vote?.option_id === opt.id;
-              const optVotes = opt.vote_count || 0;
 
               return (
-                <div key={opt.id} className={`relative overflow-hidden rounded-lg border p-2.5 sm:p-3 ${isWinner ? "border-accent bg-accent/5" : "border-border"}`}>
-                  <div
-                    className="absolute inset-y-0 left-0 bg-primary/10 transition-all"
-                    style={{ width: `${pct}%` }}
-                  />
-                  <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5">
-                    <span className="text-sm font-medium flex items-center gap-1.5">
-                      {isWinner && <Trophy className="h-3.5 w-3.5 text-accent shrink-0" />}
-                      {isUserVote && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                <div key={opt.id} className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                      {isWinner && <Trophy className="h-3.5 w-3.5 text-accent" />}
+                      {isUserVote && <Check className="h-3.5 w-3.5 text-primary" />}
                       {opt.option_text}
                     </span>
-                    <span className="text-[11px] sm:text-xs text-muted-foreground">
-                      {optVotes} {optVotes === 1 ? "vote" : "votes"} · {(opt.total_amount || 0)} tokens · {pct.toFixed(0)}%
-                    </span>
+                    <span className="text-sm font-semibold text-muted-foreground">{pct.toFixed(0)}%</span>
+                  </div>
+                  <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${isWinner ? "bg-accent" : "bg-accent/60"}`}
+                      style={{ width: `${Math.max(pct, 1)}%` }}
+                    />
                   </div>
                 </div>
               );
             })}
+
             {hasVoted && poll.user_vote && !isResolved && (() => {
               const userStake = poll.user_vote!.amount;
               const userOptAmount = poll.options.find(o => o.id === poll.user_vote!.option_id)?.total_amount || 0;
@@ -364,7 +303,7 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
               const winnings = Math.round((estimatedPayout - userStake) * 100) / 100;
               return (
                 <>
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-accent/10 border border-accent/20 mt-2">
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-accent/10 border border-accent/20 mt-1">
                     <span className="text-xs text-muted-foreground">
                       If correct: <span className="font-semibold text-foreground">{userStake}</span> back + <span className="font-semibold text-accent">{winnings}</span> winnings
                     </span>
@@ -387,9 +326,25 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
             )}
           </div>
         )}
+
+        {/* Bottom stats */}
+        <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/50 text-xs text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5" />
+              {totalVotes} votes
+            </span>
+            <span className="flex items-center gap-1">
+              <Coins className="h-3.5 w-3.5" />
+              {poll.total_pool} pool
+            </span>
+          </div>
+          <span className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            {closesIn()}
+          </span>
+        </div>
       </CardContent>
-      </>
-      )}
     </Card>
   );
 };
