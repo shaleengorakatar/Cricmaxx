@@ -191,27 +191,63 @@ const UserManagementPanel = () => {
       const marketTokensWon = closedPositions.filter(p => (p.pnl || 0) > 0).reduce((sum, p) => sum + (p.pnl || 0), 0);
       const marketTokensLost = Math.abs(closedPositions.filter(p => (p.pnl || 0) < 0).reduce((sum, p) => sum + (p.pnl || 0), 0));
 
-      // Poll winnings/losses from transactions
+      // Poll winnings/losses - calculate NET profit per poll
       const allTransactions = transactionsRes.data || [];
-      const pollWinnings = allTransactions
-        .filter(t => {
-          const meta = t.metadata as any;
-          return meta?.source === 'poll_winnings';
-        })
-        .reduce((sum, t) => sum + Number(t.amount), 0);
-
-      // Poll losses: stakes on polls that resolved where user didn't win
-      let pollLosses = 0;
       const pollVotes = pollVotesRes.data || [];
-      pollVotes.forEach((vote: any) => {
-        const poll = vote.prediction_polls;
-        if (poll?.status === 'resolved' && poll?.winning_option_id && vote.option_id !== poll.winning_option_id) {
-          pollLosses += Number(vote.amount);
+      
+      // Build a map of poll_id -> payout amount from transactions
+      const pollPayoutMap = new Map<string, number>();
+      allTransactions.forEach(t => {
+        const meta = t.metadata as any;
+        if (meta?.source === 'poll_winnings') {
+          const pollId = meta?.poll_id;
+          if (pollId) {
+            pollPayoutMap.set(pollId, (pollPayoutMap.get(pollId) || 0) + Number(t.amount));
+          }
         }
       });
 
-      // Contest winnings/losses
-      let contestWinnings = 0;
+      // Build a map of poll_id -> refund amount
+      const pollRefundMap = new Map<string, number>();
+      allTransactions.forEach(t => {
+        const meta = t.metadata as any;
+        if (meta?.source === 'poll_refund') {
+          const pollId = meta?.poll_id;
+          if (pollId) {
+            pollRefundMap.set(pollId, (pollRefundMap.get(pollId) || 0) + Number(t.amount));
+          }
+        }
+      });
+
+      // Calculate net poll P&L per poll
+      let pollNetWinnings = 0;
+      let pollLosses = 0;
+      pollVotes.forEach((vote: any) => {
+        const poll = vote.prediction_polls;
+        const stake = Number(vote.amount);
+        const pollId = vote.poll_id;
+        const payout = pollPayoutMap.get(pollId) || 0;
+        const refund = pollRefundMap.get(pollId) || 0;
+
+        if (refund > 0) {
+          // Refunded poll - no win or loss
+          return;
+        }
+
+        if (poll?.status === 'resolved') {
+          if (poll?.winning_option_id && vote.option_id === poll.winning_option_id) {
+            // Won: net profit = payout - stake
+            const netProfit = payout - stake;
+            if (netProfit > 0) pollNetWinnings += netProfit;
+          } else if (poll?.winning_option_id && vote.option_id !== poll.winning_option_id) {
+            // Lost: full stake
+            pollLosses += stake;
+          }
+        }
+      });
+
+      // Contest winnings/losses - use NET profit (payout - buyIn)
+      let contestNetWinnings = 0;
       let contestLosses = 0;
       const contestEntries = contestEntriesRes.data || [];
       contestEntries.forEach((entry: any) => {
@@ -219,17 +255,16 @@ const UserManagementPanel = () => {
         if (contest?.status === 'resolved') {
           const payout = Number(entry.payout || 0);
           const buyIn = Number(contest.buy_in_amount || 0);
-          if (payout > 0) {
-            contestWinnings += payout;
-          }
-          // Buy-in is always a loss; payout offsets it
-          if (payout < buyIn) {
+          if (payout > buyIn) {
+            // Net profit only
+            contestNetWinnings += (payout - buyIn);
+          } else if (payout < buyIn) {
             contestLosses += (buyIn - payout);
           }
         }
       });
 
-      const tokensWon = marketTokensWon + pollWinnings + contestWinnings;
+      const tokensWon = marketTokensWon + pollNetWinnings + contestNetWinnings;
       const tokensLost = marketTokensLost + pollLosses + contestLosses;
 
       const totalDeposits = allTransactions.filter(t => t.type === 'deposit' && !(t.metadata as any)?.source?.startsWith('poll_')).reduce((sum, t) => sum + t.amount, 0) || 0;
@@ -407,14 +442,14 @@ const UserManagementPanel = () => {
                 <p className="text-[10px] text-muted-foreground">tokens added</p>
               </Card>
               <Card className="p-4 text-center">
-                <p className="text-xs text-muted-foreground">Tokens Won</p>
+                <p className="text-xs text-muted-foreground">Net Won</p>
                 <p className="text-xl font-bold text-green-500">+{userStats.tokensWon.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground">markets + polls + contests</p>
+                <p className="text-[10px] text-muted-foreground">profit from wins</p>
               </Card>
               <Card className="p-4 text-center">
-                <p className="text-xs text-muted-foreground">Tokens Lost</p>
+                <p className="text-xs text-muted-foreground">Net Lost</p>
                 <p className="text-xl font-bold text-red-500">-{userStats.tokensLost.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground">markets + polls + contests</p>
+                <p className="text-[10px] text-muted-foreground">stakes on losses</p>
               </Card>
             </div>
 
