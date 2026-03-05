@@ -24,6 +24,7 @@ const PollDetail = () => {
   const [selectedOption, setSelectedOption] = useState("");
   const [selectedStake, setSelectedStake] = useState(5);
   const [voting, setVoting] = useState(false);
+  const [changingVote, setChangingVote] = useState(false);
 
   const { data: poll, refetch } = useQuery({
     queryKey: ["poll-detail", id],
@@ -116,6 +117,32 @@ const PollDetail = () => {
       }
       toast({ title: "Vote placed!", description: `You staked ${selectedStake} tokens.` });
       refetchProfile();
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setVoting(false); }
+  };
+
+  const handleChangeVote = async () => {
+    if (!user || !selectedOption || !poll || !poll.user_vote) return;
+    if (selectedOption === poll.user_vote.option_id) {
+      toast({ title: "Same option", description: "Select a different option to change your vote.", variant: "destructive" });
+      return;
+    }
+    setVoting(true);
+    try {
+      const { data: pollCheck } = await supabase.from("prediction_polls").select("status, closes_at").eq("id", poll.id).single();
+      if (!pollCheck || pollCheck.status !== "open" || new Date(pollCheck.closes_at) < new Date()) {
+        toast({ title: "Poll closed", description: "This poll closed before your vote could be changed.", variant: "destructive" });
+        return;
+      }
+      const { error } = await supabase.from("poll_votes")
+        .update({ option_id: selectedOption })
+        .eq("poll_id", poll.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast({ title: "Vote changed!", description: "Your prediction has been updated." });
+      setChangingVote(false);
       refetch();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -225,6 +252,35 @@ const PollDetail = () => {
                     {voting ? "Placing vote..." : `Vote with ${selectedStake} tokens`}
                   </Button>
                 </div>
+              ) : changingVote && !isClosed ? (
+                <div className="mt-5 space-y-4">
+                  <p className="text-sm font-medium text-foreground">Change your prediction:</p>
+                  <div className="space-y-2">
+                    {poll.options.map((opt) => {
+                      const isSelected = selectedOption === opt.id;
+                      const wasPreviousVote = poll.user_vote?.option_id === opt.id;
+                      return (
+                        <button key={opt.id} type="button" onClick={() => setSelectedOption(opt.id)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${isSelected ? "border-primary bg-primary/10" : wasPreviousVote ? "border-muted-foreground/30 bg-muted/30" : "border-border hover:border-primary/40 hover:bg-muted/50"}`}>
+                          <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
+                            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                          </div>
+                          <span className={`text-sm font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
+                            {opt.option_text}
+                            {wasPreviousVote && <span className="text-xs text-muted-foreground ml-2">(current)</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setChangingVote(false)} className="flex-1">Cancel</Button>
+                    <Button onClick={handleChangeVote} disabled={!selectedOption || selectedOption === poll.user_vote?.option_id || voting} className="flex-1">
+                      {voting ? "Changing..." : "Confirm Change"}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground text-center">Your stake amount stays the same ({poll.user_vote?.amount} tokens).</p>
+                </div>
               ) : (
                 <div className="mt-5 space-y-3">
                   {poll.options.map((opt) => {
@@ -247,6 +303,11 @@ const PollDetail = () => {
                       </div>
                     );
                   })}
+                  {hasVoted && !isClosed && !isResolved && (
+                    <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => { setChangingVote(true); setSelectedOption(poll.user_vote?.option_id || ""); }}>
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" /> Change Your Vote
+                    </Button>
+                  )}
                   {hasVoted && poll.user_vote && !isResolved && (() => {
                     const userStake = poll.user_vote!.amount;
                     const userOptAmount = poll.options.find(o => o.id === poll.user_vote!.option_id)?.total_amount || 0;
