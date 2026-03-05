@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackEvent } from "@/lib/posthog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ const BuyTokensDialog = ({ isOpen, onClose, onSuccess }: BuyTokensDialogProps) =
       if (data?.success) {
         // Immediately refresh profile to update balance everywhere
         await refetchProfile();
+        trackEvent('tokens_purchased', { amount: finalAmount });
         toast({
           title: "Tokens added",
           description: `${finalAmount} tokens added to your wallet`,

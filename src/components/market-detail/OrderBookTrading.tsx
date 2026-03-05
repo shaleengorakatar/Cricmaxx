@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { trackEvent } from "@/lib/posthog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -364,6 +365,14 @@ const OrderBookTrading = ({
       } else if (filledQty > 0) {
         // Show success with detailed position info
         haptic('success');
+        trackEvent('trade_placed', {
+          market_id: marketId,
+          side,
+          order_type: 'market',
+          quantity: filledQty,
+          avg_price: avgPrice,
+          total_cost: actualCost,
+        });
         const winText = position?.netPayout 
           ? ` — if correct, you win ${position.netPayout.toFixed(2)} tokens`
           : '';
@@ -470,6 +479,15 @@ const OrderBookTrading = ({
         : `${filledQty}/${qty} contracts @ ${(price * 100).toFixed(0)}¢`;
 
       haptic('success');
+      trackEvent('trade_placed', {
+        market_id: marketId,
+        side,
+        order_type: 'limit',
+        quantity: qty,
+        price,
+        filled_quantity: filledQty,
+        status: isFilled ? 'filled' : isPartial ? 'partial' : 'pending',
+      });
       toast({
         title: status,
         description,

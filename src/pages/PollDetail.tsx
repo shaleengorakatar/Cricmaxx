@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { trackEvent } from "@/lib/posthog";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,6 +147,7 @@ const PollDetail = () => {
         else throw error;
         return;
       }
+      trackEvent('poll_vote_placed', { poll_id: poll.id, option_id: selectedOption, stake: selectedStake });
       toast({ title: "Vote placed!", description: `You staked ${selectedStake} tokens.` });
       refetchProfile();
       refetch();

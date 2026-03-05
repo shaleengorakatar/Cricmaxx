@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackEvent } from "@/lib/posthog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,6 +128,7 @@ const MarketCreationForm = ({ onMarketCreated }: MarketCreationFormProps) => {
         throw marketError;
       }
 
+      trackEvent('market_created', { category: template.category, question });
       toast({
         title: "Market submitted for review",
         description: "Your market will be reviewed by CricMaxx admins and go live once approved.",

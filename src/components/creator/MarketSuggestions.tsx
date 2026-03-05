@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackEvent } from "@/lib/posthog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -211,6 +212,7 @@ const MarketSuggestions = () => {
 
       if (error) throw error;
 
+      trackEvent('market_created', { category: suggestion.category, question: suggestion.question, source: 'suggestion' });
       toast.success("Market created and submitted for approval!");
       // Remove from suggestions
       setSuggestions(prev => prev.filter(s => s.id !== suggestion.id));
