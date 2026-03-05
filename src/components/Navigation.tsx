@@ -14,6 +14,7 @@ import {
 import { User, Settings, LogOut, Coins, PlusCircle } from "lucide-react";
 import { NotificationsBell } from "./notifications/NotificationsBell";
 import PaymentMethodsDialog from "./wallet/PaymentMethodsDialog";
+import { useFeatureFlags, FEATURE_FLAGS } from "@/hooks/useFeatureFlags";
 const cricmaxxLogo = "/assets/cricmaxx-logo.png";
 
 const Navigation = () => {
@@ -24,6 +25,7 @@ const Navigation = () => {
   const goToLogin = () => navigate(`/auth?mode=login&redirect=${encodeURIComponent(location.pathname + location.search)}`);
   const goToSignup = () => navigate(`/auth?mode=signup&redirect=${encodeURIComponent(location.pathname + location.search)}`);
   const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+  const featureFlags = useFeatureFlags();
   
   // Only show authenticated links when auth is fully resolved AND user is authenticated
   const showAuthenticatedLinks = !loading && isAuthenticated;
@@ -48,8 +50,12 @@ const Navigation = () => {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-5 flex-1">
             <NavLink to="/" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Home</NavLink>
-            <NavLink to="/polls" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Polls</NavLink>
-            <NavLink to="/contests" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Contests</NavLink>
+            {featureFlags[FEATURE_FLAGS.POLLS] && (
+              <NavLink to="/polls" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Polls</NavLink>
+            )}
+            {featureFlags[FEATURE_FLAGS.PREDICTION_CONTESTS] && (
+              <NavLink to="/contests" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Contests</NavLink>
+            )}
             <NavLink to="/markets" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">Markets</NavLink>
             <NavLink to="/rapidpred" className="text-sm text-foreground hover:text-primary transition-colors" activeClassName="text-primary font-semibold">RapidPred</NavLink>
             {showAuthenticatedLinks && (
