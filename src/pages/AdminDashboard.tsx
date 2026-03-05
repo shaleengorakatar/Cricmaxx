@@ -21,10 +21,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useFeatureFlag, FEATURE_FLAGS } from "@/hooks/useFeatureFlags";
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const oracleEnabled = useFeatureFlag(FEATURE_FLAGS.ORACLE_MARKETS);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -154,7 +156,7 @@ const AdminDashboard = () => {
             <TabsContent value="resolution">
               <div className="space-y-6">
                 <MarketResolutionPanel />
-                <OracleResolutionPanel />
+                {oracleEnabled && <OracleResolutionPanel />}
               </div>
             </TabsContent>
 

@@ -10,6 +10,8 @@ import { TradingPreferencesProvider } from "@/hooks/useTradingPreferences";
 import { AuthProvider } from "@/contexts/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
 import InviteGate from "@/components/InviteGate";
+import { FeatureGate } from "@/components/FeatureGate";
+import { FEATURE_FLAGS } from "@/hooks/useFeatureFlags";
 import Index from "./pages/Index";
 
 // Lazy load all non-critical pages for code splitting
@@ -100,9 +102,9 @@ const App = () => {
                       <Route path="/invite/:token" element={<FriendInvite />} />
                       <Route path="/creator" element={<CreatorDashboard />} />
                       <Route path="/admin" element={<AdminDashboard />} />
-                      <Route path="/polls" element={<PredictionPolls />} />
-                      <Route path="/poll/:id" element={<PollDetail />} />
-                      <Route path="/contests" element={<PredictionContests />} />
+                      <Route path="/polls" element={<FeatureGate flag={FEATURE_FLAGS.POLLS} fallback={<NotFound />}><PredictionPolls /></FeatureGate>} />
+                      <Route path="/poll/:id" element={<FeatureGate flag={FEATURE_FLAGS.POLLS} fallback={<NotFound />}><PollDetail /></FeatureGate>} />
+                      <Route path="/contests" element={<FeatureGate flag={FEATURE_FLAGS.PREDICTION_CONTESTS} fallback={<NotFound />}><PredictionContests /></FeatureGate>} />
                       <Route path="/settings" element={<AccountSettings />} />
                       <Route path="/account-settings" element={<AccountSettings />} />
                       <Route path="/terms" element={<TermsOfUse />} />

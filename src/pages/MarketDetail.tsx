@@ -18,6 +18,7 @@ import { useRealtimeMarketPrices, useRealtimeTrades } from "@/hooks/useRealtimeM
 import { RealtimeStatus } from "@/components/ui/realtime-indicators";
 import { supabase } from "@/integrations/supabase/client";
 import { useBatchIndicativePrices } from "@/hooks/useBatchIndicativePrices";
+import { useFeatureFlag, FEATURE_FLAGS } from "@/hooks/useFeatureFlags";
 
 const generatePriceHistory = (yesPrice: number) => {
   const data = [];
@@ -50,6 +51,7 @@ const MarketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { profile, isAuthenticated, user } = useAuth();
+  const orderBookEnabled = useFeatureFlag(FEATURE_FLAGS.ORDER_BOOK_TRADING);
 
   const [market, setMarket] = useState<Market | null>(null);
   const [marketStatus, setMarketStatus] = useState<string>('open');
@@ -270,17 +272,19 @@ const MarketDetail = () => {
             </div>
 
             {/* ── Trading panel — directly below title on mobile, no gap ── */}
-            <div className="border-t border-border lg:hidden" ref={tradingPanelRef}>
-              <OrderBookTrading
-                marketId={market.id}
-                yesPrice={market.yesPrice}
-                noPrice={market.noPrice}
-                userBalance={profile?.balance || 0}
-                platformFeePercent={marketFees.platform}
-                creatorFeePercent={marketFees.creator}
-                defaultSide={selectedSide}
-              />
-            </div>
+            {orderBookEnabled && (
+              <div className="border-t border-border lg:hidden" ref={tradingPanelRef}>
+                <OrderBookTrading
+                  marketId={market.id}
+                  yesPrice={market.yesPrice}
+                  noPrice={market.noPrice}
+                  userBalance={profile?.balance || 0}
+                  platformFeePercent={marketFees.platform}
+                  creatorFeePercent={marketFees.creator}
+                  defaultSide={selectedSide}
+                />
+              </div>
+            )}
 
             {/* ── Tabs section — continues below trading on mobile ── */}
             <div className="border-t border-border lg:hidden">
@@ -451,17 +455,19 @@ const MarketDetail = () => {
             </div>
 
             {/* Right: Trading panel */}
-            <div ref={tradingPanelRef}>
-              <OrderBookTrading
-                marketId={market.id}
-                yesPrice={market.yesPrice}
-                noPrice={market.noPrice}
-                userBalance={profile?.balance || 0}
-                platformFeePercent={marketFees.platform}
-                creatorFeePercent={marketFees.creator}
-                defaultSide={selectedSide}
-              />
-            </div>
+            {orderBookEnabled && (
+              <div ref={tradingPanelRef}>
+                <OrderBookTrading
+                  marketId={market.id}
+                  yesPrice={market.yesPrice}
+                  noPrice={market.noPrice}
+                  userBalance={profile?.balance || 0}
+                  platformFeePercent={marketFees.platform}
+                  creatorFeePercent={marketFees.creator}
+                  defaultSide={selectedSide}
+                />
+              </div>
+            )}
 
           </div>
 
