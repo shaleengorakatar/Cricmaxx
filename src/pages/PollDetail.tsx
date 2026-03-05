@@ -6,7 +6,8 @@ import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, Pencil, ArrowLeft } from "lucide-react";
+import { Clock, Users, Trophy, Check, Coins, TrendingUp, Share2, Pencil, ArrowLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,9 @@ const PollDetail = () => {
   const [selectedStake, setSelectedStake] = useState(5);
   const [voting, setVoting] = useState(false);
   const [changingVote, setChangingVote] = useState(false);
+  const [votersExpanded, setVotersExpanded] = useState(false);
+  const [voters, setVoters] = useState<{ user_name: string; user_email: string; option_text: string; amount: number }[]>([]);
+  const [loadingVoters, setLoadingVoters] = useState(false);
 
   const { data: poll, refetch } = useQuery({
     queryKey: ["poll-detail", id],
@@ -76,6 +80,33 @@ const PollDetail = () => {
   const isResolved = poll?.status === "resolved";
   const hasVoted = !!poll?.user_vote;
   const totalVotes = poll?.options.reduce((sum, o) => sum + (o.vote_count || 0), 0) ?? 0;
+
+  const fetchVoters = async () => {
+    if (votersExpanded) { setVotersExpanded(false); return; }
+    if (!poll || !id) return;
+    setLoadingVoters(true);
+    const { data } = await supabase
+      .from("poll_votes")
+      .select("user_id, amount, option_id")
+      .eq("poll_id", id);
+    if (!data?.length) { setVoters([]); setVotersExpanded(true); setLoadingVoters(false); return; }
+    const userIds = [...new Set(data.map(v => v.user_id))];
+    const optionIds = [...new Set(data.map(v => v.option_id))];
+    const [{ data: profiles }, { data: options }] = await Promise.all([
+      supabase.from("profiles").select("id, name, email, display_name, username").in("id", userIds),
+      supabase.from("poll_options").select("id, option_text").in("id", optionIds),
+    ]);
+    const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
+    const optionMap = Object.fromEntries((options || []).map(o => [o.id, o.option_text]));
+    setVoters(data.map(v => ({
+      user_name: profileMap[v.user_id]?.display_name || profileMap[v.user_id]?.username || profileMap[v.user_id]?.name || "Unknown",
+      user_email: profileMap[v.user_id]?.email || "",
+      option_text: optionMap[v.option_id] || "Unknown",
+      amount: Number(v.amount),
+    })));
+    setVotersExpanded(true);
+    setLoadingVoters(false);
+  };
 
   const potentialPayout = useMemo(() => {
     if (!poll || !selectedOption || !selectedStake) return null;
@@ -337,6 +368,56 @@ const PollDetail = () => {
                 </div>
                 <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{closesIn()}</span>
               </div>
+
+              {/* Admin: Show Participants */}
+              {isAdmin && (
+                <div className="mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-xs text-muted-foreground"
+                    onClick={fetchVoters}
+                    disabled={loadingVoters}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1" />
+                    {loadingVoters ? "Loading..." : votersExpanded ? "Hide Participants" : "Show Participants"}
+                    {votersExpanded ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+                  </Button>
+                  {votersExpanded && (
+                    <div className="mt-2">
+                      {voters.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-2">No participants yet</p>
+                      ) : (
+                        <div className="rounded-md border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-xs h-8 px-2">User</TableHead>
+                                <TableHead className="text-xs h-8 px-2">Option</TableHead>
+                                <TableHead className="text-xs h-8 px-2 text-right">Stake</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {voters.map((v, i) => (
+                                <TableRow key={i}>
+                                  <TableCell className="text-xs py-1.5 px-2">
+                                    <div>{v.user_name}</div>
+                                    <div className="text-[10px] text-muted-foreground">{v.user_email}</div>
+                                  </TableCell>
+                                  <TableCell className="text-xs py-1.5 px-2">
+                                    <Badge variant="outline" className="text-[10px]">{v.option_text}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-xs py-1.5 px-2 text-right font-medium">{v.amount}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
