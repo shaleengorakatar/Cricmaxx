@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { trackEvent } from "@/lib/posthog";
 import { Card, CardContent } from "@/components/ui/card";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,7 @@ export const PollCard = ({ poll, onVoted, defaultExpanded = false }: PollCardPro
         } else { throw error; }
         return;
       }
+      trackEvent('poll_vote_placed', { poll_id: poll.id, option_id: selectedOption, stake: selectedStake });
       toast({ title: "Vote placed!", description: `You staked ${selectedStake} tokens.` });
       refetchProfile();
       onVoted();
