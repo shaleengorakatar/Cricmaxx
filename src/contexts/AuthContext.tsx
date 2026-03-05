@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { clearAuthStorage, handleAuthError, isAuthTokenCorrupted } from "@/lib/authUtils";
+import { identifyUser, resetUser } from "@/lib/posthog";
 
 export interface UserProfile {
   id: string;
@@ -111,6 +112,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       setProfileError(false);
       setProfileLoading(false);
+
+      // Identify user in PostHog
+      identifyUser(userId, {
+        email: profileData.email,
+        name: profileData.name,
+        username: profileData.username,
+      });
 
       // Fetch roles
       const { data: rolesData, error: rolesError } = await supabase
@@ -338,6 +346,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     // Clear state first
     clearAuthState();
+    
+    // Reset PostHog identity
+    resetUser();
     
     // Clear storage
     clearAuthStorage();
