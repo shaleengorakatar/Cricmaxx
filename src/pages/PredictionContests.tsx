@@ -633,19 +633,20 @@ const PredictionContests = () => {
                             return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
                           });
 
-                          // Admins see full leaderboard, others see top 3 + own entry
-                          const visibleEntries = isAdmin ? sorted : sorted.slice(0, 3);
-                          const myEntry = !isAdmin && user ? sorted.find((e, idx) => e.user_id === user.id && idx >= 3) : null;
+                          // Admins see full leaderboard, others see top 4 + own entry
+                          const visibleEntries = isAdmin ? sorted : sorted.slice(0, 4);
+                          const myEntry = !isAdmin && user ? sorted.find((e, idx) => e.user_id === user.id && idx >= 4) : null;
                           const myIdx = myEntry ? sorted.indexOf(myEntry) : -1;
 
                           const renderEntry = (entry: ContestEntry, idx: number) => {
                             const prof = entryProfiles?.[entry.user_id];
                             const isMe = entry.user_id === user?.id;
                             const rankNum = entry.rank ?? idx + 1;
-                            const rankIcon = rankNum === 1 ? "🥇" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : null;
-                            const prizeLabel = rankNum === 1 ? `${(totalPot * 0.5).toFixed(0)} tokens` 
-                              : rankNum === 2 ? `${(totalPot * 0.3).toFixed(0)} tokens`
-                              : rankNum === 3 ? `${(totalPot * 0.2).toFixed(0)} tokens` : null;
+                            const rankIcon = rankNum === 1 ? "🥇" : rankNum === 2 ? "🥈" : rankNum === 3 ? "🥉" : rankNum === 4 ? "🎖️" : null;
+                            const prizeLabel = rankNum === 1 ? `${(totalPot * 0.40).toFixed(0)} tokens` 
+                              : rankNum === 2 ? `${(totalPot * 0.25).toFixed(0)} tokens`
+                              : rankNum === 3 ? `${(totalPot * 0.20).toFixed(0)} tokens`
+                              : rankNum === 4 ? `${(totalPot * 0.15).toFixed(0)} tokens` : null;
                             const hasScore = entry.score > 0 || isResolved;
                             return (
                               <div key={entry.id} className={cn(
