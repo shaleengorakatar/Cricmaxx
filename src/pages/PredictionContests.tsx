@@ -723,7 +723,7 @@ const PredictionContests = () => {
                               {visibleEntries.map((entry, idx) => renderEntry(entry, idx))}
                               {myEntry && (
                                 <>
-                                  {myIdx > 3 && (
+                                  {myIdx > 4 && (
                                     <div className="px-4 py-2 text-center text-xs text-muted-foreground">···</div>
                                   )}
                                   {renderEntry(myEntry, myIdx)}
