@@ -80,7 +80,7 @@ const Hero = () => {
               {[
                 { icon: Coins, title: "Polls", desc: "Stake tokens. Winners split the pool." },
                 { icon: BarChart3, title: "Markets", desc: "Buy Yes/No (1¢–99¢). Correct = $1." },
-                { icon: Trophy, title: "Contests", desc: "Buy-in, answer, win pot (50/30/20)." },
+                { icon: Trophy, title: "Contests", desc: "Buy-in, answer, win pot (40/25/20/15)." },
               ].map(({ icon: Icon, title, desc }) => (
                 <div key={title} className="flex flex-col lg:flex-row items-center lg:items-center gap-1 lg:gap-2 text-center lg:text-left">
                   <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0">
