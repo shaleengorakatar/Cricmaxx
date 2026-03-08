@@ -36,22 +36,25 @@ export function useFeatureFlag(flag: FeatureFlagKey): boolean {
 
 /**
  * Get all app feature flags at once.
+ * Defaults to `true` if flags don't exist in PostHog (opt-out model).
  */
 export function useFeatureFlags() {
+  const getFlag = (key: FeatureFlagKey) => posthog.isFeatureEnabled(key) !== false;
+
   const [flags, setFlags] = useState<Record<FeatureFlagKey, boolean>>(() => ({
-    [FEATURE_FLAGS.ORDER_BOOK_TRADING]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.ORDER_BOOK_TRADING),
-    [FEATURE_FLAGS.PREDICTION_CONTESTS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.PREDICTION_CONTESTS),
-    [FEATURE_FLAGS.ORACLE_MARKETS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.ORACLE_MARKETS),
-    [FEATURE_FLAGS.POLLS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.POLLS),
+    [FEATURE_FLAGS.ORDER_BOOK_TRADING]: true,
+    [FEATURE_FLAGS.PREDICTION_CONTESTS]: true,
+    [FEATURE_FLAGS.ORACLE_MARKETS]: true,
+    [FEATURE_FLAGS.POLLS]: true,
   }));
 
   useEffect(() => {
     const update = () => {
       setFlags({
-        [FEATURE_FLAGS.ORDER_BOOK_TRADING]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.ORDER_BOOK_TRADING),
-        [FEATURE_FLAGS.PREDICTION_CONTESTS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.PREDICTION_CONTESTS),
-        [FEATURE_FLAGS.ORACLE_MARKETS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.ORACLE_MARKETS),
-        [FEATURE_FLAGS.POLLS]: !!posthog.isFeatureEnabled(FEATURE_FLAGS.POLLS),
+        [FEATURE_FLAGS.ORDER_BOOK_TRADING]: getFlag(FEATURE_FLAGS.ORDER_BOOK_TRADING),
+        [FEATURE_FLAGS.PREDICTION_CONTESTS]: getFlag(FEATURE_FLAGS.PREDICTION_CONTESTS),
+        [FEATURE_FLAGS.ORACLE_MARKETS]: getFlag(FEATURE_FLAGS.ORACLE_MARKETS),
+        [FEATURE_FLAGS.POLLS]: getFlag(FEATURE_FLAGS.POLLS),
       });
     };
 
