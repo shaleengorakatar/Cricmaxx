@@ -48,7 +48,7 @@ const ContestHowItWorks = ({ compact = false }: ContestHowItWorksProps) => {
             <div>
               <p className="font-medium text-foreground">Win from the prize pot</p>
               <p className="text-muted-foreground text-xs">
-                Top 3 win: <span className="font-semibold text-foreground">1st — 50%</span>, <span className="font-semibold text-foreground">2nd — 30%</span>, <span className="font-semibold text-foreground">3rd — 20%</span> of the total pot. If two players are fully tied for 1st, they split the combined 1st + 2nd prize equally (40% each), and 3rd gets 20%. If fewer than 3 join, the contest is voided and buy-ins refunded.
+                Top 4 win: <span className="font-semibold text-foreground">1st — 40%</span>, <span className="font-semibold text-foreground">2nd — 25%</span>, <span className="font-semibold text-foreground">3rd — 20%</span>, <span className="font-semibold text-foreground">4th — 15%</span> of the total pot. If players are fully tied, they split the combined prizes equally. If fewer than 3 join, the contest is voided and buy-ins refunded.
               </p>
             </div>
           </div>
