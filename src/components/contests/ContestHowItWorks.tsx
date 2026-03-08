@@ -58,7 +58,7 @@ const ContestHowItWorks = ({ compact = false }: ContestHowItWorksProps) => {
               <Users className="h-4 w-4 text-accent shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-foreground">Minimum participants required</p>
-                <p className="text-muted-foreground text-xs">Contests need at least 3 participants to resolve. Otherwise, everyone gets their tokens back.</p>
+                <p className="text-muted-foreground text-xs">Contests need at least 3 participants to resolve. Otherwise, everyone gets their tokens back. If fewer than 4 participate, prizes adjust accordingly.</p>
               </div>
             </div>
           )}
