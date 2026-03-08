@@ -13,14 +13,18 @@ type FeatureFlagKey = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
 
 /**
  * Check if a single feature flag is enabled.
- * Returns `false` while loading, then the resolved value.
+ * Defaults to `true` if the flag doesn't exist in PostHog (opt-out model).
  */
 export function useFeatureFlag(flag: FeatureFlagKey): boolean {
-  const [enabled, setEnabled] = useState(() => !!posthog.isFeatureEnabled(flag));
+  const [enabled, setEnabled] = useState(true); // Default to true
 
   useEffect(() => {
     // PostHog flags may load async — listen for ready
-    const update = () => setEnabled(!!posthog.isFeatureEnabled(flag));
+    const update = () => {
+      const value = posthog.isFeatureEnabled(flag);
+      // Only disable if explicitly set to false; undefined/null means not configured = enabled
+      setEnabled(value !== false);
+    };
 
     posthog.onFeatureFlags(update);
     // Also check immediately in case flags are already loaded
