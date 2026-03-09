@@ -137,6 +137,7 @@ const SimplifiedDebtsPanel = () => {
         return {
           userId,
           name: profile?.display_name || profile?.name || "Unknown",
+          region: (profile as any)?.region || null,
           pollStaked,
           pollWon,
           pollPnl,
