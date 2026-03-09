@@ -17,9 +17,12 @@ const AccountSettings = () => {
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [region, setRegion] = useState("");
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const REGIONS = ["India", "EU", "NA", "SEA", "Middle East", "Africa", "Other"];
 
   useEffect(() => {
     if (profile) {
