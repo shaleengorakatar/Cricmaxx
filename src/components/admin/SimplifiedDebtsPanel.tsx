@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeSimplifiedDebts,
@@ -18,6 +19,7 @@ import {
 interface UserPnL {
   userId: string;
   name: string;
+  region: string | null;
   pollStaked: number;
   pollWon: number;
   pollPnl: number;
