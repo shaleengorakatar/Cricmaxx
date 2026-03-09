@@ -170,7 +170,8 @@ const SimplifiedDebtsPanel = () => {
     toast({ title: "Region updated" });
   };
 
-
+  const toggleExclude = (userId: string) => {
+    setExcludedUsers(prev => {
       const next = new Set(prev);
       if (next.has(userId)) next.delete(userId);
       else next.add(userId);
