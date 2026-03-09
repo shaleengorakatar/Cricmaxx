@@ -158,8 +158,19 @@ const SimplifiedDebtsPanel = () => {
     }
   };
 
-  const toggleExclude = (userId: string) => {
-    setExcludedUsers(prev => {
+  const REGIONS = ["India", "EU", "NA", "SEA", "Middle East", "Africa", "Other"];
+
+  const handleSetRegion = async (userId: string, region: string) => {
+    const { error } = await supabase.from("profiles").update({ region } as any).eq("id", userId);
+    if (error) {
+      toast({ title: "Error", description: "Failed to update region", variant: "destructive" });
+      return;
+    }
+    setUserData(prev => prev.map(u => u.userId === userId ? { ...u, region } : u));
+    toast({ title: "Region updated" });
+  };
+
+
       const next = new Set(prev);
       if (next.has(userId)) next.delete(userId);
       else next.add(userId);
