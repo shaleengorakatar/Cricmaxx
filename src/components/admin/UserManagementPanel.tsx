@@ -416,7 +416,7 @@ const UserManagementPanel = () => {
               <h2 className="text-lg font-bold text-foreground">{selectedUser.name}</h2>
               {selectedUser.username && <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>}
               <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}</p>
+              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}{selectedUser.region ? ` • Region: ${selectedUser.region}` : ''}</p>
             </div>
             <div className="flex flex-wrap gap-1">
               <Badge variant={getHighestRole(selectedUser.roles) === 'admin' ? 'default' : 'secondary'}>
