@@ -167,10 +167,22 @@ const SimplifiedDebtsPanel = () => {
     });
   };
 
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    userData.forEach(u => { if (u.region) regions.add(u.region); });
+    return Array.from(regions).sort();
+  }, [userData]);
+
+  const filteredUserData = useMemo(() => {
+    if (selectedRegion === "all") return userData;
+    if (selectedRegion === "unset") return userData.filter(u => !u.region);
+    return userData.filter(u => u.region === selectedRegion);
+  }, [userData, selectedRegion]);
+
   const balances: UserBalance[] = useMemo(() => {
-    return userData
+    return filteredUserData
       .filter(u => !excludedUsers.has(u.userId))
-      .filter(u => Math.abs(u.totalPnl) > 0.01) // skip zero P&L users
+      .filter(u => Math.abs(u.totalPnl) > 0.01)
       .map(u => ({
         userId: u.userId,
         name: u.name,
@@ -181,7 +193,7 @@ const SimplifiedDebtsPanel = () => {
         marketPnlCents: toCents(u.marketPnl),
         netBalanceCents: toCents(u.totalPnl),
       }));
-  }, [userData, excludedUsers]);
+  }, [filteredUserData, excludedUsers]);
 
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
 
