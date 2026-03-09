@@ -113,6 +113,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setProfileError(false);
       setProfileLoading(false);
 
+      // Auto-detect region if not set
+      if (!profileData.region) {
+        detectAndSetRegion(userId);
+      }
+
       // Identify user in PostHog
       identifyUser(userId, {
         email: profileData.email,
