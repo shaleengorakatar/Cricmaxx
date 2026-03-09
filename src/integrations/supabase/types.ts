@@ -1386,6 +1386,7 @@ export type Database = {
           predictions_correct: number
           predictions_total: number
           rating_score: number
+          region: string | null
           share_trades_with_friends: boolean | null
           show_on_leaderboard: boolean
           stripe_account_id: string | null
@@ -1414,6 +1415,7 @@ export type Database = {
           predictions_correct?: number
           predictions_total?: number
           rating_score?: number
+          region?: string | null
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
           stripe_account_id?: string | null
@@ -1442,6 +1444,7 @@ export type Database = {
           predictions_correct?: number
           predictions_total?: number
           rating_score?: number
+          region?: string | null
           share_trades_with_friends?: boolean | null
           show_on_leaderboard?: boolean
           stripe_account_id?: string | null
