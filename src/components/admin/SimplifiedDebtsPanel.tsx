@@ -33,6 +33,7 @@ interface UserPnL {
 const SimplifiedDebtsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserPnL[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
   // Auto-exclude test accounts: Shaina Saluja & Tre
   const [excludedUsers, setExcludedUsers] = useState<Set<string>>(new Set([
     "82508f2a-8eec-4fd6-8f25-dafab0a8abdb", // shaina saluja
