@@ -164,6 +164,21 @@ const AccountSettings = () => {
                   </p>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="region" className="text-sm md:text-base">Region</Label>
+                  <Select value={region} onValueChange={setRegion}>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder="Select your region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REGIONS.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Used for settlement currency matching
+                  </p>
+                </div>
                   <Label htmlFor="email" className="text-sm md:text-base">Email</Label>
                   <Input
                     id="email"
