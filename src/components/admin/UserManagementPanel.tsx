@@ -92,7 +92,7 @@ const UserManagementPanel = () => {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, name, username, created_at, kyc_verified, balance')
+        .select('id, email, name, username, region, created_at, kyc_verified, balance')
         .order('created_at', { ascending: false })
         .limit(200);
 
