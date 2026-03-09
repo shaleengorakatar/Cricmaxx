@@ -222,6 +222,29 @@ const SimplifiedDebtsPanel = () => {
 
   return (
     <div className="space-y-6">
+      {/* Region Filter */}
+      <div className="flex items-center gap-3">
+        <Globe className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Region:</span>
+        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All regions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All regions</SelectItem>
+            <SelectItem value="unset">⚠️ No region set</SelectItem>
+            {availableRegions.map(r => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedRegion !== "all" && (
+          <Badge variant="outline" className="text-xs">
+            Showing {selectedRegion === "unset" ? "users without region" : selectedRegion} only
+          </Badge>
+        )}
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
