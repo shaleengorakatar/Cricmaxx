@@ -123,6 +123,7 @@ const UserManagementPanel = () => {
         email: profile.email,
         name: profile.name,
         username: profile.username,
+        region: (profile as any).region || null,
         created_at: profile.created_at,
         kyc_verified: profile.kyc_verified || false,
         balance: profile.balance || 0,
