@@ -65,11 +65,26 @@ Deno.serve(async (req) => {
 
   const results: { updated: number; skipped: number; errors: string[] } = { updated: 0, skipped: 0, errors: [] };
 
+  // Discover PostHog project ID
+  let projectId: string;
+  try {
+    const projRes = await fetch('https://us.i.posthog.com/api/projects/', {
+      headers: { Authorization: `Bearer ${posthogKey}` },
+    });
+    const projData = await projRes.json();
+    projectId = projData.results?.[0]?.id;
+    if (!projectId) {
+      return new Response(JSON.stringify({ error: 'Could not find PostHog project' }), { status: 500, headers: corsHeaders });
+    }
+  } catch (err) {
+    return new Response(JSON.stringify({ error: `PostHog project lookup failed: ${err.message}` }), { status: 500, headers: corsHeaders });
+  }
+
   // For each user, query PostHog for their last event with geo data
   for (const profile of profiles || []) {
     try {
       // Query PostHog persons by distinct_id
-      const searchUrl = `https://us.i.posthog.com/api/projects/98498/persons/?distinct_id=${profile.id}`;
+      const searchUrl = `https://us.i.posthog.com/api/projects/${projectId}/persons/?distinct_id=${profile.id}`;
       const phRes = await fetch(searchUrl, {
         headers: { Authorization: `Bearer ${posthogKey}` },
       });
