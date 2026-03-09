@@ -28,6 +28,7 @@ const AccountSettings = () => {
     if (profile) {
       setName(profile.name);
       setUsername(profile.username || "");
+      setRegion((profile as any).region || "");
       setMfaEnabled(profile.mfa_enabled);
       setShowOnLeaderboard(profile.show_on_leaderboard ?? true);
     }
