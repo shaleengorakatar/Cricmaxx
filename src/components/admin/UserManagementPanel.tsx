@@ -772,6 +772,11 @@ const UserManagementPanel = () => {
                     <Badge variant={getHighestRole(user.roles) === 'admin' ? 'default' : 'outline'} className="text-[10px] shrink-0">
                       {getHighestRole(user.roles)}
                     </Badge>
+                    {user.region && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        {user.region}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {user.username ? `@${user.username} • ` : ''}{user.email}
