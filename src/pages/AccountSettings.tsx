@@ -7,23 +7,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, User, Key, Trophy } from "lucide-react";
+import { Shield, User, Key, Trophy, Globe } from "lucide-react";
 
 const AccountSettings = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [region, setRegion] = useState("");
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  const REGIONS = ["India", "EU", "NA", "SEA", "Middle East", "Africa", "Other"];
 
   useEffect(() => {
     if (profile) {
       setName(profile.name);
       setUsername(profile.username || "");
+      setRegion((profile as any).region || "");
       setMfaEnabled(profile.mfa_enabled);
       setShowOnLeaderboard(profile.show_on_leaderboard ?? true);
     }
@@ -67,8 +72,9 @@ const AccountSettings = () => {
         .from('profiles')
         .update({ 
           name, 
-          username: username.toLowerCase() || null 
-        })
+          username: username.toLowerCase() || null,
+          region: region || null,
+        } as any)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -155,6 +161,22 @@ const AccountSettings = () => {
                   />
                   <p className="text-xs md:text-sm text-muted-foreground">
                     Letters, numbers, and underscores only. Used for friend searches.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="region" className="text-sm md:text-base">Region</Label>
+                  <Select value={region} onValueChange={setRegion}>
+                    <SelectTrigger className="h-12 text-base">
+                      <SelectValue placeholder="Select your region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REGIONS.map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs md:text-sm text-muted-foreground">
+                    Used for settlement currency matching
                   </p>
                 </div>
                 <div className="space-y-2">
