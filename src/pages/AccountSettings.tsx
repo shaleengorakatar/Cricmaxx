@@ -72,8 +72,9 @@ const AccountSettings = () => {
         .from('profiles')
         .update({ 
           name, 
-          username: username.toLowerCase() || null 
-        })
+          username: username.toLowerCase() || null,
+          region: region || null,
+        } as any)
         .eq('id', user.id);
 
       if (error) throw error;
