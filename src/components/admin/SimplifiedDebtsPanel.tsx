@@ -392,9 +392,16 @@ const SimplifiedDebtsPanel = () => {
                        </TableCell>
                        <TableCell className="font-medium">{u.name}</TableCell>
                        <TableCell>
-                         <Badge variant={u.region ? "outline" : "secondary"} className="text-xs">
-                           {u.region || "Not set"}
-                         </Badge>
+                         <Select value={u.region || ""} onValueChange={(val) => handleSetRegion(u.userId, val)}>
+                           <SelectTrigger className="h-7 w-28 text-xs">
+                             <SelectValue placeholder="Set region" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {REGIONS.map(r => (
+                               <SelectItem key={r} value={r}>{r}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
                        </TableCell>
                       <TableCell className={`text-right font-mono text-xs ${u.pollPnl > 0 ? "text-green-600" : u.pollPnl < 0 ? "text-red-500" : ""}`}>
                         {u.pollPnl !== 0 ? (u.pollPnl > 0 ? "+" : "") + formatCents(toCents(u.pollPnl)) : "—"}
