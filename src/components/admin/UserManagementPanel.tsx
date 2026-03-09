@@ -391,6 +391,21 @@ const UserManagementPanel = () => {
     onError: (e: Error) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
+  const [backfillLoading, setBackfillLoading] = useState(false);
+  const handleBackfillRegions = async () => {
+    setBackfillLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('backfill-regions');
+      if (error) throw error;
+      toast({ title: "Region backfill complete", description: `Updated: ${data.updated}, Skipped: ${data.skipped}${data.errors?.length ? `, Errors: ${data.errors.length}` : ''}` });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    } catch (e: any) {
+      toast({ title: "Backfill failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   const getHighestRole = (roles: string[]): string => {
     if (roles.includes('admin')) return 'admin';
     if (roles.includes('creator')) return 'creator';
