@@ -179,6 +179,7 @@ const AccountSettings = () => {
                     Used for settlement currency matching
                   </p>
                 </div>
+                <div className="space-y-2">
                   <Label htmlFor="email" className="text-sm md:text-base">Email</Label>
                   <Input
                     id="email"
