@@ -78,6 +78,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     userRef.current = null;
   }, []);
 
+  // Auto-detect user region from IP geolocation
+  const detectAndSetRegion = useCallback(async (userId: string) => {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      if (!res.ok) return;
+      const geo = await res.json();
+      const countryCode = geo.country_code;
+      const continent = geo.continent_code;
+
+      let region = 'Other';
+      if (countryCode === 'IN') region = 'India';
+      else if (['US', 'CA', 'MX'].includes(countryCode)) region = 'NA';
+      else if (continent === 'EU') region = 'EU';
+      else if (['SG', 'MY', 'TH', 'VN', 'PH', 'ID', 'MM', 'KH', 'LA', 'BN'].includes(countryCode)) region = 'SEA';
+      else if (['AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'JO', 'LB', 'IQ', 'IR', 'IL', 'PS', 'YE', 'SY'].includes(countryCode)) region = 'Middle East';
+      else if (continent === 'AF') region = 'Africa';
+
+      await supabase.from('profiles').update({ region } as any).eq('id', userId);
+      // Update local profile state
+      setProfile(prev => prev ? { ...prev, region } as any : prev);
+    } catch (err) {
+      console.log('[AuthContext] Region auto-detect failed (non-critical):', err);
+    }
+  }, []);
+
   // Fetch user profile and roles
   const fetchUserData = useCallback(async (userId: string): Promise<'success' | 'permission_denied' | 'error'> => {
     try {
