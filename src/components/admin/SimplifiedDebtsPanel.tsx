@@ -355,29 +355,35 @@ const SimplifiedDebtsPanel = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">Inc.</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Poll P&L</TableHead>
-                  <TableHead className="text-right">Contest P&L</TableHead>
-                  <TableHead className="text-right">Market P&L</TableHead>
-                  <TableHead className="text-right">Total P&L</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userData.map(u => {
-                  const excluded = excludedUsers.has(u.userId);
-                  const pnlCents = toCents(u.totalPnl);
-                  return (
-                    <TableRow key={u.userId} className={excluded ? "opacity-40" : ""}>
-                      <TableCell>
-                        <Checkbox
-                          checked={!excluded}
-                          onCheckedChange={() => toggleExclude(u.userId)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{u.name}</TableCell>
+                 <TableRow>
+                   <TableHead className="w-10">Inc.</TableHead>
+                   <TableHead>Name</TableHead>
+                   <TableHead>Region</TableHead>
+                   <TableHead className="text-right">Poll P&L</TableHead>
+                   <TableHead className="text-right">Contest P&L</TableHead>
+                   <TableHead className="text-right">Market P&L</TableHead>
+                   <TableHead className="text-right">Total P&L</TableHead>
+                   <TableHead className="text-right">Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {filteredUserData.map(u => {
+                   const excluded = excludedUsers.has(u.userId);
+                   const pnlCents = toCents(u.totalPnl);
+                   return (
+                     <TableRow key={u.userId} className={excluded ? "opacity-40" : ""}>
+                       <TableCell>
+                         <Checkbox
+                           checked={!excluded}
+                           onCheckedChange={() => toggleExclude(u.userId)}
+                         />
+                       </TableCell>
+                       <TableCell className="font-medium">{u.name}</TableCell>
+                       <TableCell>
+                         <Badge variant={u.region ? "outline" : "secondary"} className="text-xs">
+                           {u.region || "Not set"}
+                         </Badge>
+                       </TableCell>
                       <TableCell className={`text-right font-mono text-xs ${u.pollPnl > 0 ? "text-green-600" : u.pollPnl < 0 ? "text-red-500" : ""}`}>
                         {u.pollPnl !== 0 ? (u.pollPnl > 0 ? "+" : "") + formatCents(toCents(u.pollPnl)) : "—"}
                       </TableCell>
