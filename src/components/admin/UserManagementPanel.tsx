@@ -26,6 +26,7 @@ interface AdminUser {
   email: string;
   name: string;
   username: string | null;
+  region: string | null;
   created_at: string;
   kyc_verified: boolean;
   balance: number;
@@ -91,7 +92,7 @@ const UserManagementPanel = () => {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('id, email, name, username, created_at, kyc_verified, balance')
+        .select('id, email, name, username, region, created_at, kyc_verified, balance')
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -122,6 +123,7 @@ const UserManagementPanel = () => {
         email: profile.email,
         name: profile.name,
         username: profile.username,
+        region: (profile as any).region || null,
         created_at: profile.created_at,
         kyc_verified: profile.kyc_verified || false,
         balance: profile.balance || 0,
@@ -414,7 +416,7 @@ const UserManagementPanel = () => {
               <h2 className="text-lg font-bold text-foreground">{selectedUser.name}</h2>
               {selectedUser.username && <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>}
               <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}</p>
+              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}{selectedUser.region ? ` • Region: ${selectedUser.region}` : ''}</p>
             </div>
             <div className="flex flex-wrap gap-1">
               <Badge variant={getHighestRole(selectedUser.roles) === 'admin' ? 'default' : 'secondary'}>
@@ -770,6 +772,11 @@ const UserManagementPanel = () => {
                     <Badge variant={getHighestRole(user.roles) === 'admin' ? 'default' : 'outline'} className="text-[10px] shrink-0">
                       {getHighestRole(user.roles)}
                     </Badge>
+                    {user.region && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                        {user.region}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {user.username ? `@${user.username} • ` : ''}{user.email}
