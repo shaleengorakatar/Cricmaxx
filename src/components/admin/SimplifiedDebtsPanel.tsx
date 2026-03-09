@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeSimplifiedDebts,
@@ -18,6 +19,7 @@ import {
 interface UserPnL {
   userId: string;
   name: string;
+  region: string | null;
   pollStaked: number;
   pollWon: number;
   pollPnl: number;
@@ -31,6 +33,7 @@ interface UserPnL {
 const SimplifiedDebtsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<UserPnL[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
   // Auto-exclude test accounts: Shaina Saluja & Tre
   const [excludedUsers, setExcludedUsers] = useState<Set<string>>(new Set([
     "82508f2a-8eec-4fd6-8f25-dafab0a8abdb", // shaina saluja
@@ -48,7 +51,7 @@ const SimplifiedDebtsPanel = () => {
     try {
       // Fetch all data in parallel
       const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, display_name"),
+        supabase.from("profiles").select("id, name, display_name, region"),
         // Poll stakes on RESOLVED polls only
         supabase.from("poll_votes").select("user_id, amount, prediction_polls!inner(status)").eq("prediction_polls.status", "resolved"),
         // Poll winnings from transactions
@@ -134,6 +137,7 @@ const SimplifiedDebtsPanel = () => {
         return {
           userId,
           name: profile?.display_name || profile?.name || "Unknown",
+          region: (profile as any)?.region || null,
           pollStaked,
           pollWon,
           pollPnl,
@@ -154,6 +158,18 @@ const SimplifiedDebtsPanel = () => {
     }
   };
 
+  const REGIONS = ["India", "EU", "NA", "SEA", "Middle East", "Africa", "Other"];
+
+  const handleSetRegion = async (userId: string, region: string) => {
+    const { error } = await supabase.from("profiles").update({ region } as any).eq("id", userId);
+    if (error) {
+      toast({ title: "Error", description: "Failed to update region", variant: "destructive" });
+      return;
+    }
+    setUserData(prev => prev.map(u => u.userId === userId ? { ...u, region } : u));
+    toast({ title: "Region updated" });
+  };
+
   const toggleExclude = (userId: string) => {
     setExcludedUsers(prev => {
       const next = new Set(prev);
@@ -163,10 +179,22 @@ const SimplifiedDebtsPanel = () => {
     });
   };
 
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    userData.forEach(u => { if (u.region) regions.add(u.region); });
+    return Array.from(regions).sort();
+  }, [userData]);
+
+  const filteredUserData = useMemo(() => {
+    if (selectedRegion === "all") return userData;
+    if (selectedRegion === "unset") return userData.filter(u => !u.region);
+    return userData.filter(u => u.region === selectedRegion);
+  }, [userData, selectedRegion]);
+
   const balances: UserBalance[] = useMemo(() => {
-    return userData
+    return filteredUserData
       .filter(u => !excludedUsers.has(u.userId))
-      .filter(u => Math.abs(u.totalPnl) > 0.01) // skip zero P&L users
+      .filter(u => Math.abs(u.totalPnl) > 0.01)
       .map(u => ({
         userId: u.userId,
         name: u.name,
@@ -177,7 +205,7 @@ const SimplifiedDebtsPanel = () => {
         marketPnlCents: toCents(u.marketPnl),
         netBalanceCents: toCents(u.totalPnl),
       }));
-  }, [userData, excludedUsers]);
+  }, [filteredUserData, excludedUsers]);
 
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
 
@@ -206,6 +234,29 @@ const SimplifiedDebtsPanel = () => {
 
   return (
     <div className="space-y-6">
+      {/* Region Filter */}
+      <div className="flex items-center gap-3">
+        <Globe className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Region:</span>
+        <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All regions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All regions</SelectItem>
+            <SelectItem value="unset">⚠️ No region set</SelectItem>
+            {availableRegions.map(r => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedRegion !== "all" && (
+          <Badge variant="outline" className="text-xs">
+            Showing {selectedRegion === "unset" ? "users without region" : selectedRegion} only
+          </Badge>
+        )}
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -316,29 +367,42 @@ const SimplifiedDebtsPanel = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">Inc.</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Poll P&L</TableHead>
-                  <TableHead className="text-right">Contest P&L</TableHead>
-                  <TableHead className="text-right">Market P&L</TableHead>
-                  <TableHead className="text-right">Total P&L</TableHead>
-                  <TableHead className="text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userData.map(u => {
-                  const excluded = excludedUsers.has(u.userId);
-                  const pnlCents = toCents(u.totalPnl);
-                  return (
-                    <TableRow key={u.userId} className={excluded ? "opacity-40" : ""}>
-                      <TableCell>
-                        <Checkbox
-                          checked={!excluded}
-                          onCheckedChange={() => toggleExclude(u.userId)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{u.name}</TableCell>
+                 <TableRow>
+                   <TableHead className="w-10">Inc.</TableHead>
+                   <TableHead>Name</TableHead>
+                   <TableHead>Region</TableHead>
+                   <TableHead className="text-right">Poll P&L</TableHead>
+                   <TableHead className="text-right">Contest P&L</TableHead>
+                   <TableHead className="text-right">Market P&L</TableHead>
+                   <TableHead className="text-right">Total P&L</TableHead>
+                   <TableHead className="text-right">Status</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {filteredUserData.map(u => {
+                   const excluded = excludedUsers.has(u.userId);
+                   const pnlCents = toCents(u.totalPnl);
+                   return (
+                     <TableRow key={u.userId} className={excluded ? "opacity-40" : ""}>
+                       <TableCell>
+                         <Checkbox
+                           checked={!excluded}
+                           onCheckedChange={() => toggleExclude(u.userId)}
+                         />
+                       </TableCell>
+                       <TableCell className="font-medium">{u.name}</TableCell>
+                       <TableCell>
+                         <Select value={u.region || ""} onValueChange={(val) => handleSetRegion(u.userId, val)}>
+                           <SelectTrigger className="h-7 w-28 text-xs">
+                             <SelectValue placeholder="Set region" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {REGIONS.map(r => (
+                               <SelectItem key={r} value={r}>{r}</SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </TableCell>
                       <TableCell className={`text-right font-mono text-xs ${u.pollPnl > 0 ? "text-green-600" : u.pollPnl < 0 ? "text-red-500" : ""}`}>
                         {u.pollPnl !== 0 ? (u.pollPnl > 0 ? "+" : "") + formatCents(toCents(u.pollPnl)) : "—"}
                       </TableCell>
