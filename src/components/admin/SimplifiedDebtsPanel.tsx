@@ -51,7 +51,7 @@ const SimplifiedDebtsPanel = () => {
     try {
       // Fetch all data in parallel
       const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
-        supabase.from("profiles").select("id, name, display_name"),
+        supabase.from("profiles").select("id, name, display_name, region"),
         // Poll stakes on RESOLVED polls only
         supabase.from("poll_votes").select("user_id, amount, prediction_polls!inner(status)").eq("prediction_polls.status", "resolved"),
         // Poll winnings from transactions
