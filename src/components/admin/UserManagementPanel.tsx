@@ -26,6 +26,7 @@ interface AdminUser {
   email: string;
   name: string;
   username: string | null;
+  region: string | null;
   created_at: string;
   kyc_verified: boolean;
   balance: number;
