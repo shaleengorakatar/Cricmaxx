@@ -303,7 +303,7 @@ export function FeaturedMarketHero() {
     if (isRetry) { setLoading(true); setError(false); }
     const { now, maxExpiry } = getMarketDateRange();
     try {
-      // Fetch top markets
+      // Fetch top active markets
       const { data: mData, error: mErr } = await supabase
         .from("markets")
         .select("*")
@@ -315,8 +315,21 @@ export function FeaturedMarketHero() {
 
       if (mErr) throw mErr;
 
-      // Fetch one open poll
-      const { data: pData } = await supabase
+      // Fallback: if no active markets, show recently resolved ones
+      let marketsToUse = mData || [];
+      if (marketsToUse.length === 0) {
+        const { data: resolvedData } = await supabase
+          .from("markets")
+          .select("*")
+          .in("status", ["resolved", "settled"])
+          .order("resolved_at", { ascending: false })
+          .limit(5);
+        marketsToUse = resolvedData || [];
+      }
+
+      // Fetch one open poll, fallback to most recently resolved
+      let pData = null;
+      const { data: openPoll } = await supabase
         .from("prediction_polls")
         .select("id, question, closes_at, total_pool, poll_options(id, option_text)")
         .eq("status", "open")
@@ -324,6 +337,17 @@ export function FeaturedMarketHero() {
         .order("total_pool", { ascending: false })
         .limit(1)
         .maybeSingle();
+      pData = openPoll;
+      if (!pData) {
+        const { data: resolvedPoll } = await supabase
+          .from("prediction_polls")
+          .select("id, question, closes_at, total_pool, poll_options(id, option_text)")
+          .eq("status", "resolved")
+          .order("resolved_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        pData = resolvedPoll;
+      }
 
       // Fetch one open contest
       const { data: cData } = await supabase
@@ -335,7 +359,7 @@ export function FeaturedMarketHero() {
         .limit(1)
         .maybeSingle();
 
-      const marketSlides: FeaturedSlide[] = (mData || []).map((m) => ({
+      const marketSlides: FeaturedSlide[] = marketsToUse.map((m) => ({
         slideKind: "market" as const,
         id: m.id,
         question: m.question,
