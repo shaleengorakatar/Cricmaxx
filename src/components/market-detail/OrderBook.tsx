@@ -37,7 +37,7 @@ const OrderBook = ({ marketId }: OrderBookProps) => {
   const [isConnected, setIsConnected] = useState(false);
   
   // Debouncing refs for rapid updates
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFetchRef = useRef<number>(0);
   const DEBOUNCE_MS = 50; // Fast updates
 

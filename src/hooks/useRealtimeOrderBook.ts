@@ -32,7 +32,7 @@ export function useRealtimeOrderBook({
   const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFetchRef = useRef<number>(0);
 
   const fetchOrderBook = useCallback(async (force = false) => {

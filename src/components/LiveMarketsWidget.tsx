@@ -13,7 +13,7 @@ export default function LiveMarketsWidget() {
   const [error, setError] = useState(false);
   const navigate = useNavigate();
   const hasFetchedRef = useRef(false);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingRef = useRef(true); // Track loading state in ref for timeout closure
 
   const fetchLiveMarkets = useCallback(async (isRetry = false) => {
