@@ -461,7 +461,7 @@ const UserManagementPanel = () => {
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
+            </div>
             <div className="flex flex-wrap gap-1">
               <Badge variant={getHighestRole(selectedUser.roles) === 'admin' ? 'default' : 'secondary'}>
                 {getHighestRole(selectedUser.roles)}
