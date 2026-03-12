@@ -12,13 +12,25 @@ export function TopMarketsSection() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("markets")
-        .select("id, question, category, yes_price, no_price, volume, expiry_time, type, description, image_url")
+        .select("id, question, category, yes_price, no_price, volume, expiry_time, type, description, image_url, status")
         .in("status", ["approved", "open"])
         .gte("expiry_time", new Date().toISOString())
         .order("volume", { ascending: false })
         .limit(4);
       if (error) throw error;
-      return data || [];
+      
+      // Fallback: if no active markets, show recently resolved ones
+      if (!data || data.length === 0) {
+        const { data: resolved, error: rErr } = await supabase
+          .from("markets")
+          .select("id, question, category, yes_price, no_price, volume, expiry_time, type, description, image_url, status")
+          .in("status", ["resolved", "settled"])
+          .order("resolved_at", { ascending: false })
+          .limit(4);
+        if (rErr) throw rErr;
+        return resolved || [];
+      }
+      return data;
     },
   });
 

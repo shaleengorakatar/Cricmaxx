@@ -347,7 +347,7 @@ export function FeaturedMarketHero() {
         .limit(1)
         .maybeSingle();
 
-      const marketSlides: FeaturedSlide[] = (mData || []).map((m) => ({
+      const marketSlides: FeaturedSlide[] = marketsToUse.map((m) => ({
         slideKind: "market" as const,
         id: m.id,
         question: m.question,
