@@ -327,8 +327,9 @@ export function FeaturedMarketHero() {
         marketsToUse = resolvedData || [];
       }
 
-      // Fetch one open poll
-      const { data: pData } = await supabase
+      // Fetch one open poll, fallback to most recently resolved
+      let pData = null;
+      const { data: openPoll } = await supabase
         .from("prediction_polls")
         .select("id, question, closes_at, total_pool, poll_options(id, option_text)")
         .eq("status", "open")
@@ -336,6 +337,17 @@ export function FeaturedMarketHero() {
         .order("total_pool", { ascending: false })
         .limit(1)
         .maybeSingle();
+      pData = openPoll;
+      if (!pData) {
+        const { data: resolvedPoll } = await supabase
+          .from("prediction_polls")
+          .select("id, question, closes_at, total_pool, poll_options(id, option_text)")
+          .eq("status", "resolved")
+          .order("resolved_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        pData = resolvedPoll;
+      }
 
       // Fetch one open contest
       const { data: cData } = await supabase
