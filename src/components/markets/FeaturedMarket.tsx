@@ -17,7 +17,7 @@ export function FeaturedMarket() {
   const navigate = useNavigate();
   const { formatOdds } = useTradingPreferences();
   const hasFetchedRef = useRef(false);
-  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadingRef = useRef(true); // Track loading state in ref for timeout closure
 
   const fetchFeaturedMarket = useCallback(async (isRetry = false) => {
