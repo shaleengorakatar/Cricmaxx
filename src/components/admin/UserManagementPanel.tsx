@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, TrendingUp, TrendingDown, Trash2 } from "lucide-react";
+import { Shield, ShieldCheck, Sparkles, Loader2, Search, Crown, ChevronLeft, TrendingUp, TrendingDown, Trash2, Globe } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -431,7 +432,36 @@ const UserManagementPanel = () => {
               <h2 className="text-lg font-bold text-foreground">{selectedUser.name}</h2>
               {selectedUser.username && <p className="text-sm text-muted-foreground">@{selectedUser.username}</p>}
               <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
-              <p className="text-xs text-muted-foreground mt-1">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}{selectedUser.region ? ` • Region: ${selectedUser.region}` : ''}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-xs text-muted-foreground">Joined {format(new Date(selectedUser.created_at), "MMM d, yyyy")}</p>
+                <span className="text-xs text-muted-foreground">•</span>
+                <div className="flex items-center gap-1">
+                  <Globe className="h-3 w-3 text-muted-foreground" />
+                  <Select
+                    value={selectedUser.region || ""}
+                    onValueChange={async (val) => {
+                      const { error } = await supabase.from("profiles").update({ region: val } as any).eq("id", selectedUser.id);
+                      if (error) {
+                        toast({ title: "Error", description: "Failed to update region", variant: "destructive" });
+                        return;
+                      }
+                      queryClient.setQueryData(['admin-users'], (old: AdminUser[] | undefined) =>
+                        old?.map(u => u.id === selectedUser.id ? { ...u, region: val } : u)
+                      );
+                      toast({ title: "Region updated" });
+                    }}
+                  >
+                    <SelectTrigger className="h-6 w-28 text-xs">
+                      <SelectValue placeholder="Set region" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["India", "EU", "NA", "SEA", "Middle East", "Africa", "Other"].map(r => (
+                        <SelectItem key={r} value={r}>{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap gap-1">
               <Badge variant={getHighestRole(selectedUser.roles) === 'admin' ? 'default' : 'secondary'}>
