@@ -303,7 +303,7 @@ export function FeaturedMarketHero() {
     if (isRetry) { setLoading(true); setError(false); }
     const { now, maxExpiry } = getMarketDateRange();
     try {
-      // Fetch top markets
+      // Fetch top active markets
       const { data: mData, error: mErr } = await supabase
         .from("markets")
         .select("*")
@@ -314,6 +314,18 @@ export function FeaturedMarketHero() {
         .limit(5);
 
       if (mErr) throw mErr;
+
+      // Fallback: if no active markets, show recently resolved ones
+      let marketsToUse = mData || [];
+      if (marketsToUse.length === 0) {
+        const { data: resolvedData } = await supabase
+          .from("markets")
+          .select("*")
+          .in("status", ["resolved", "settled"])
+          .order("resolved_at", { ascending: false })
+          .limit(5);
+        marketsToUse = resolvedData || [];
+      }
 
       // Fetch one open poll
       const { data: pData } = await supabase
