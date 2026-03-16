@@ -407,7 +407,8 @@ const SimplifiedDebtsPanel = () => {
                           <TableHeader>
                           <TableRow>
                               <TableHead>User</TableHead>
-                              <TableHead className="text-right">Net P&L</TableHead>
+                              <TableHead className="text-right">Global P&L</TableHead>
+                              <TableHead className="text-right">Settleable</TableHead>
                               <TableHead className="text-right">Receiving</TableHead>
                               <TableHead className="text-right">Paying</TableHead>
                               <TableHead className="text-right">Outstanding</TableHead>
@@ -419,6 +420,8 @@ const SimplifiedDebtsPanel = () => {
                                 .filter(b => Math.abs(b.netBalanceCents) > 0)
                                 .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
                                 .map(b => {
+                                  const rawBalance = regionRawBalances.find(r => r.userId === b.userId);
+                                  const globalPnl = rawBalance?.netBalanceCents ?? b.netBalanceCents;
                                   const receiving = regionSettlement.transfers
                                     .filter(t => t.toUserId === b.userId)
                                     .reduce((s, t) => s + t.amountCents, 0);
@@ -430,17 +433,21 @@ const SimplifiedDebtsPanel = () => {
                                   const gap = expected - actual;
                                   const isFullySettled = Math.abs(gap) < 2;
                                   const isWinner = b.netBalanceCents > 0;
-                                  return { b, receiving, paying, gap, isFullySettled, isWinner };
+                                  return { b, globalPnl, receiving, paying, gap, isFullySettled, isWinner };
                                 });
                               const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
                               const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
                               return (
                                 <>
-                                  {rows.map(({ b, receiving, paying, gap, isFullySettled, isWinner }) => (
+                                  {rows.map(({ b, globalPnl, receiving, paying, gap, isFullySettled, isWinner }) => (
                                     <TableRow key={b.userId}>
                                       <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                                      <TableCell className={`text-right font-mono text-xs ${globalPnl > 0 ? "text-green-600" : "text-red-500"}`}>
+                                        {globalPnl > 0 ? "+" : ""}{formatCents(globalPnl)}
+                                      </TableCell>
                                       <TableCell className={`text-right font-mono text-sm font-bold ${isWinner ? "text-green-600" : "text-red-500"}`}>
                                         {isWinner ? "+" : ""}{formatCents(b.netBalanceCents)}
+                                      </TableCell>
                                       </TableCell>
                                       <TableCell className="text-right font-mono text-sm text-green-600">
                                         {receiving > 0 ? formatCents(receiving) : "—"}
