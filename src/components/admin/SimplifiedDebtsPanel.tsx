@@ -388,6 +388,12 @@ const SimplifiedDebtsPanel = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {regionImbalance > 0 && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-400">
+                      ⚠️ Cross-region imbalance: {formatCents(regionImbalance)} of P&L is from activity with users outside {region}. 
+                      Settlements are scaled to what can be settled within this region.
+                    </div>
+                  )}
                   {regionSettlement.allSettled ? (
                     <div className="text-center py-4">
                       <PartyPopper className="h-8 w-8 mx-auto mb-2 text-accent" />
