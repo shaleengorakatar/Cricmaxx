@@ -448,7 +448,6 @@ const SimplifiedDebtsPanel = () => {
                                       <TableCell className={`text-right font-mono text-sm font-bold ${isWinner ? "text-green-600" : "text-red-500"}`}>
                                         {isWinner ? "+" : ""}{formatCents(b.netBalanceCents)}
                                       </TableCell>
-                                      </TableCell>
                                       <TableCell className="text-right font-mono text-sm text-green-600">
                                         {receiving > 0 ? formatCents(receiving) : "—"}
                                       </TableCell>
