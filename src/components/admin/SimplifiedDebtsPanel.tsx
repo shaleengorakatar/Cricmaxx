@@ -365,7 +365,7 @@ const SimplifiedDebtsPanel = () => {
       {selectedRegion === "all" ? (
         perRegionSettlements.length > 0 ? (
           <div className="space-y-4">
-            {perRegionSettlements.map(({ region, balances: regionBalances, settlement: regionSettlement }) => (
+            {perRegionSettlements.map(({ region, rawBalances: regionRawBalances, balances: regionBalances, settlement: regionSettlement, crossRegionImbalanceCents: regionImbalance }) => (
               <Card key={region}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
