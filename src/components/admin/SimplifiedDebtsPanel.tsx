@@ -433,7 +433,7 @@ const SimplifiedDebtsPanel = () => {
                                   // Remaining = global P&L minus what's settleable in this region
                                   const remaining = globalPnl - (isWinner ? receiving : -paying);
                                   const isFullySettled = Math.abs(remaining) < 2;
-                                  return { b, globalPnl, receiving, paying, gap, remaining, isFullySettled, isWinner };
+                                  return { b, globalPnl, receiving, paying, remaining, isFullySettled, isWinner };
                                 });
                               const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
                               const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
