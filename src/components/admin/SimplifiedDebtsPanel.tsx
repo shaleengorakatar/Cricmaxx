@@ -191,8 +191,8 @@ const SimplifiedDebtsPanel = () => {
     return userData.filter(u => u.region === selectedRegion);
   }, [userData, selectedRegion]);
 
-  const balances: UserBalance[] = useMemo(() => {
-    return filteredUserData
+  const toBalances = (users: UserPnL[]): UserBalance[] => {
+    return users
       .filter(u => !excludedUsers.has(u.userId))
       .filter(u => Math.abs(u.totalPnl) > 0.01)
       .map(u => ({
@@ -205,9 +205,25 @@ const SimplifiedDebtsPanel = () => {
         marketPnlCents: toCents(u.marketPnl),
         netBalanceCents: toCents(u.totalPnl),
       }));
-  }, [filteredUserData, excludedUsers]);
+  };
 
+  // When a specific region is selected, compute single settlement
+  const balances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
+
+  // When "all" is selected, compute per-region settlements
+  const perRegionSettlements = useMemo(() => {
+    if (selectedRegion !== "all") return [];
+    return availableRegions.map(region => {
+      const regionUsers = userData.filter(u => u.region === region);
+      const regionBalances = toBalances(regionUsers);
+      return {
+        region,
+        balances: regionBalances,
+        settlement: computeSimplifiedDebts(regionBalances),
+      };
+    }).filter(r => r.balances.length > 0);
+  }, [userData, availableRegions, excludedUsers, selectedRegion]);
 
   const handleCopy = () => {
     if (settlement.allSettled) return;
@@ -307,53 +323,105 @@ const SimplifiedDebtsPanel = () => {
         </p>
       )}
 
-      {/* Settle Up Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Settle Up</CardTitle>
-            {!settlement.allSettled && (
-              <Button variant="outline" size="sm" onClick={handleCopy}>
-                {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
-            )}
+      {/* Settle Up Section - Per Region when "all", single when specific region */}
+      {selectedRegion === "all" ? (
+        perRegionSettlements.length > 0 ? (
+          <div className="space-y-4">
+            {perRegionSettlements.map(({ region, settlement: regionSettlement }) => (
+              <Card key={region}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      {region} — Settle Up
+                    </CardTitle>
+                    {!regionSettlement.allSettled && (
+                      <Button variant="outline" size="sm" onClick={() => {
+                        const text = regionSettlement.transfers
+                          .map(t => `${t.fromName} pays ${t.toName} ${formatCents(t.amountCents)}`)
+                          .join("\n");
+                        navigator.clipboard.writeText(`${region}:\n${text}`);
+                        toast({ title: "Copied!", description: `${region} transfers copied` });
+                      }}>
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {regionSettlement.allSettled ? (
+                    <div className="text-center py-4">
+                      <PartyPopper className="h-8 w-8 mx-auto mb-2 text-accent" />
+                      <p className="text-sm font-semibold">All settled in {region} 🎉</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {regionSettlement.transfers.map((t, idx) => (
+                        <div key={idx} className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border">
+                          <Badge variant="destructive" className="shrink-0 text-xs">{t.fromName}</Badge>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <Badge variant="secondary" className="shrink-0 text-xs">{t.toName}</Badge>
+                          <span className="ml-auto font-bold text-sm">{formatCents(t.amountCents)}</span>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground">
+                        {regionSettlement.transfers.length} transfer{regionSettlement.transfers.length !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Based on resolved polls, contests & markets only. Deposits/withdrawals excluded.
-          </p>
-        </CardHeader>
-        <CardContent>
-          {settlement.allSettled ? (
-            <div className="text-center py-8">
-              <PartyPopper className="h-12 w-12 mx-auto mb-3 text-accent" />
-              <p className="text-lg font-semibold">All settled 🎉</p>
-              <p className="text-sm text-muted-foreground">No transfers needed</p>
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">No users with regions assigned yet.</p>
+            </CardContent>
+          </Card>
+        )
+      ) : (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Settle Up{selectedRegion !== "unset" ? ` — ${selectedRegion}` : ""}</CardTitle>
+              {!settlement.allSettled && (
+                <Button variant="outline" size="sm" onClick={handleCopy}>
+                  {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {settlement.transfers.map((t, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border"
-                >
-                  <Badge variant="destructive" className="shrink-0 text-xs">
-                    {t.fromName}
-                  </Badge>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Badge variant="secondary" className="shrink-0 text-xs">
-                    {t.toName}
-                  </Badge>
-                  <span className="ml-auto font-bold text-sm">{formatCents(t.amountCents)}</span>
-                </div>
-              ))}
-              <p className="text-xs text-muted-foreground pt-2">
-                {settlement.transfers.length} transfer{settlement.transfers.length !== 1 ? "s" : ""} to settle all debts
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-xs text-muted-foreground">
+              Based on resolved polls, contests & markets only. Region-locked settlement.
+            </p>
+          </CardHeader>
+          <CardContent>
+            {settlement.allSettled ? (
+              <div className="text-center py-8">
+                <PartyPopper className="h-12 w-12 mx-auto mb-3 text-accent" />
+                <p className="text-lg font-semibold">All settled 🎉</p>
+                <p className="text-sm text-muted-foreground">No transfers needed</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {settlement.transfers.map((t, idx) => (
+                  <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                    <Badge variant="destructive" className="shrink-0 text-xs">{t.fromName}</Badge>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Badge variant="secondary" className="shrink-0 text-xs">{t.toName}</Badge>
+                    <span className="ml-auto font-bold text-sm">{formatCents(t.amountCents)}</span>
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground pt-2">
+                  {settlement.transfers.length} transfer{settlement.transfers.length !== 1 ? "s" : ""} to settle all debts
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* User P&L Table */}
       <Card>
