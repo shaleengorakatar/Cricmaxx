@@ -447,7 +447,7 @@ const SimplifiedDebtsPanel = () => {
               Based on resolved polls, contests & markets only. Region-locked settlement.
             </p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {settlement.allSettled ? (
               <div className="text-center py-8">
                 <PartyPopper className="h-12 w-12 mx-auto mb-3 text-accent" />
@@ -455,19 +455,72 @@ const SimplifiedDebtsPanel = () => {
                 <p className="text-sm text-muted-foreground">No transfers needed</p>
               </div>
             ) : (
-              <div className="space-y-3">
-                {settlement.transfers.map((t, idx) => (
-                  <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
-                    <Badge variant="destructive" className="shrink-0 text-xs">{t.fromName}</Badge>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <Badge variant="secondary" className="shrink-0 text-xs">{t.toName}</Badge>
-                    <span className="ml-auto font-bold text-sm">{formatCents(t.amountCents)}</span>
-                  </div>
-                ))}
-                <p className="text-xs text-muted-foreground pt-2">
-                  {settlement.transfers.length} transfer{settlement.transfers.length !== 1 ? "s" : ""} to settle all debts
-                </p>
-              </div>
+              <>
+                {/* Per-user summary */}
+                <div className="rounded-lg border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead className="text-right">Net P&L</TableHead>
+                        <TableHead className="text-right">Receiving</TableHead>
+                        <TableHead className="text-right">Paying</TableHead>
+                        <TableHead className="text-right">Settled?</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {balances
+                        .filter(b => Math.abs(b.netBalanceCents) > 0)
+                        .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
+                        .map(b => {
+                          const receiving = settlement.transfers
+                            .filter(t => t.toUserId === b.userId)
+                            .reduce((s, t) => s + t.amountCents, 0);
+                          const paying = settlement.transfers
+                            .filter(t => t.fromUserId === b.userId)
+                            .reduce((s, t) => s + t.amountCents, 0);
+                          const expected = Math.abs(b.netBalanceCents);
+                          const actual = b.netBalanceCents > 0 ? receiving : paying;
+                          const isFullySettled = Math.abs(expected - actual) < 2;
+                          return (
+                            <TableRow key={b.userId}>
+                              <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                              <TableCell className={`text-right font-mono text-sm font-bold ${b.netBalanceCents > 0 ? "text-green-600" : "text-red-500"}`}>
+                                {b.netBalanceCents > 0 ? "+" : ""}{formatCents(b.netBalanceCents)}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm text-green-600">
+                                {receiving > 0 ? formatCents(receiving) : "—"}
+                              </TableCell>
+                              <TableCell className="text-right font-mono text-sm text-red-500">
+                                {paying > 0 ? formatCents(paying) : "—"}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Badge variant={isFullySettled ? "default" : "destructive"} className="text-xs">
+                                  {isFullySettled ? "✓ Yes" : `${formatCents(Math.abs(expected - actual))} gap`}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </div>
+                {/* Transfer list */}
+                <div className="space-y-3">
+                  <p className="text-xs font-medium text-muted-foreground">Transfers:</p>
+                  {settlement.transfers.map((t, idx) => (
+                    <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
+                      <Badge variant="destructive" className="shrink-0 text-xs">{t.fromName}</Badge>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <Badge variant="secondary" className="shrink-0 text-xs">{t.toName}</Badge>
+                      <span className="ml-auto font-bold text-sm">{formatCents(t.amountCents)}</span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-2">
+                    {settlement.transfers.length} transfer{settlement.transfers.length !== 1 ? "s" : ""} to settle all debts
+                  </p>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
