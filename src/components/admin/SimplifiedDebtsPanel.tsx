@@ -489,43 +489,67 @@ const SimplifiedDebtsPanel = () => {
                         <TableHead className="text-right">Net P&L</TableHead>
                         <TableHead className="text-right">Receiving</TableHead>
                         <TableHead className="text-right">Paying</TableHead>
-                        <TableHead className="text-right">Settled?</TableHead>
+                        <TableHead className="text-right">Outstanding</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {balances
-                        .filter(b => Math.abs(b.netBalanceCents) > 0)
-                        .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
-                        .map(b => {
-                          const receiving = settlement.transfers
-                            .filter(t => t.toUserId === b.userId)
-                            .reduce((s, t) => s + t.amountCents, 0);
-                          const paying = settlement.transfers
-                            .filter(t => t.fromUserId === b.userId)
-                            .reduce((s, t) => s + t.amountCents, 0);
-                          const expected = Math.abs(b.netBalanceCents);
-                          const actual = b.netBalanceCents > 0 ? receiving : paying;
-                          const isFullySettled = Math.abs(expected - actual) < 2;
-                          return (
-                            <TableRow key={b.userId}>
-                              <TableCell className="font-medium text-sm">{b.name}</TableCell>
-                              <TableCell className={`text-right font-mono text-sm font-bold ${b.netBalanceCents > 0 ? "text-green-600" : "text-red-500"}`}>
-                                {b.netBalanceCents > 0 ? "+" : ""}{formatCents(b.netBalanceCents)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-sm text-green-600">
-                                {receiving > 0 ? formatCents(receiving) : "—"}
-                              </TableCell>
-                              <TableCell className="text-right font-mono text-sm text-red-500">
-                                {paying > 0 ? formatCents(paying) : "—"}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Badge variant={isFullySettled ? "default" : "destructive"} className="text-xs">
-                                  {isFullySettled ? "✓ Yes" : `${formatCents(Math.abs(expected - actual))} gap`}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
+                      {(() => {
+                        const rows = balances
+                          .filter(b => Math.abs(b.netBalanceCents) > 0)
+                          .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
+                          .map(b => {
+                            const receiving = settlement.transfers
+                              .filter(t => t.toUserId === b.userId)
+                              .reduce((s, t) => s + t.amountCents, 0);
+                            const paying = settlement.transfers
+                              .filter(t => t.fromUserId === b.userId)
+                              .reduce((s, t) => s + t.amountCents, 0);
+                            const expected = Math.abs(b.netBalanceCents);
+                            const actual = b.netBalanceCents > 0 ? receiving : paying;
+                            const gap = expected - actual;
+                            const isFullySettled = Math.abs(gap) < 2;
+                            const isWinner = b.netBalanceCents > 0;
+                            return { b, receiving, paying, gap, isFullySettled, isWinner };
+                          });
+                        const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
+                        const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
+                        return (
+                          <>
+                            {rows.map(({ b, receiving, paying, gap, isFullySettled, isWinner }) => (
+                              <TableRow key={b.userId}>
+                                <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                                <TableCell className={`text-right font-mono text-sm font-bold ${isWinner ? "text-green-600" : "text-red-500"}`}>
+                                  {isWinner ? "+" : ""}{formatCents(b.netBalanceCents)}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-sm text-green-600">
+                                  {receiving > 0 ? formatCents(receiving) : "—"}
+                                </TableCell>
+                                <TableCell className="text-right font-mono text-sm text-red-500">
+                                  {paying > 0 ? formatCents(paying) : "—"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {isFullySettled ? (
+                                    <Badge variant="default" className="text-xs">✓ Settled</Badge>
+                                  ) : (
+                                    <Badge variant="destructive" className="text-xs">
+                                      {isWinner ? `Still owed ${formatCents(gap)}` : `Still owes ${formatCents(gap)}`}
+                                    </Badge>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                            {(stillOwedCount > 0 || stillOwesCount > 0) && (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-xs text-muted-foreground pt-2">
+                                  ⚠️ {stillOwedCount > 0 && `${stillOwedCount} user${stillOwedCount !== 1 ? "s" : ""} still owed money`}
+                                  {stillOwedCount > 0 && stillOwesCount > 0 && " · "}
+                                  {stillOwesCount > 0 && `${stillOwesCount} user${stillOwesCount !== 1 ? "s" : ""} still need${stillOwesCount === 1 ? "s" : ""} to pay more`}
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </>
+                        );
+                      })()}
                     </TableBody>
                   </Table>
                 </div>
