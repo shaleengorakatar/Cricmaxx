@@ -469,7 +469,7 @@ const SimplifiedDebtsPanel = () => {
                                   ))}
                                   {(stillOwedCount > 0 || stillOwesCount > 0) && (
                                     <TableRow>
-                                      <TableCell colSpan={6} className="text-xs text-muted-foreground pt-2">
+                                      <TableCell colSpan={7} className="text-xs text-muted-foreground pt-2">
                                         ⚠️ {stillOwedCount > 0 && `${stillOwedCount} user${stillOwedCount !== 1 ? "s" : ""} still owed money`}
                                         {stillOwedCount > 0 && stillOwesCount > 0 && " · "}
                                         {stillOwesCount > 0 && `${stillOwesCount} user${stillOwesCount !== 1 ? "s" : ""} still need${stillOwesCount === 1 ? "s" : ""} to pay more`}
