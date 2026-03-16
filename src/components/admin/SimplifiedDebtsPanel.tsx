@@ -429,14 +429,11 @@ const SimplifiedDebtsPanel = () => {
                                   const paying = regionSettlement.transfers
                                     .filter(t => t.fromUserId === b.userId)
                                     .reduce((s, t) => s + t.amountCents, 0);
-                                  const expected = Math.abs(b.netBalanceCents);
-                                  const actual = b.netBalanceCents > 0 ? receiving : paying;
-                                  const gap = expected - actual;
-                                  const isFullySettled = Math.abs(gap) < 2;
-                                  const isWinner = b.netBalanceCents > 0;
-                                  // Remaining: positive = still to receive, negative = still to pay
-                                  const remaining = isWinner ? gap : -gap;
-                                  return { b, globalPnl, receiving, paying, gap, remaining, isFullySettled, isWinner };
+                                  const isWinner = globalPnl > 0;
+                                  // Remaining = global P&L minus what's settleable in this region
+                                  const remaining = globalPnl - (isWinner ? receiving : -paying);
+                                  const isFullySettled = Math.abs(remaining) < 2;
+                                  return { b, globalPnl, receiving, paying, remaining, isFullySettled, isWinner };
                                 });
                               const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
                               const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
