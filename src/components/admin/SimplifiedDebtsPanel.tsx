@@ -411,7 +411,8 @@ const SimplifiedDebtsPanel = () => {
                               <TableHead className="text-right">Settleable</TableHead>
                               <TableHead className="text-right">Receiving</TableHead>
                               <TableHead className="text-right">Paying</TableHead>
-                              <TableHead className="text-right">Outstanding</TableHead>
+                              <TableHead className="text-right">Remaining</TableHead>
+                              <TableHead className="text-right">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -433,13 +434,15 @@ const SimplifiedDebtsPanel = () => {
                                   const gap = expected - actual;
                                   const isFullySettled = Math.abs(gap) < 2;
                                   const isWinner = b.netBalanceCents > 0;
-                                  return { b, globalPnl, receiving, paying, gap, isFullySettled, isWinner };
+                                  // Remaining: positive = still to receive, negative = still to pay
+                                  const remaining = isWinner ? gap : -gap;
+                                  return { b, globalPnl, receiving, paying, gap, remaining, isFullySettled, isWinner };
                                 });
                               const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
                               const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
                               return (
                                 <>
-                                  {rows.map(({ b, globalPnl, receiving, paying, gap, isFullySettled, isWinner }) => (
+                                  {rows.map(({ b, globalPnl, receiving, paying, remaining, isFullySettled, isWinner }) => (
                                     <TableRow key={b.userId}>
                                       <TableCell className="font-medium text-sm">{b.name}</TableCell>
                                       <TableCell className={`text-right font-mono text-xs ${globalPnl > 0 ? "text-green-600" : "text-red-500"}`}>
@@ -454,14 +457,13 @@ const SimplifiedDebtsPanel = () => {
                                       <TableCell className="text-right font-mono text-sm text-red-500">
                                         {paying > 0 ? formatCents(paying) : "—"}
                                       </TableCell>
+                                      <TableCell className={`text-right font-mono text-sm font-bold ${isFullySettled ? "text-muted-foreground" : remaining > 0 ? "text-green-600" : "text-red-500"}`}>
+                                        {isFullySettled ? "$0.00" : (remaining > 0 ? `Gets ${formatCents(remaining)}` : `Owes ${formatCents(Math.abs(remaining))}`)}
+                                      </TableCell>
                                       <TableCell className="text-right">
-                                        {isFullySettled ? (
-                                          <Badge variant="default" className="text-xs">✓ Settled</Badge>
-                                        ) : (
-                                          <Badge variant="destructive" className="text-xs">
-                                            {isWinner ? `Still owed ${formatCents(gap)}` : `Still owes ${formatCents(gap)}`}
-                                          </Badge>
-                                        )}
+                                        <Badge variant={isFullySettled ? "default" : "destructive"} className="text-xs">
+                                          {isFullySettled ? "✓ Settled" : "Pending"}
+                                        </Badge>
                                       </TableCell>
                                     </TableRow>
                                   ))}
