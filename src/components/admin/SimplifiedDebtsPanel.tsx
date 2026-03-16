@@ -207,8 +207,43 @@ const SimplifiedDebtsPanel = () => {
       }));
   };
 
+  /**
+   * Regional P&L won't sum to zero because users trade cross-region.
+   * Scale down the larger side (winners or losers) proportionally so
+   * the pool balances without flipping anyone's direction.
+   */
+  const balanceForRegion = (raw: UserBalance[]): { balances: UserBalance[]; crossRegionImbalanceCents: number } => {
+    const totalCredits = raw.filter(b => b.netBalanceCents > 0).reduce((s, b) => s + b.netBalanceCents, 0);
+    const totalDebts = Math.abs(raw.filter(b => b.netBalanceCents < 0).reduce((s, b) => s + b.netBalanceCents, 0));
+
+    if (totalCredits === 0 || totalDebts === 0) {
+      return { balances: raw, crossRegionImbalanceCents: Math.abs(totalCredits - totalDebts) };
+    }
+
+    const imbalance = totalCredits - totalDebts;
+    if (Math.abs(imbalance) < 2) {
+      return { balances: raw, crossRegionImbalanceCents: 0 };
+    }
+
+    // Scale down the larger side to match the smaller side
+    const settleableAmount = Math.min(totalCredits, totalDebts);
+    const adjusted = raw.map(b => {
+      if (imbalance > 0 && b.netBalanceCents > 0) {
+        // More credits than debts — scale winners down
+        return { ...b, netBalanceCents: Math.round(b.netBalanceCents * (settleableAmount / totalCredits)) };
+      } else if (imbalance < 0 && b.netBalanceCents < 0) {
+        // More debts than credits — scale losers down (less negative)
+        return { ...b, netBalanceCents: Math.round(b.netBalanceCents * (settleableAmount / totalDebts)) };
+      }
+      return b;
+    });
+
+    return { balances: adjusted, crossRegionImbalanceCents: Math.abs(imbalance) };
+  };
+
   // When a specific region is selected, compute single settlement
-  const balances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
+  const rawBalances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
+  const { balances, crossRegionImbalanceCents } = useMemo(() => balanceForRegion(rawBalances), [rawBalances]);
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
 
   // When "all" is selected, compute per-region settlements
@@ -216,11 +251,14 @@ const SimplifiedDebtsPanel = () => {
     if (selectedRegion !== "all") return [];
     return availableRegions.map(region => {
       const regionUsers = userData.filter(u => u.region === region);
-      const regionBalances = toBalances(regionUsers);
+      const rawRegionBalances = toBalances(regionUsers);
+      const { balances: regionBalances, crossRegionImbalanceCents: regionImbalance } = balanceForRegion(rawRegionBalances);
       return {
         region,
+        rawBalances: rawRegionBalances,
         balances: regionBalances,
         settlement: computeSimplifiedDebts(regionBalances),
+        crossRegionImbalanceCents: regionImbalance,
       };
     }).filter(r => r.balances.length > 0);
   }, [userData, availableRegions, excludedUsers, selectedRegion]);
