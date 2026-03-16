@@ -191,8 +191,8 @@ const SimplifiedDebtsPanel = () => {
     return userData.filter(u => u.region === selectedRegion);
   }, [userData, selectedRegion]);
 
-  const balances: UserBalance[] = useMemo(() => {
-    return filteredUserData
+  const toBalances = (users: UserPnL[]): UserBalance[] => {
+    return users
       .filter(u => !excludedUsers.has(u.userId))
       .filter(u => Math.abs(u.totalPnl) > 0.01)
       .map(u => ({
@@ -205,9 +205,25 @@ const SimplifiedDebtsPanel = () => {
         marketPnlCents: toCents(u.marketPnl),
         netBalanceCents: toCents(u.totalPnl),
       }));
-  }, [filteredUserData, excludedUsers]);
+  };
 
+  // When a specific region is selected, compute single settlement
+  const balances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
+
+  // When "all" is selected, compute per-region settlements
+  const perRegionSettlements = useMemo(() => {
+    if (selectedRegion !== "all") return [];
+    return availableRegions.map(region => {
+      const regionUsers = userData.filter(u => u.region === region);
+      const regionBalances = toBalances(regionUsers);
+      return {
+        region,
+        balances: regionBalances,
+        settlement: computeSimplifiedDebts(regionBalances),
+      };
+    }).filter(r => r.balances.length > 0);
+  }, [userData, availableRegions, excludedUsers, selectedRegion]);
 
   const handleCopy = () => {
     if (settlement.allSettled) return;
