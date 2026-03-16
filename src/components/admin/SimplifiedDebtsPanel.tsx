@@ -207,8 +207,43 @@ const SimplifiedDebtsPanel = () => {
       }));
   };
 
+  /**
+   * Regional P&L won't sum to zero because users trade cross-region.
+   * Scale down the larger side (winners or losers) proportionally so
+   * the pool balances without flipping anyone's direction.
+   */
+  const balanceForRegion = (raw: UserBalance[]): { balances: UserBalance[]; crossRegionImbalanceCents: number } => {
+    const totalCredits = raw.filter(b => b.netBalanceCents > 0).reduce((s, b) => s + b.netBalanceCents, 0);
+    const totalDebts = Math.abs(raw.filter(b => b.netBalanceCents < 0).reduce((s, b) => s + b.netBalanceCents, 0));
+
+    if (totalCredits === 0 || totalDebts === 0) {
+      return { balances: raw, crossRegionImbalanceCents: Math.abs(totalCredits - totalDebts) };
+    }
+
+    const imbalance = totalCredits - totalDebts;
+    if (Math.abs(imbalance) < 2) {
+      return { balances: raw, crossRegionImbalanceCents: 0 };
+    }
+
+    // Scale down the larger side to match the smaller side
+    const settleableAmount = Math.min(totalCredits, totalDebts);
+    const adjusted = raw.map(b => {
+      if (imbalance > 0 && b.netBalanceCents > 0) {
+        // More credits than debts — scale winners down
+        return { ...b, netBalanceCents: Math.round(b.netBalanceCents * (settleableAmount / totalCredits)) };
+      } else if (imbalance < 0 && b.netBalanceCents < 0) {
+        // More debts than credits — scale losers down (less negative)
+        return { ...b, netBalanceCents: Math.round(b.netBalanceCents * (settleableAmount / totalDebts)) };
+      }
+      return b;
+    });
+
+    return { balances: adjusted, crossRegionImbalanceCents: Math.abs(imbalance) };
+  };
+
   // When a specific region is selected, compute single settlement
-  const balances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
+  const rawBalances: UserBalance[] = useMemo(() => toBalances(filteredUserData), [filteredUserData, excludedUsers]);
+  const { balances, crossRegionImbalanceCents } = useMemo(() => balanceForRegion(rawBalances), [rawBalances]);
   const settlement = useMemo(() => computeSimplifiedDebts(balances), [balances]);
 
   // When "all" is selected, compute per-region settlements
@@ -216,11 +251,14 @@ const SimplifiedDebtsPanel = () => {
     if (selectedRegion !== "all") return [];
     return availableRegions.map(region => {
       const regionUsers = userData.filter(u => u.region === region);
-      const regionBalances = toBalances(regionUsers);
+      const rawRegionBalances = toBalances(regionUsers);
+      const { balances: regionBalances, crossRegionImbalanceCents: regionImbalance } = balanceForRegion(rawRegionBalances);
       return {
         region,
+        rawBalances: rawRegionBalances,
         balances: regionBalances,
         settlement: computeSimplifiedDebts(regionBalances),
+        crossRegionImbalanceCents: regionImbalance,
       };
     }).filter(r => r.balances.length > 0);
   }, [userData, availableRegions, excludedUsers, selectedRegion]);
@@ -327,7 +365,7 @@ const SimplifiedDebtsPanel = () => {
       {selectedRegion === "all" ? (
         perRegionSettlements.length > 0 ? (
           <div className="space-y-4">
-            {perRegionSettlements.map(({ region, balances: regionBalances, settlement: regionSettlement }) => (
+            {perRegionSettlements.map(({ region, rawBalances: regionRawBalances, balances: regionBalances, settlement: regionSettlement, crossRegionImbalanceCents: regionImbalance }) => (
               <Card key={region}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
@@ -350,6 +388,12 @@ const SimplifiedDebtsPanel = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {regionImbalance > 0 && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-400">
+                      ⚠️ Cross-region imbalance: {formatCents(regionImbalance)} of P&L is from activity with users outside {region}. 
+                      Settlements are scaled to what can be settled within this region.
+                    </div>
+                  )}
                   {regionSettlement.allSettled ? (
                     <div className="text-center py-4">
                       <PartyPopper className="h-8 w-8 mx-auto mb-2 text-accent" />
@@ -363,7 +407,8 @@ const SimplifiedDebtsPanel = () => {
                           <TableHeader>
                           <TableRow>
                               <TableHead>User</TableHead>
-                              <TableHead className="text-right">Net P&L</TableHead>
+                              <TableHead className="text-right">Global P&L</TableHead>
+                              <TableHead className="text-right">Settleable</TableHead>
                               <TableHead className="text-right">Receiving</TableHead>
                               <TableHead className="text-right">Paying</TableHead>
                               <TableHead className="text-right">Outstanding</TableHead>
@@ -375,6 +420,8 @@ const SimplifiedDebtsPanel = () => {
                                 .filter(b => Math.abs(b.netBalanceCents) > 0)
                                 .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
                                 .map(b => {
+                                  const rawBalance = regionRawBalances.find(r => r.userId === b.userId);
+                                  const globalPnl = rawBalance?.netBalanceCents ?? b.netBalanceCents;
                                   const receiving = regionSettlement.transfers
                                     .filter(t => t.toUserId === b.userId)
                                     .reduce((s, t) => s + t.amountCents, 0);
@@ -386,15 +433,18 @@ const SimplifiedDebtsPanel = () => {
                                   const gap = expected - actual;
                                   const isFullySettled = Math.abs(gap) < 2;
                                   const isWinner = b.netBalanceCents > 0;
-                                  return { b, receiving, paying, gap, isFullySettled, isWinner };
+                                  return { b, globalPnl, receiving, paying, gap, isFullySettled, isWinner };
                                 });
                               const stillOwedCount = rows.filter(r => !r.isFullySettled && r.isWinner).length;
                               const stillOwesCount = rows.filter(r => !r.isFullySettled && !r.isWinner).length;
                               return (
                                 <>
-                                  {rows.map(({ b, receiving, paying, gap, isFullySettled, isWinner }) => (
+                                  {rows.map(({ b, globalPnl, receiving, paying, gap, isFullySettled, isWinner }) => (
                                     <TableRow key={b.userId}>
                                       <TableCell className="font-medium text-sm">{b.name}</TableCell>
+                                      <TableCell className={`text-right font-mono text-xs ${globalPnl > 0 ? "text-green-600" : "text-red-500"}`}>
+                                        {globalPnl > 0 ? "+" : ""}{formatCents(globalPnl)}
+                                      </TableCell>
                                       <TableCell className={`text-right font-mono text-sm font-bold ${isWinner ? "text-green-600" : "text-red-500"}`}>
                                         {isWinner ? "+" : ""}{formatCents(b.netBalanceCents)}
                                       </TableCell>
@@ -417,7 +467,7 @@ const SimplifiedDebtsPanel = () => {
                                   ))}
                                   {(stillOwedCount > 0 || stillOwesCount > 0) && (
                                     <TableRow>
-                                      <TableCell colSpan={5} className="text-xs text-muted-foreground pt-2">
+                                      <TableCell colSpan={6} className="text-xs text-muted-foreground pt-2">
                                         ⚠️ {stillOwedCount > 0 && `${stillOwedCount} user${stillOwedCount !== 1 ? "s" : ""} still owed money`}
                                         {stillOwedCount > 0 && stillOwesCount > 0 && " · "}
                                         {stillOwesCount > 0 && `${stillOwesCount} user${stillOwesCount !== 1 ? "s" : ""} still need${stillOwesCount === 1 ? "s" : ""} to pay more`}
@@ -472,6 +522,12 @@ const SimplifiedDebtsPanel = () => {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
+            {crossRegionImbalanceCents > 0 && (
+              <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-700 dark:text-amber-400">
+                ⚠️ Cross-region imbalance: {formatCents(crossRegionImbalanceCents)} of P&L is from activity with users outside this region. 
+                Settlements are scaled to what can be settled within this region.
+              </div>
+            )}
             {settlement.allSettled ? (
               <div className="text-center py-8">
                 <PartyPopper className="h-12 w-12 mx-auto mb-3 text-accent" />
