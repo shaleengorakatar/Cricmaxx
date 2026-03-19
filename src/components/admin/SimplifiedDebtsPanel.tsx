@@ -346,8 +346,8 @@ const SimplifiedDebtsPanel = () => {
 
   return (
     <div className="space-y-6">
-      {/* Region Filter */}
-      <div className="flex items-center gap-3">
+      {/* Region Filter + Download */}
+      <div className="flex items-center gap-3 flex-wrap">
         <Globe className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Region:</span>
         <Select value={selectedRegion} onValueChange={setSelectedRegion}>
@@ -367,6 +367,10 @@ const SimplifiedDebtsPanel = () => {
             Showing {selectedRegion === "unset" ? "users without region" : selectedRegion} only
           </Badge>
         )}
+        <Button variant="outline" size="sm" onClick={handleDownloadExcel} className="ml-auto gap-2">
+          <Download className="h-4 w-4" />
+          Download CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}
