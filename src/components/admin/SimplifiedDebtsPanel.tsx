@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe } from "lucide-react";
+import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeSimplifiedDebts,
