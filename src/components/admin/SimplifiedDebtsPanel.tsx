@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe } from "lucide-react";
+import { Copy, Check, ArrowRight, PartyPopper, DollarSign, Users, Wallet, UserMinus, Globe, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   computeSimplifiedDebts,
@@ -263,6 +263,64 @@ const SimplifiedDebtsPanel = () => {
     }).filter(r => r.balances.length > 0);
   }, [userData, availableRegions, excludedUsers, selectedRegion]);
 
+  const handleDownloadExcel = () => {
+    const rows: string[][] = [];
+    rows.push(["Region", "User", "Global P&L", "Settleable", "Receiving", "Paying", "Remaining", "Status"]);
+
+    const processRegion = (region: string, regionRawBalances: UserBalance[], regionBalances: UserBalance[], regionSettlement: ReturnType<typeof computeSimplifiedDebts>) => {
+      regionBalances
+        .filter(b => Math.abs(b.netBalanceCents) > 0)
+        .sort((a, b) => b.netBalanceCents - a.netBalanceCents)
+        .forEach(b => {
+          const rawBalance = regionRawBalances.find(r => r.userId === b.userId);
+          const globalPnl = rawBalance?.netBalanceCents ?? b.netBalanceCents;
+          const receiving = regionSettlement.transfers.filter(t => t.toUserId === b.userId).reduce((s, t) => s + t.amountCents, 0);
+          const paying = regionSettlement.transfers.filter(t => t.fromUserId === b.userId).reduce((s, t) => s + t.amountCents, 0);
+          const isWinner = globalPnl > 0;
+          const remaining = globalPnl - (isWinner ? receiving : -paying);
+          const isFullySettled = Math.abs(remaining) < 2;
+          rows.push([
+            region,
+            b.name,
+            formatCents(globalPnl),
+            formatCents(b.netBalanceCents),
+            receiving > 0 ? formatCents(receiving) : "—",
+            paying > 0 ? formatCents(paying) : "—",
+            isFullySettled ? "$0.00" : (remaining > 0 ? `Gets ${formatCents(remaining)}` : `Owes ${formatCents(Math.abs(remaining))}`),
+            isFullySettled ? "Settled" : "Pending",
+          ]);
+        });
+
+      // Add transfers
+      if (regionSettlement.transfers.length > 0) {
+        rows.push([]);
+        rows.push([`${region} — Transfers`, "From", "To", "Amount"]);
+        regionSettlement.transfers.forEach(t => {
+          rows.push(["", t.fromName, t.toName, formatCents(t.amountCents)]);
+        });
+        rows.push([]);
+      }
+    };
+
+    if (selectedRegion === "all") {
+      perRegionSettlements.forEach(({ region, rawBalances: rb, balances: rb2, settlement: rs }) => {
+        processRegion(region, rb, rb2, rs);
+      });
+    } else {
+      processRegion(selectedRegion === "unset" ? "No Region" : selectedRegion, rawBalances, balances, settlement);
+    }
+
+    const csv = rows.map(r => r.map(c => `"${(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `settlement-${selectedRegion}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Downloaded!", description: "Settlement CSV exported" });
+  };
+
   const handleCopy = () => {
     if (settlement.allSettled) return;
     const text = settlement.transfers
@@ -288,8 +346,8 @@ const SimplifiedDebtsPanel = () => {
 
   return (
     <div className="space-y-6">
-      {/* Region Filter */}
-      <div className="flex items-center gap-3">
+      {/* Region Filter + Download */}
+      <div className="flex items-center gap-3 flex-wrap">
         <Globe className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Region:</span>
         <Select value={selectedRegion} onValueChange={setSelectedRegion}>
@@ -309,6 +367,10 @@ const SimplifiedDebtsPanel = () => {
             Showing {selectedRegion === "unset" ? "users without region" : selectedRegion} only
           </Badge>
         )}
+        <Button variant="outline" size="sm" onClick={handleDownloadExcel} className="ml-auto gap-2">
+          <Download className="h-4 w-4" />
+          Download CSV
+        </Button>
       </div>
 
       {/* Summary Cards */}
