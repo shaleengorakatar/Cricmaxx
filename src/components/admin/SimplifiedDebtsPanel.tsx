@@ -146,6 +146,8 @@ const SimplifiedDebtsPanel = () => {
         const contestWon = contestWinningsMap.get(userId) || 0;
         const contestPnl = contestWon - contestStaked;
         const marketPnl = marketPnlMap.get(userId) || 0;
+        const marketStaked = marketStakesMap.get(userId) || 0;
+        const totalStaked = effectivePollStaked + contestStaked + marketStaked;
 
         return {
           userId,
@@ -157,7 +159,9 @@ const SimplifiedDebtsPanel = () => {
           contestStaked,
           contestWon,
           contestPnl,
+          marketStaked,
           marketPnl,
+          totalStaked,
           totalPnl: pollPnl + contestPnl + marketPnl,
         };
       }).sort((a, b) => b.totalPnl - a.totalPnl);
