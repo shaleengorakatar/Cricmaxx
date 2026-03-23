@@ -26,7 +26,9 @@ interface UserPnL {
   contestStaked: number;
   contestWon: number;
   contestPnl: number;
+  marketStaked: number;
   marketPnl: number;
+  totalStaked: number;
   totalPnl: number;
 }
 
@@ -50,7 +52,7 @@ const SimplifiedDebtsPanel = () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
+      const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes, marketStakesRes] = await Promise.all([
         supabase.from("profiles").select("id, name, display_name, region"),
         // Poll stakes on RESOLVED polls only
         supabase.from("poll_votes").select("user_id, amount, prediction_polls!inner(status)").eq("prediction_polls.status", "resolved"),
@@ -64,6 +66,8 @@ const SimplifiedDebtsPanel = () => {
         supabase.from("transactions").select("user_id, amount").eq("metadata->>source", "contest_winnings"),
         // Market P&L from closed positions
         supabase.from("positions").select("user_id, pnl").eq("status", "closed"),
+        // Market stakes from all positions (entry_price * size = cost)
+        supabase.from("positions").select("user_id, entry_price, size"),
       ]);
 
       const pollStakesMap = new Map<string, number>();
@@ -113,10 +117,19 @@ const SimplifiedDebtsPanel = () => {
         }
       }
 
+      // Aggregate market stakes (entry_price * size)
+      const marketStakesMap = new Map<string, number>();
+      if (marketStakesRes.data) {
+        for (const p of marketStakesRes.data) {
+          const stake = Number(p.entry_price || 0) * Number(p.size || 0);
+          marketStakesMap.set(p.user_id, (marketStakesMap.get(p.user_id) || 0) + stake);
+        }
+      }
+
       // Build per-user P&L
       const profiles = profilesRes.data || [];
       const allUserIds = new Set<string>();
-      [pollStakesMap, pollWinningsMap, pollRefundsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap].forEach(m => {
+      [pollStakesMap, pollWinningsMap, pollRefundsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap, marketStakesMap].forEach(m => {
         m.forEach((_, k) => allUserIds.add(k));
       });
 
@@ -133,6 +146,8 @@ const SimplifiedDebtsPanel = () => {
         const contestWon = contestWinningsMap.get(userId) || 0;
         const contestPnl = contestWon - contestStaked;
         const marketPnl = marketPnlMap.get(userId) || 0;
+        const marketStaked = marketStakesMap.get(userId) || 0;
+        const totalStaked = effectivePollStaked + contestStaked + marketStaked;
 
         return {
           userId,
@@ -144,7 +159,9 @@ const SimplifiedDebtsPanel = () => {
           contestStaked,
           contestWon,
           contestPnl,
+          marketStaked,
           marketPnl,
+          totalStaked,
           totalPnl: pollPnl + contestPnl + marketPnl,
         };
       }).sort((a, b) => b.totalPnl - a.totalPnl);
@@ -704,13 +721,14 @@ const SimplifiedDebtsPanel = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                 <TableRow>
+                <TableRow>
                    <TableHead className="w-10">Inc.</TableHead>
                    <TableHead>Name</TableHead>
                    <TableHead>Region</TableHead>
                    <TableHead className="text-right">Poll P&L</TableHead>
                    <TableHead className="text-right">Contest P&L</TableHead>
                    <TableHead className="text-right">Market P&L</TableHead>
+                   <TableHead className="text-right">Total Staked</TableHead>
                    <TableHead className="text-right">Total P&L</TableHead>
                    <TableHead className="text-right">Status</TableHead>
                  </TableRow>
@@ -748,6 +766,9 @@ const SimplifiedDebtsPanel = () => {
                       </TableCell>
                       <TableCell className={`text-right font-mono text-xs ${u.marketPnl > 0 ? "text-green-600" : u.marketPnl < 0 ? "text-red-500" : ""}`}>
                         {u.marketPnl !== 0 ? (u.marketPnl > 0 ? "+" : "") + formatCents(toCents(u.marketPnl)) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        {u.totalStaked > 0 ? formatCents(toCents(u.totalStaked)) : "—"}
                       </TableCell>
                       <TableCell className={`text-right font-mono font-bold ${pnlCents > 0 ? "text-green-600" : pnlCents < 0 ? "text-red-500" : ""}`}>
                         {pnlCents > 0 ? "+" : ""}{formatCents(pnlCents)}
