@@ -27,14 +27,14 @@ const PlatformStats = () => {
           .in('status', ['approved', 'open']),
         supabase.from('markets').select('*', { count: 'exact', head: true })
           .eq('status', 'pending'),
-        supabase.from('orders').select('quantity, price'),
+        supabase.from('orders').select('quantity, filled_quantity, price').eq('status', 'filled'),
         supabase.from('trades').select('price, quantity')
           .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
         supabase.from('poll_votes').select('amount'),
         supabase.from('contest_entries').select('contest_id, prediction_contests(buy_in_amount)')
       ]);
 
-      const marketVolume = volumeData?.reduce((sum, o) => sum + (Number(o.quantity) * Number(o.price || 0)), 0) || 0;
+      const marketVolume = volumeData?.reduce((sum, o) => sum + (Number(o.filled_quantity) * Number(o.price || 0)), 0) || 0;
       const pollVolume = pollVotesData?.reduce((sum, v) => sum + (Number(v.amount) || 0), 0) || 0;
       const contestVolume = contestEntriesData?.reduce((sum, e) => {
         const buyIn = (e as any).prediction_contests?.buy_in_amount;
