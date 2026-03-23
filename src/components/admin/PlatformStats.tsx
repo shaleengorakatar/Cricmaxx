@@ -15,7 +15,9 @@ const PlatformStats = () => {
         { count: activeMarkets },
         { count: pendingApprovals },
         { data: volumeData },
-        { data: todayTradesData }
+        { data: todayTradesData },
+        { data: pollVotesData },
+        { data: contestEntriesData }
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true })
@@ -27,10 +29,18 @@ const PlatformStats = () => {
           .eq('status', 'pending'),
         supabase.from('markets').select('volume'),
         supabase.from('trades').select('price, quantity')
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+        supabase.from('poll_votes').select('amount'),
+        supabase.from('contest_entries').select('contest_id, prediction_contests(buy_in_amount)')
       ]);
 
-      const totalVolume = volumeData?.reduce((sum, m) => sum + (Number(m.volume) || 0), 0) || 0;
+      const marketVolume = volumeData?.reduce((sum, m) => sum + (Number(m.volume) || 0), 0) || 0;
+      const pollVolume = pollVotesData?.reduce((sum, v) => sum + (Number(v.amount) || 0), 0) || 0;
+      const contestVolume = contestEntriesData?.reduce((sum, e) => {
+        const buyIn = (e as any).prediction_contests?.buy_in_amount;
+        return sum + (Number(buyIn) || 0);
+      }, 0) || 0;
+      const totalVolume = marketVolume + pollVolume + contestVolume;
       const todayTrades = todayTradesData?.length || 0;
       const todayVolume = todayTradesData?.reduce((sum, t) => sum + (Number(t.price) * Number(t.quantity)), 0) || 0;
 
