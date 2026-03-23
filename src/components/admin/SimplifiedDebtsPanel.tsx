@@ -732,7 +732,6 @@ const SimplifiedDebtsPanel = () => {
                    <TableHead className="text-right">Total P&L</TableHead>
                    <TableHead className="text-right">Status</TableHead>
                  </TableRow>
-                 </TableRow>
                </TableHeader>
                <TableBody>
                  {filteredUserData.map(u => {
