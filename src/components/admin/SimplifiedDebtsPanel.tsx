@@ -768,6 +768,9 @@ const SimplifiedDebtsPanel = () => {
                       <TableCell className={`text-right font-mono text-xs ${u.marketPnl > 0 ? "text-green-600" : u.marketPnl < 0 ? "text-red-500" : ""}`}>
                         {u.marketPnl !== 0 ? (u.marketPnl > 0 ? "+" : "") + formatCents(toCents(u.marketPnl)) : "—"}
                       </TableCell>
+                      <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        {u.totalStaked > 0 ? formatCents(toCents(u.totalStaked)) : "—"}
+                      </TableCell>
                       <TableCell className={`text-right font-mono font-bold ${pnlCents > 0 ? "text-green-600" : pnlCents < 0 ? "text-red-500" : ""}`}>
                         {pnlCents > 0 ? "+" : ""}{formatCents(pnlCents)}
                       </TableCell>
