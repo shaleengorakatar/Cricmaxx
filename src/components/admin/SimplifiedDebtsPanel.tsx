@@ -129,7 +129,7 @@ const SimplifiedDebtsPanel = () => {
       // Build per-user P&L
       const profiles = profilesRes.data || [];
       const allUserIds = new Set<string>();
-      [pollStakesMap, pollWinningsMap, pollRefundsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap].forEach(m => {
+      [pollStakesMap, pollWinningsMap, pollRefundsMap, contestBuyinsMap, contestWinningsMap, marketPnlMap, marketStakesMap].forEach(m => {
         m.forEach((_, k) => allUserIds.add(k));
       });
 
