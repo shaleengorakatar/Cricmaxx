@@ -721,15 +721,17 @@ const SimplifiedDebtsPanel = () => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                 <TableRow>
+                <TableRow>
                    <TableHead className="w-10">Inc.</TableHead>
                    <TableHead>Name</TableHead>
                    <TableHead>Region</TableHead>
                    <TableHead className="text-right">Poll P&L</TableHead>
                    <TableHead className="text-right">Contest P&L</TableHead>
                    <TableHead className="text-right">Market P&L</TableHead>
+                   <TableHead className="text-right">Total Staked</TableHead>
                    <TableHead className="text-right">Total P&L</TableHead>
                    <TableHead className="text-right">Status</TableHead>
+                 </TableRow>
                  </TableRow>
                </TableHeader>
                <TableBody>
