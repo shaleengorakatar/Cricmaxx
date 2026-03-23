@@ -52,7 +52,7 @@ const SimplifiedDebtsPanel = () => {
     setLoading(true);
     try {
       // Fetch all data in parallel
-      const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes] = await Promise.all([
+      const [profilesRes, pollStakesRes, pollWinningsRes, pollRefundsRes, contestBuyinsRes, contestWinningsRes, marketPnlRes, marketStakesRes] = await Promise.all([
         supabase.from("profiles").select("id, name, display_name, region"),
         // Poll stakes on RESOLVED polls only
         supabase.from("poll_votes").select("user_id, amount, prediction_polls!inner(status)").eq("prediction_polls.status", "resolved"),
@@ -66,6 +66,8 @@ const SimplifiedDebtsPanel = () => {
         supabase.from("transactions").select("user_id, amount").eq("metadata->>source", "contest_winnings"),
         // Market P&L from closed positions
         supabase.from("positions").select("user_id, pnl").eq("status", "closed"),
+        // Market stakes from all positions (entry_price * size = cost)
+        supabase.from("positions").select("user_id, entry_price, size"),
       ]);
 
       const pollStakesMap = new Map<string, number>();
