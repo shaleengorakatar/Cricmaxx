@@ -117,6 +117,15 @@ const SimplifiedDebtsPanel = () => {
         }
       }
 
+      // Aggregate market stakes (entry_price * size)
+      const marketStakesMap = new Map<string, number>();
+      if (marketStakesRes.data) {
+        for (const p of marketStakesRes.data) {
+          const stake = Number(p.entry_price || 0) * Number(p.size || 0);
+          marketStakesMap.set(p.user_id, (marketStakesMap.get(p.user_id) || 0) + stake);
+        }
+      }
+
       // Build per-user P&L
       const profiles = profilesRes.data || [];
       const allUserIds = new Set<string>();
