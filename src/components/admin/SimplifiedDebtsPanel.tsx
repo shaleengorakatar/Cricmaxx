@@ -26,7 +26,9 @@ interface UserPnL {
   contestStaked: number;
   contestWon: number;
   contestPnl: number;
+  marketStaked: number;
   marketPnl: number;
+  totalStaked: number;
   totalPnl: number;
 }
 
