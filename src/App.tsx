@@ -9,7 +9,7 @@ import { TradingModeProvider } from "@/hooks/useTradingMode";
 import { TradingPreferencesProvider } from "@/hooks/useTradingPreferences";
 import { AuthProvider } from "@/contexts/AuthContext";
 import SplashScreen from "@/components/SplashScreen";
-import InviteGate from "@/components/InviteGate";
+
 import { FeatureGate } from "@/components/FeatureGate";
 import { FEATURE_FLAGS } from "@/hooks/useFeatureFlags";
 import Index from "./pages/Index";
@@ -80,7 +80,6 @@ const App = () => {
       <TradingModeProvider>
         <TradingPreferencesProvider>
           <TooltipProvider>
-            <InviteGate>
               <SplashScreen isVisible={showSplash} onSkip={() => setShowSplash(false)} />
               <Toaster />
               <Sonner />
@@ -125,7 +124,6 @@ const App = () => {
                   </Suspense>
                 </AuthProvider>
               </BrowserRouter>
-            </InviteGate>
           </TooltipProvider>
         </TradingPreferencesProvider>
       </TradingModeProvider>
