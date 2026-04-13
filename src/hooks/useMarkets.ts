@@ -77,6 +77,8 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         expiryTime: m.expiry_time,
         description: m.description || undefined,
         imageUrl: m.image_url || undefined,
+        status: m.status,
+        outcome: m.outcome,
       }));
       
       setMarkets(transformedMarkets);
