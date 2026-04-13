@@ -274,7 +274,9 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
         {/* Footer: meta */}
         <div className="flex items-center justify-between pt-1 border-t border-border/30">
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-            <CountdownTimer expiryTime={market.expiryTime} compact />
+            {market.status !== 'resolved' && new Date(market.expiryTime) > new Date() && (
+              <CountdownTimer expiryTime={market.expiryTime} compact />
+            )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
             <span>Predict</span>
