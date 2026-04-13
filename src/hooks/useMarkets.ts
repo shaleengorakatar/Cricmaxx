@@ -45,8 +45,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     setError(null);
     
     try {
-      const nowDate = new Date();
-      const sixtyDaysFromNow = new Date(nowDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+      
       
       const { data, error: fetchError } = await supabase
         .from('markets')
