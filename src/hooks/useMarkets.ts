@@ -45,15 +45,12 @@ export function useMarkets(userId: string | null): UseMarketsResult {
     setError(null);
     
     try {
-      const nowDate = new Date();
-      const sixtyDaysFromNow = new Date(nowDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+      
       
       const { data, error: fetchError } = await supabase
         .from('markets')
         .select('*')
-        .in('status', ['approved', 'open'])
-        .lte('expiry_time', sixtyDaysFromNow.toISOString())
-        .gte('expiry_time', nowDate.toISOString())
+        .in('status', ['approved', 'open', 'resolved'])
         .order('volume', { ascending: false });
       
       // Check if stale or unmounted
@@ -79,6 +76,8 @@ export function useMarkets(userId: string | null): UseMarketsResult {
         expiryTime: m.expiry_time,
         description: m.description || undefined,
         imageUrl: m.image_url || undefined,
+        status: m.status,
+        outcome: m.outcome,
       }));
       
       setMarkets(transformedMarkets);
