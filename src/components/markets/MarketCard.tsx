@@ -170,17 +170,34 @@ const MarketCard = ({ market, position }: MarketCardProps) => {
       onClick={handleClick}
     >
       <div className="p-4 space-y-3">
-        {/* Top: Question + Category */}
+        {/* Top: Question + Category + Status */}
         <div className="flex items-start gap-3">
           <h3 className="flex-1 text-sm font-semibold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
             {market.question}
           </h3>
-          <Badge
-            variant="secondary"
-            className="shrink-0 text-[10px] font-medium px-2 py-0.5 bg-muted/60"
-          >
-            {market.category}
-          </Badge>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-medium px-2 py-0.5 bg-muted/60"
+            >
+              {market.category}
+            </Badge>
+            {market.status === 'resolved' && (
+              <Badge
+                className={cn(
+                  "text-[10px] font-semibold px-2 py-0.5",
+                  market.outcome === 'yes'
+                    ? "bg-success/15 text-success border-success/30"
+                    : market.outcome === 'no'
+                    ? "bg-destructive/15 text-destructive border-destructive/30"
+                    : "bg-muted text-muted-foreground"
+                )}
+                variant="outline"
+              >
+                Resolved: {market.outcome?.toUpperCase() || 'N/A'}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Odds Rows */}
