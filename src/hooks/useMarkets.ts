@@ -51,9 +51,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       const { data, error: fetchError } = await supabase
         .from('markets')
         .select('*')
-        .in('status', ['approved', 'open'])
-        .lte('expiry_time', sixtyDaysFromNow.toISOString())
-        .gte('expiry_time', nowDate.toISOString())
+        .in('status', ['approved', 'open', 'resolved'])
         .order('volume', { ascending: false });
       
       // Check if stale or unmounted
