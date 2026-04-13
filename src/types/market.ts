@@ -12,4 +12,6 @@ export interface Market {
   expiryTime: string;
   description?: string;
   imageUrl?: string;
+  status?: string;
+  outcome?: string | null;
 }
