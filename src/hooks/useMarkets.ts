@@ -50,7 +50,7 @@ export function useMarkets(userId: string | null): UseMarketsResult {
       const { data, error: fetchError } = await supabase
         .from('markets')
         .select('*')
-        .in('status', ['approved', 'open', 'resolved'])
+        .in('status', ['approved', 'open', 'resolved', 'settled'])
         .order('volume', { ascending: false });
       
       // Check if stale or unmounted
