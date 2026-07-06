@@ -1,73 +1,77 @@
-# Welcome to your Lovable project
+# CricMaxx 🏏
 
-## Project info
+**Fast. Live. Fun.** — Live cricket prediction markets at [cricmaxx.com](https://cricmaxx.com)
 
-**URL**: https://lovable.dev/projects/52476e1b-de24-4133-afcf-e617a3922efc
+CricMaxx is a real-time cricket prediction platform where users trade on the outcomes of live matches. It features live prediction markets, rapid-fire predictions, polls, contests, friend leaderboards, and creator dashboards — all built on top of live cricket data.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Live prediction markets** — trade YES/NO positions on match outcomes with real-time pricing and volume
+- **RapidPred** — fast-paced, ball-by-ball predictions during live matches
+- **Prediction polls & contests** — community polls and bracket-style contests with leaderboards
+- **Friends & invites** — add friends, compare records, and climb the leaderboard together
+- **Payments** — Stripe-powered deposits, checkout, and creator payouts (Stripe Connect)
+- **KYC verification** — identity verification flow for compliant trading
+- **Admin & creator dashboards** — market management, debt/exposure tracking, and payout tools
+- **PWA + mobile** — installable progressive web app with offline caching, plus iOS/Android builds via Capacitor
 
-**Use Lovable**
+## Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/52476e1b-de24-4133-afcf-e617a3922efc) and start prompting.
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite |
+| UI | Tailwind CSS, shadcn/ui (Radix), Framer Motion |
+| State/Data | TanStack Query, React Hook Form, Zod |
+| Backend | Supabase (Postgres, Auth, Edge Functions) |
+| Payments | Stripe & Stripe Connect |
+| Cricket data | CricAPI |
+| Analytics | PostHog |
+| Mobile | Capacitor (iOS/Android) |
 
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Requires Node.js 18+.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Install dependencies
+npm install
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the dev server (http://localhost:8080)
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The app talks to a Supabase project for auth, data, and edge functions. Edge functions live in `supabase/functions/` and expect the following secrets to be configured in Supabase:
 
-**Use GitHub Codespaces**
+- `STRIPE_SECRET_KEY` — Stripe API key for checkout and Connect onboarding
+- `CRICAPI_KEY` — live cricket match data
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Scripts
 
-## What technologies are used for this project?
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Production build |
+| `npm run build:dev` | Development-mode build |
+| `npm run lint` | Run ESLint |
+| `npm run preview` | Preview the production build locally |
 
-This project is built with:
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── pages/          # Route-level pages (Markets, RapidPred, Dashboard, Admin, ...)
+├── components/     # Shared UI components
+├── contexts/       # React contexts (auth, etc.)
+├── hooks/          # Custom hooks
+├── integrations/   # Supabase client & generated types
+├── layouts/        # App layouts
+└── lib/            # Utilities
+supabase/
+└── functions/      # Edge functions (payments, payouts, market data)
+```
 
-## How can I deploy this project?
+## License
 
-Simply open [Lovable](https://lovable.dev/projects/52476e1b-de24-4133-afcf-e617a3922efc) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+All rights reserved © CricMaxx.

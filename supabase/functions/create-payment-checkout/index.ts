@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       console.log(`Found existing Stripe customer: ${customerId}`);
     }
 
-    const origin = req.headers.get("origin") || "https://shariz-predict.lovable.app";
+    const origin = req.headers.get("origin") || "https://cricmaxx.com";
 
     // Build payment method types based on preference
     // Stripe Checkout automatically shows Apple Pay/Google Pay when available

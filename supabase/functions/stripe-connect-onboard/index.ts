@@ -82,7 +82,7 @@ serve(async (req) => {
     }
 
     // Get the origin for return URLs
-    const origin = req.headers.get("origin") || "https://shariz-predict.lovable.app";
+    const origin = req.headers.get("origin") || "https://cricmaxx.com";
 
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
