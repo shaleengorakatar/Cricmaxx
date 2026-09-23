@@ -1,6 +1,6 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
 };
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -73,9 +73,20 @@ Deno.serve(async (req) => {
     let userId: string;
 
     if (isScheduled) {
-      // Scheduled execution from cron - get first admin as creator
+      // Scheduled execution - require the shared cron secret
+      const cronSecret = Deno.env.get('CRON_SECRET');
+      const providedSecret = req.headers.get('x-cron-secret');
+
+      if (!cronSecret || !providedSecret || providedSecret !== cronSecret) {
+        console.warn('Rejected scheduled invocation: invalid or missing x-cron-secret');
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized: Invalid cron secret' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       console.log('Running as scheduled task');
-      
+
       const { data: adminRole, error: adminError } = await supabaseClient
         .from('user_roles')
         .select('user_id')
